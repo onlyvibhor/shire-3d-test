@@ -36,10 +36,10 @@ function sample(h) {
 }
 
 export const TIME_MODES = [
-  { id: 'auto', label: 'Auto', icon: '◐' },
-  { id: 'day', label: 'Day', icon: '☀', hour: 11.5 },
-  { id: 'sunset', label: 'Sunset', icon: '◒', hour: 18.2 },
-  { id: 'night', label: 'Night', icon: '☾', hour: 22 },
+  { id: 'auto', label: 'Auto', icon: '🔄' },
+  { id: 'day', label: 'Day', icon: '☀️', hour: 11.5 },
+  { id: 'sunset', label: 'Sunset', icon: '🌅', hour: 18.2 },
+  { id: 'night', label: 'Night', icon: '🌙', hour: 22 },
 ];
 
 export function createDayNight({ scene, sun, hemi, sky, renderer, bloom }) {
@@ -115,7 +115,10 @@ export function createDayNight({ scene, sun, hemi, sky, renderer, bloom }) {
   function update(dt) {
     const mode = TIME_MODES[state.mode];
     if (mode.id === 'auto') state.hour = (state.hour + dt * (24 / 480)) % 24; // a full day every 8 minutes
-    else state.hour = THREE.MathUtils.lerp(state.hour, mode.hour, Math.min(1, dt * 1.5));
+    else {
+      const diff = mode.hour - state.hour;
+      state.hour += Math.sign(diff) * Math.min(Math.abs(diff), Math.max(Math.abs(diff) * dt * 1.5, dt * 2));
+    }
     apply();
   }
 

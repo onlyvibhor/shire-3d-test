@@ -100,10 +100,10 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
       .join('');
     panel.innerHTML = `
       <button class="close" aria-label="Close">×</button>
-      <p class="eyebrow">${p.id === 'hq' ? 'Home base' : 'Department'} · ${esc(p.place)}</p>
+      <p class="eyebrow">${{ hq: 'Home base', home: 'Home', fun: 'Hobbies', lab: 'Studio' }[p.id] || 'Department'} · ${esc(p.place)}</p>
       <h2>${esc(p.name)}</h2>
       <p class="lead">${esc(p.lead)}</p>
-      <h3>${p.id === 'hq' ? 'What I do' : p.id === 'lab' ? 'What happens here' : 'How I work with this team'}</h3>
+      <h3>${{ hq: 'What I do', lab: 'What happens here', home: 'About me', fun: 'After hours' }[p.id] || 'How I work with this team'}</h3>
       <ul>${p.how.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
       ${p.makes ? `<div class="chips">${p.makes.map((m) => `<span class="chip">${esc(m)}</span>`).join('')}</div>` : ''}
       ${work ? `<h3>Work shipped together</h3><div class="works">${work}</div>` : ''}
