@@ -241,6 +241,70 @@ function makeBillboard(slug, color, ctx, size = 1) {
   return g;
 }
 
+// A wall of smaller posters, for departments with more work than billboard slots
+function wallHeaderTexture(text, sub, color) {
+  return canvasTexture(512, 400, (ctx, w, h) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '800 64px "Bricolage Grotesque", Inter, sans-serif';
+    ctx.textBaseline = 'top';
+    text.split('\n').forEach((line, k) => ctx.fillText(line, 36, 60 + k * 72, w - 72));
+    ctx.font = '500 30px Inter, sans-serif';
+    ctx.fillText(sub, 36, h - 80, w - 72);
+  });
+}
+
+function makeCampaignWall(slugs, color, ctx, header) {
+  const g = new THREE.Group();
+  const cols = 3;
+  const PW = 2.2;
+  const PH = 1.72;
+  const gap = 0.32;
+  const rowH = PH + 0.62;
+  const base = 0.85;
+  const W = cols * PW + (cols + 1) * gap;
+  const rows = Math.ceil((slugs.length + 1) / cols);
+  const H = rows * rowH + gap;
+  for (const sx of [-1, 1]) g.add(mesh(new THREE.BoxGeometry(0.24, base + H, 0.2), WHITE_METAL, sx * (W / 2 - 0.3), (base + H) / 2, 0));
+  g.add(mesh(new THREE.BoxGeometry(W, H, 0.18), WHITE_METAL, 0, base + H / 2, 0));
+  const strip = new THREE.Mesh(new THREE.BoxGeometry(W, 0.06, 0.06), glow(color, 2.5));
+  strip.position.set(0, base + H + 0.06, 0.08);
+  g.add(strip);
+  const cells = [{ header: true }, ...slugs.map((slug) => ({ slug }))];
+  const both = (m, y, x, z) => {
+    m.position.set(x, y, z);
+    const back = m.clone();
+    back.position.z = -z;
+    back.rotation.y = Math.PI;
+    back.userData = { ...m.userData };
+    g.add(m, back);
+    return back;
+  };
+  cells.forEach((c, k) => {
+    const col = k % cols;
+    const row = Math.floor(k / cols);
+    const x = -W / 2 + gap + PW / 2 + col * (PW + gap);
+    const y = base + H - gap - row * rowH - PH / 2;
+    if (c.header) {
+      both(new THREE.Mesh(new THREE.PlaneGeometry(PW, PH + 0.42), new THREE.MeshBasicMaterial({ map: wallHeaderTexture(header.title, header.sub, color), toneMapped: false })), y - 0.21, x, 0.1);
+      return;
+    }
+    const p = PROJECTS[c.slug];
+    const img = new THREE.Mesh(new THREE.PlaneGeometry(PW, PH), new THREE.MeshBasicMaterial({ map: coverTexture(p.images[0], PW / PH), toneMapped: false }));
+    img.userData = { slug: c.slug, dynamic: true };
+    const title = new THREE.Mesh(new THREE.PlaneGeometry(PW, PW / 8), new THREE.MeshBasicMaterial({ map: titleTexture(p.title, color), toneMapped: false }));
+    title.userData = { slug: c.slug, dynamic: true };
+    ctx.clickables.push(img, both(img, y, x, 0.1), title, both(title, y - PH / 2 - 0.2, x, 0.1));
+    const marker = new THREE.Object3D();
+    marker.position.set(x + (row ? 0.6 : -0.6), 0, 1.6); // stagger so stacked posters each have a spot
+    marker.userData.project = c.slug;
+    g.add(marker);
+  });
+  for (const x of [-W / 3, 0, W / 3]) collider(g, W / 6 + 0.1, x, 0);
+  return g;
+}
+
 // ---------- Text bubbles that float up (questions, likes) ----------
 
 function bubbleTexture(text, bg, fg = '#0f172a') {
@@ -326,7 +390,19 @@ function buildHamlet(scene, h, i, ctx) {
 
   // Projects on billboards around the plaza
   const slots = [-30, 30, -82, 82];
-  h.projects.forEach((slug, k) => {
+  const many = h.projects.length > slots.length;
+  const boards = many ? h.projects.slice(0, 3) : h.projects;
+  if (many) {
+    // the rest of the department's work goes on a poster wall in the last slot
+    const t = THREE.MathUtils.degToRad(slots[3]);
+    const x = Math.sin(t) * 11.5;
+    const z = -Math.cos(t) * 11.5;
+    const wall = makeCampaignWall(h.projects.slice(3), h.color, ctx, { title: h.wallTitle || 'More\nwork', sub: `${h.projects.length - 3} more · press E` });
+    wall.position.set(x, 0, z);
+    wall.rotation.y = face(x, z);
+    g.add(wall);
+  }
+  boards.forEach((slug, k) => {
     const t = THREE.MathUtils.degToRad(slots[k]);
     const x = Math.sin(t) * 11;
     const z = -Math.cos(t) * 11;

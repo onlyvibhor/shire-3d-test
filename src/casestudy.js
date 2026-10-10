@@ -46,7 +46,153 @@ function toolCase(tool, extra = {}) {
   };
 }
 
+const fbVideo = (id) => `https://www.facebook.com/plugins/video.php?height=476&href=https%3A%2F%2Fwww.facebook.com%2Fblinkit.india%2Fvideos%2F${id}%2F&show_text=false&width=268&t=0`;
+const fbPost = (id) => `https://www.facebook.com/plugins/post.php?href=https%3A%2F%2Fwww.facebook.com%2Fblinkit.india%2Fposts%2F${id}&show_text=true&width=500`;
+
 const SYNTH = {
+  grofery: () => ({
+    title: 'Grofery Talks',
+    title_lines: 'Grofery\nTalks',
+    client: 'Grofers (now Blinkit)',
+    role: 'Co-created with Anurag Gupta',
+    year: '2021',
+    category: 'Animated comic series · Social',
+    tagline: 'Find out what your everyday groceries do *when you are not around.*',
+    cover: { image: 'work/grofery-cover.jpg' },
+    sections: [
+      {
+        type: 'text',
+        label: 'The idea',
+        title: 'A slice of life, from the groceries’ point of view.',
+        body: 'Grofery Talks is an animated comic series for Grofers: everyday groceries come alive and get up to things while nobody is watching. Each episode is a short, funny insight into the products people order every day.',
+      },
+      { type: 'embeds', label: 'The episodes', items: ['782742652437290', '532523954572299', '875528089719648', '3494605870643090', '831575707749511'].map((id) => ({ src: fbVideo(id), w: 268, h: 476 })) },
+      { type: 'embeds', label: 'On the Grofers page', items: ['1719934011535182', '1720727664789150'].map((id) => ({ src: fbPost(id), w: 500, h: 620 })) },
+      { type: 'tools', label: 'Tags', items: ['Advertising', 'Content', 'Food', 'Funny', 'Grocery', 'Insight', 'Slice of life', 'Video'] },
+    ],
+    team: [{ name: 'Anurag Gupta', role: 'Co-owner' }, { name: 'Vibhor Mathur', role: 'Co-owner' }],
+    links: [{ label: 'Behance project', url: 'https://www.behance.net/gallery/125711823/Comic-Series-Grofery-Talks' }],
+  }),
+  afsaane: () => ({
+    title: 'Afsaane Aam ke',
+    title_lines: 'Afsaane\nAam ke',
+    client: 'Grofers',
+    role: 'With Zahid Shaikh & Snehlata Maurya',
+    year: '2018',
+    category: 'Instagram Stories · Motion',
+    tagline: 'A mango’s journey *to the top of the app.*',
+    cover: { image: 'behance/afsaane/cover.jpg' },
+    sections: [
+      {
+        type: 'text',
+        label: 'The brief',
+        title: 'Show the quality of the mangoes on Grofers.',
+        body: 'To increase awareness about the quality of mangoes available on the Grofers app, we created a campaign made for Instagram Stories: a mango becomes a top product on the app, and the story follows all the quality checks it goes through to reach the top.',
+      },
+      { type: 'video', url: 'https://www.youtube.com/watch?v=XRloLpiUg7c', caption: 'The story, in full' },
+      { type: 'clips', label: 'Story frames', columns: 3, clips: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '11', '12', '13', '15'].map((n) => ({ video: `behance/afsaane/${n}.mp4` })) },
+      { type: 'tools', label: 'Tags', items: ['Motion graphics', 'Character', 'Animation', 'After Effects', 'Social media', 'Mango season'] },
+    ],
+    team: [{ name: 'Zahid Shaikh', role: 'Co-owner' }, { name: 'Vibhor Mathur', role: 'Co-owner' }, { name: 'Snehlata Maurya', role: 'Co-owner' }],
+    links: [{ label: 'Behance project', url: 'https://www.behance.net/gallery/68487363/Afsaane-Aam-ke-Digital-Campaign' }],
+  }),
+  'love-story': () => ({
+    title: 'Love Story',
+    title_lines: 'Love\nStory',
+    client: 'Grofers',
+    role: 'Campaign idea, art direction, animation',
+    year: '2019',
+    category: 'Valentine’s Day · Social',
+    tagline: 'Grofers’ *Valentine’s Day* campaign.',
+    cover: { image: 'behance/love-story/cover.jpg' },
+    sections: [
+      { type: 'image', image: 'behance/love-story/1.jpg', size: 'wide' },
+      { type: 'image', image: 'behance/love-story/2.jpg', size: 'wide' },
+      { type: 'image', image: 'behance/love-story/3.jpg', size: 'wide' },
+      { type: 'image', image: 'behance/love-story/4.jpg', size: 'wide' },
+      { type: 'tools', label: 'Tags', items: ['Campaign', 'Instagram', 'Love', 'Social media campaign', 'Valentine’s Day'] },
+    ],
+    team: [
+      { name: 'Vibhor Mathur', role: 'Campaign idea, art direction, animation' },
+      { name: 'Zahid Shaikh', role: 'Campaign idea' },
+      { name: 'Meera Pawar', role: 'Copywriter' },
+      { name: 'Shrijan Bhattacharya', role: 'Illustrations' },
+    ],
+    links: [{ label: 'Behance project', url: 'https://www.behance.net/gallery/123231821/Love-Story-Valentines-Day-Grofers' }],
+  }),
+  'winter-foods': () => ({
+    title: 'Winter Foods',
+    title_lines: 'Winter\nFoods',
+    client: 'Grofers',
+    role: 'Senior Creative',
+    year: '2020',
+    category: 'Stop motion · Craft',
+    tagline: 'Winter foods, *knitted in wool.*',
+    cover: { image: 'behance/winter-foods/cover.jpg' },
+    sections: [
+      { type: 'image', image: 'behance/winter-foods/1.jpg', size: 'wide' },
+      { type: 'embeds', label: 'The films', items: ['QR7oHPbR3nj', 'F-BtqD2I2eT', '4WUtZyvu9Ly', 'Lt9PJ3UYmjM', 'FzH8vbds7k4'].map((id) => ({ src: `https://www-ccv.adobe.io/v1/player/ccv/${id}/embed?api_key=behance1&bgcolor=%23191919`, w: 360, h: 360 })) },
+      { type: 'image_grid', columns: 2, images: ['3', '4', '5', '6'].map((n) => ({ image: `behance/winter-foods/${n}.jpg` })) },
+      { type: 'tools', label: 'Tags', items: ['Stop motion', 'Craft', 'Wool', 'Typography', 'Motion graphics', 'Photoshop', 'Food'] },
+    ],
+    team: [
+      { name: 'Snehlata Maurya', role: 'Creative Designer' },
+      { name: 'Arif Jamal', role: 'Creative Designer' },
+      { name: 'Vibhor Mathur', role: 'Senior Creative' },
+      { name: 'Meera Pawar', role: 'Copywriter' },
+    ],
+    links: [{ label: 'Behance project', url: 'https://www.behance.net/gallery/88918687/Winters-Foods-stop-motion' }],
+  }),
+  unskippable: () => ({
+    title: 'YouTube Unskippable ads',
+    title_lines: 'Unskip-\npable',
+    client: 'Grofers',
+    role: 'With Sneh Shruti & Harsh Vardhan',
+    year: '2017',
+    category: 'YouTube bumper ads',
+    tagline: 'Running out of anything? *Order from Grofers.*',
+    cover: { image: 'behance/unskippable/cover.jpg' },
+    sections: [
+      { type: 'statement', text: 'Running out of anything, *order from Grofers.*' },
+      ...['nnPT91iSoHs', 'n3iXAbqivtA', 'eUeEX8P8WMQ', 'v9hwiqITOFg', 'Snz-vp0lpPg'].map((id, k) => ({ type: 'video', url: `https://www.youtube.com/watch?v=${id}`, caption: `Bumper ${k + 1}` })),
+      { type: 'tools', label: 'Tags', items: ['YouTube', 'Bumper', 'Digital', 'Unskippable'] },
+    ],
+    team: [{ name: 'Vibhor Mathur', role: 'Co-owner' }, { name: 'Sneh Shruti', role: 'Co-owner' }, { name: 'Harsh Vardhan', role: 'Co-owner' }],
+    links: [{ label: 'Behance project', url: 'https://www.behance.net/gallery/50154055/Youtube-Unskippable-ads' }],
+  }),
+  'diwali-2020': () => ({
+    title: 'Ek Diye Se Do Ghar Roshan',
+    title_lines: 'Ek Diye Se\nDo Ghar Roshan',
+    client: 'Grofers',
+    role: 'Diwali social campaign',
+    year: '2020',
+    category: 'Festive · Cause · Social',
+    tagline: 'One diya *lights up two homes.*',
+    cover: { image: 'behance/diwali-2020/cover.jpg' },
+    sections: [
+      { type: 'image', image: 'behance/diwali-2020/1.jpg', size: 'wide' },
+      {
+        type: 'text',
+        label: 'Background',
+        title: 'The potters’ markets cities forgot.',
+        body: 'Every city has at least one market where local potters live, make and sell their mud and clay diyas, god idols, planters and more. With migration between cities and shopping shifting to convenience, most people living in the city have lost track of where these markets are. They are the cheapest source for these goods, and Diwali is the season these potters earn their living, yet they lose a lot of money on unsold goods or never get a proper platform to sell.',
+      },
+      { type: 'text', label: 'Objective', title: 'Help local potters earn more this festive season.', body: 'Give local potters a platform on Grofers to sell their products during the festival season.' },
+      {
+        type: 'steps',
+        label: 'Communication',
+        title: 'Two stages.',
+        items: [
+          { title: 'Awareness', body: 'Create awareness about the local potters’ produce, and how Grofers supports their cause by bringing them and customers together.' },
+          { title: 'Follow-up', body: 'Remind people about the cause, and ask them to buy from Grofers.' },
+        ],
+      },
+      { type: 'statement', text: 'Campaign idea: *Ek Diye Se Do Ghar Roshan.*' },
+      { type: 'video', url: 'https://www.youtube.com/watch?v=rqRZSCynXso', caption: 'The Diwali film' },
+      { type: 'tools', label: 'Tags', items: ['Diwali', 'Potters', 'Social', 'Cause'] },
+    ],
+    links: [{ label: 'Behance project', url: 'https://www.behance.net/gallery/122959875/diwali-social-campaign-grofers-2020' }],
+  }),
   toolkit: () => ({
     title: 'The Studio AI Toolkit',
     title_lines: 'Studio\nAI Toolkit',
@@ -139,6 +285,8 @@ function block(b) {
       return `<section class="cs-blk"><div class="cs-row"><h4>${esc(b.label || 'Stack')}</h4><div class="cs-chips">${(b.items || []).map((t) => `<span>${esc(typeof t === 'string' ? t : t.tool || t.name)}</span>`).join('')}</div></div></section>`;
     case 'metrics':
       return `<section class="cs-blk"><div class="cs-row"><h4>${esc(b.label)}</h4><div class="cs-metrics">${(b.items || []).map((m) => `<div><b>${esc(m.value)}</b><span>${esc(m.label)}</span></div>`).join('')}</div></div></section>`;
+    case 'embeds':
+      return `<section class="cs-blk"><div class="cs-row"><h4>${esc(b.label || '')}</h4><div></div></div><div class="cs-embeds">${(b.items || []).map((e) => `<div class="cs-embed" style="--w:${e.w}px;--ar:${e.w}/${e.h}"><iframe src="${esc(e.src)}" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share" allowfullscreen title="Embedded post"></iframe></div>`).join('')}</div></section>`;
     case 'quote':
       return `<section class="cs-blk"><q class="cs-quote">${inline(b.text)}</q>${b.who ? `<p class="cs-who">${esc(b.who)}</p>` : ''}</section>`;
     default:
