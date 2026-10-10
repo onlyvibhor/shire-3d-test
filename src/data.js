@@ -72,6 +72,7 @@ export const PROJECTS = {
     link: 'https://www.behance.net/gallery/254665051/Break-To-Build-Razorpay-IPL-Campaign',
   },
   ace: {
+    repo: 'agentic-commerce-engine',
     title: 'Agentic Commerce Engine',
     client: 'Razorpay · Global Fintech Fest 2026',
     year: '2026',
@@ -84,6 +85,7 @@ export const PROJECTS = {
     link: 'https://www.behance.net/gallery/255895063/Agentic-Commerce-Engine-Launch-Video',
   },
   intl: {
+    repo: 'international-payments',
     title: 'International Payments Launch Video',
     client: 'Razorpay',
     year: '2023',
@@ -96,6 +98,7 @@ export const PROJECTS = {
     link: 'https://www.behance.net/gallery/185746781/Razorpay-International-Payments-Launch-Video',
   },
   money: {
+    repo: 'moneysaver-export-account',
     title: 'MoneySaver Export Account',
     client: 'Razorpay International Payments',
     year: '2023',
@@ -107,6 +110,7 @@ export const PROJECTS = {
     link: 'https://www.behance.net/gallery/185754027/MoneySaver-Export-Account-AI-Gen-campaign',
   },
   passport: {
+    repo: 'passport-for-your-products',
     title: 'Passport For Your Product',
     client: 'Razorpay International Payments',
     year: '2023',
@@ -119,6 +123,7 @@ export const PROJECTS = {
     link: 'https://www.behance.net/gallery/185756345/Passport-For-Your-Products-AI-Gen-Campaign',
   },
   whatsapp: {
+    repo: 'payments-on-whatsapp',
     title: 'Payments on WhatsApp: Melancholy',
     client: 'Razorpay',
     year: '2023',
@@ -155,6 +160,7 @@ export const PROJECTS = {
     link: 'https://www.behance.net/gallery/254798253/Back-in-the-ring-Netbanking-Comeback-Razorpay',
   },
   conv: {
+    repo: 'magic-conversations',
     title: 'Magic Conversations',
     client: 'Razorpay Magic Checkout',
     year: '2023',
@@ -216,6 +222,7 @@ export const PROJECTS = {
     link: 'https://www.behance.net/onlyvibhor',
   },
   grofers: {
+    repo: 'grofers-logo-guidelines',
     title: 'Grofers Logo Guidelines',
     client: 'Grofers (now Blinkit)',
     year: '2021',
@@ -261,6 +268,7 @@ export const PROJECTS = {
     link: 'https://www.onlyvibhor.com/post/stable-diffusion-ai-and-controlnet',
   },
   aiexp: {
+    repo: 'ai-experiments',
     title: 'AI Experiments',
     client: 'Personal · AI art',
     year: '2023',
@@ -431,7 +439,170 @@ export const LAB = {
   quotes: ['Every landscape here started as an animal silhouette.', 'Warhol loved the Absolut bottle. So did ControlNet.'],
 };
 
+// Vibhor's home: about, path, and a way to reach him.
+export const HOME = {
+  id: 'home',
+  name: 'Vibhor’s Home',
+  place: 'Jaipur Pink House',
+  color: '#e0786a',
+  lead: 'Self-taught designer from Jaipur, engineer by degree, now in Bengaluru. Knock on the door, or drop a note in the mailbox.',
+  how: [
+    'Designing narratives by day, crafting emotions through art by night',
+    'Eleven years across consumer commerce and fintech: Grofers (now Blinkit), then Razorpay',
+    'Open to conversations about creative leadership, AI-native studios and award-worthy work',
+  ],
+  makes: ['Creative leadership', 'AI-native production', 'Mentoring'],
+  projects: [],
+  quotes: ['Welcome home! The mailbox by the gate goes straight to Vibhor’s inbox.', 'The pink walls are a nod to Jaipur, where it all started.'],
+};
+
+// The entertainment and hobby zone.
+export const FUN = {
+  id: 'fun',
+  name: 'The Playhouse',
+  place: 'Hobbies & entertainment',
+  color: '#ff9f1c',
+  lead: 'After hours: AI art, stop motion, found-object art, and quirky little things for Instagram.',
+  how: [
+    'Stop-motion animation on a tabletop set',
+    'Found-object art: everyday things turned into small vessels of emotion',
+    'AI art experiments with Stable Diffusion, ControlNet and Midjourney',
+    'Fun, quirky content for Instagram, from introspective musings to one-liners',
+  ],
+  makes: ['Stop motion', 'Found objects', 'AI art', 'Instagram'],
+  projects: [],
+  quotes: ['Grab some popcorn. The screen is showing the studio’s films.', 'Want the arcade? Back in the Ring started as a game idea.'],
+};
+
+// Films, shows and references. `influences` are documented in the case studies.
+// Add personal favourites to `films` / `shows` as { title, year, note } and they appear on the poster wall.
+export const FAVOURITES = {
+  influences: [
+    { title: 'Damini', year: '1993', note: 'Its "sawaal pe sawaal" courtroom scene inspired Trial of the Century.' },
+    { title: 'Panchatantra', year: 'Fables', note: 'The animal courtroom of Trial of the Century draws on these stories.' },
+    { title: 'Absolut × Warhol', year: '1985', note: 'The bottle-as-canvas campaign behind Absolut Landscapes.' },
+  ],
+  films: [],
+  shows: [],
+};
+
+// Contact form. Set `endpoint` to a form service URL (e.g. Formspree) to send in-page; otherwise it opens email.
+export const CONTACT = {
+  endpoint: '',
+  intents: ['A full-time role', 'A project or collaboration', 'Mentoring', 'A talk or workshop', 'Just saying hi'],
+};
+
 // Optional generated assets (e.g. from Higgsfield). Drop files in public/assets and set paths here.
 export const ASSETS = {
   skybox: null, // equirectangular panorama, e.g. 'assets/sky.jpg'
+};
+
+// What villagers think about (their next idea, objective, or AI in their field),
+// and what they ask when you walk up to them.
+export const NPC_TALK = {
+  brand: {
+    roles: ['Brand manager', 'Creative director', 'Film producer', 'Brand strategist'],
+    thoughts: [
+      'Next idea: a founder stadium for IPL 2027?',
+      'Objective: one visual language from TV to print.',
+      'AI: could we pre-viz every TVC in a day?',
+      'What if the jersey became the whole campaign?',
+      'Next tentpole is GFF. Needs a film people talk about.',
+    ],
+    asks: [
+      'Vibhor! Can we storyboard the next tentpole film together?',
+      'Could your team turn our brand book into an AI style system?',
+      'Want to do another 100% AI launch film with us?',
+    ],
+  },
+  pmm: {
+    roles: ['Product marketing manager', 'Growth marketer', 'Media planner'],
+    thoughts: [
+      'Objective: explain the new product in 45 seconds.',
+      'AI: product shots without booking a studio?',
+      'Idea: a launch film for every persona.',
+      'Next: performance ads that still look premium.',
+    ],
+    asks: [
+      'Can we use the Product Image Generator for our next launch?',
+      'Help us crack the story for the next exporter launch?',
+      'Could the studio make 20 ad variants by Friday?',
+    ],
+  },
+  product: {
+    roles: ['Product manager', 'Web designer', 'Frontend engineer', 'Merchant success'],
+    thoughts: [
+      'Idea: a checkout you can actually play with.',
+      'Objective: turn the feature list into a world.',
+      'AI: designers shipping landing pages without a dev queue?',
+      'Next relaunch could be a game. Again?',
+    ],
+    asks: [
+      'Can our next landing page be a game, like Back in the Ring?',
+      'Vibhor, can design own the motion on our launch page?',
+      'Could we film more merchant stories this quarter?',
+    ],
+  },
+  social: {
+    roles: ['Social lead', 'Creator', 'Community manager'],
+    thoughts: [
+      'Idea: Razorbae, season two?',
+      'Objective: 30 posts a week, all on-brand.',
+      'AI: auto-cut reels straight from the TVC?',
+      'Next trend: founder POV videos.',
+    ],
+    asks: [
+      'Can Social Content Gen do Hindi and Tamil posts next?',
+      'Shall we co-create a new AI avatar series?',
+      'Could we run another Wall of Laughter, for founders this time?',
+    ],
+  },
+  copy: {
+    roles: ['Copywriter', 'Scriptwriter', 'Content strategist'],
+    thoughts: [
+      'Idea: Panchatantra season two, for payroll?',
+      'Objective: find the insight before the headline.',
+      'AI: a voice-and-tone checker on every draft?',
+      'Next: scripts that start from customer interviews.',
+    ],
+    asks: [
+      'Can we pair a writer and a designer from day one?',
+      'Could the courtroom from Trial become a series?',
+      'Will you art-direct our next script read?',
+    ],
+  },
+  design: {
+    roles: ['Designer', 'Motion designer', '3D artist', 'Design intern'],
+    thoughts: [
+      'Idea: a motion tool next to the Cinematography Tool?',
+      'Objective: every deck on the new design language.',
+      'AI: teach the Founder tool some new poses.',
+      'Crit is Friday. Bring work in progress!',
+    ],
+    asks: [
+      'Vibhor, could you review my portfolio this week?',
+      'Can I join the next AI design workshop?',
+      'Can we pair on the next tool for the studio?',
+    ],
+  },
+  hq: {
+    roles: ['Studio designer', 'Studio producer', 'Visiting marketer'],
+    thoughts: ['Coffee first, then ideas.', 'What would make this award-worthy?', 'Objective: ship it on Friday.', 'AI: what can we automate next?'],
+    asks: ['Got a minute for a quick crit?', 'Can the studio take one more brief this sprint?', 'Want to grab a filter coffee and jam on ideas?'],
+  },
+  lab: {
+    roles: ['Artist'],
+    thoughts: ['What shape hides inside this landscape?', 'Stop motion tonight?'],
+    asks: ['Want to try a ControlNet experiment together?'],
+  },
+  home: {
+    roles: ['Neighbour', 'Visitor'],
+    thoughts: ['I should write to Vibhor about that project.', 'Nice pink walls. Very Jaipur.'],
+    asks: ['Are you here to see Vibhor? The mailbox is by the gate.'],
+  },
+  fun: {
+    roles: ['Movie buff', 'Stop-motion animator', 'Gamer'],
+    thoughts: ['One more frame... 24 per second is a lot.', 'Popcorn break!', 'High score: Back in the Ring, level 3.'],
+    asks: ['Want to animate a scene with me?', 'Seen the studio’s films on the big screen yet?'],
+  },
 };

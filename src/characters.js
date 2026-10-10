@@ -12,7 +12,7 @@ const G = (key, make) => (geoCache[key] ||= make());
 
 const pick = (arr, s) => arr[Math.floor(s * 997) % arr.length];
 
-const PERSON_MAT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.68 });
+const PERSON_MAT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.72, envMapIntensity: 0.45, transparent: false });
 const _m = new THREE.Matrix4();
 const _q = new THREE.Quaternion();
 const _e = new THREE.Euler();
@@ -58,9 +58,11 @@ export function makePerson(opts = {}) {
   const rig = new Rig();
 
   const root = new THREE.Group();
+  const tilt = new THREE.Group(); // pivots at the feet, used for knock-downs
+  root.add(tilt);
   const hips = new THREE.Group();
   hips.position.y = 0.95;
-  root.add(hips);
+  tilt.add(hips);
   const chest = new THREE.Group();
   hips.add(chest);
 
@@ -123,7 +125,7 @@ export function makePerson(opts = {}) {
 
   const scale = opts.scale ?? 0.95 + ((seed * 17) % 1) * 0.1;
   root.scale.setScalar(scale);
-  return { root, parts: { hips, chest, head, armL, armR, legL, legR }, phase: seed * 10, props: {} };
+  return { root, parts: { tilt, hips, chest, head, armL, armR, legL, legR }, phase: seed * 10, props: {}, look: 0, lookW: 0, react: null };
 }
 
 // Attach a small prop to the right hand (phone, camera, laptop...).
@@ -158,6 +160,9 @@ export function giveProp(person, kind, color = '#1c1f26') {
       arm.elbow.add(gl);
     }
     return;
+  } else if (kind === 'cup') {
+    m = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.038, 0.12, 10), new THREE.MeshStandardMaterial({ color: color === '#1c1f26' ? '#ffffff' : color, roughness: 0.5 }));
+    m.position.set(0, -0.32, 0.05);
   } else if (kind === 'parcel') {
     m = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.3, 0.3), new THREE.MeshStandardMaterial({ color, roughness: 0.6 }));
     m.position.set(-0.25, 0.15, 0.32);
@@ -168,8 +173,85 @@ export function giveProp(person, kind, color = '#1c1f26') {
   hand.add(m);
 }
 
-/** Pose a person for an action at time t. `speed` drives the walk/run cycle. */
+/** Pose a person for an action at time t, then layer look-at and physical reactions on top. */
 export function animate(p, action, t, speed = 0) {
+  const r = p.react;
+  if (r && r.type === 'wave' && t - r.t0 < 2.4) pose(p, 'wave', t, 0);
+  else pose(p, action, t, speed);
+  if (p.lookW > 0.01) {
+    p.parts.head.rotation.y = THREE.MathUtils.lerp(p.parts.head.rotation.y, p.look, p.lookW);
+    p.parts.chest.rotation.y += p.look * 0.25 * p.lookW;
+  }
+  applyReaction(p, t);
+}
+
+// Knock someone over (`fall`) or shove them (`stumble`). `dir` is a unit vector in the person's local space.
+export function hit(p, type, dir, t) {
+  if (p.react && (p.react.type === 'fall' || p.react.type === 'stumble') && t - p.react.t0 < (p.react.type === 'fall' ? 4.2 : 1.2)) return false;
+  p.react = { type, t0: t, dir: dir.clone().setY(0).normalize(), theta: 0, omega: type === 'fall' ? 3.2 : 0, last: t };
+  return true;
+}
+
+const _axis = new THREE.Vector3();
+function applyReaction(p, t) {
+  const r = p.react;
+  const { tilt, head, armL, armR, legL, legR, chest } = p.parts;
+  if (!r || r.type === 'wave') {
+    tilt.quaternion.identity();
+    return;
+  }
+  const tau = t - r.t0;
+  const dt = Math.min(0.05, Math.max(0, t - r.last));
+  r.last = t;
+  let theta = 0;
+  if (r.type === 'stumble') {
+    if (tau > 1.2) {
+      p.react = null;
+      tilt.quaternion.identity();
+      return;
+    }
+    theta = 0.42 * Math.exp(-3.5 * tau) * Math.sin(tau * 9);
+    const flail = Math.exp(-3 * tau);
+    armL.shoulder.rotation.z -= 1.2 * flail;
+    armR.shoulder.rotation.z += 1.2 * flail;
+    head.rotation.x -= 0.4 * flail;
+  } else {
+    // A simple inverted-pendulum fall, a limp rag-doll on the ground, then getting back up.
+    const LIE = Math.PI / 2 - 0.08;
+    if (tau < 2.8) {
+      r.omega += 9 * Math.sin(Math.max(0.05, r.theta)) * dt;
+      r.theta += r.omega * dt;
+      if (r.theta > LIE) {
+        r.theta = LIE;
+        r.omega = -r.omega * 0.22;
+      }
+      theta = r.theta;
+    } else if (tau < 4.0) {
+      const k = (tau - 2.8) / 1.2;
+      theta = LIE * (1 - k * k * (3 - 2 * k));
+    } else {
+      p.react = null;
+      tilt.quaternion.identity();
+      return;
+    }
+    const limp = THREE.MathUtils.clamp(theta / LIE, 0, 1);
+    const bounce = Math.exp(-4 * Math.max(0, tau - 0.35)) * Math.sin(tau * 16);
+    armL.shoulder.rotation.set(-0.3 * limp, 0, -(1.3 + bounce * 0.4) * limp);
+    armR.shoulder.rotation.set(-0.2 * limp, 0, (1.2 - bounce * 0.4) * limp);
+    armL.elbow.rotation.x = -0.4 * limp;
+    armR.elbow.rotation.x = -0.6 * limp;
+    legL.hip.rotation.set(0.15 * limp, 0, -0.18 * limp);
+    legR.hip.rotation.set(-0.25 * limp, 0, 0.12 * limp);
+    legL.knee.rotation.x = 0.35 * limp;
+    legR.knee.rotation.x = 0.15 * limp;
+    head.rotation.x = (0.35 + bounce * 0.3) * limp;
+    chest.rotation.x = 0.1 * limp;
+  }
+  _axis.set(r.dir.z, 0, -r.dir.x).normalize();
+  tilt.quaternion.setFromAxisAngle(_axis, theta);
+}
+
+function pose(p, action, t, speed = 0) {
   const { hips, chest, head, armL, armR, legL, legR } = p.parts;
   const ph = t + p.phase;
   // neutral
@@ -326,6 +408,58 @@ export function animate(p, action, t, speed = 0) {
       legL.knee.rotation.x = legR.knee.rotation.x = (1 - j) * 0.3;
       break;
     }
+    case 'ride':
+      hips.position.y = 0.78;
+      legL.hip.rotation.set(-1.35, 0, -0.12);
+      legR.hip.rotation.set(-1.35, 0, 0.12);
+      legL.knee.rotation.x = 1.45;
+      legR.knee.rotation.x = 1.45;
+      armL.shoulder.rotation.x = armR.shoulder.rotation.x = -1.0;
+      armL.elbow.rotation.x = armR.elbow.rotation.x = -0.45;
+      armL.shoulder.rotation.z = 0.25;
+      armR.shoulder.rotation.z = -0.25;
+      chest.rotation.x = 0.18;
+      break;
+    case 'sit':
+      hips.position.y = 0.5;
+      legL.hip.rotation.set(-1.3, 0, -0.15);
+      legR.hip.rotation.set(-1.3, 0, 0.15);
+      legL.knee.rotation.x = 1.25;
+      legR.knee.rotation.x = 1.25;
+      armL.shoulder.rotation.x = armR.shoulder.rotation.x = -0.35;
+      armL.elbow.rotation.x = armR.elbow.rotation.x = -0.9;
+      chest.rotation.x = -0.12;
+      head.rotation.y = Math.sin(ph * 0.3) * 0.15;
+      break;
+    case 'jump':
+      legL.hip.rotation.x = -0.6;
+      legR.hip.rotation.x = -0.2;
+      legL.knee.rotation.x = 1.1;
+      legR.knee.rotation.x = 0.7;
+      armL.shoulder.rotation.z = -1.2;
+      armR.shoulder.rotation.z = 1.2;
+      armL.elbow.rotation.x = armR.elbow.rotation.x = -0.5;
+      break;
+    case 'coffee': {
+      const sip = Math.max(0, Math.sin(ph * 0.7)) ** 6;
+      armR.shoulder.rotation.x = -0.5 - sip * 0.9;
+      armR.elbow.rotation.x = -1.5 - sip * 0.5;
+      armR.shoulder.rotation.z = -0.15;
+      head.rotation.x = -sip * 0.25;
+      head.rotation.y = Math.sin(ph * 0.4) * 0.3;
+      break;
+    }
+    case 'think':
+      armR.shoulder.rotation.x = -0.65;
+      armR.shoulder.rotation.z = -0.25;
+      armR.elbow.rotation.x = -2.1;
+      armL.shoulder.rotation.x = -0.45;
+      armL.shoulder.rotation.z = 0.35;
+      armL.elbow.rotation.x = -1.45;
+      head.rotation.x = -0.18;
+      head.rotation.z = Math.sin(ph * 0.5) * 0.1;
+      head.rotation.y = Math.sin(ph * 0.3) * 0.25;
+      break;
     case 'idle':
     default:
       head.rotation.y = Math.sin(ph * 0.4) * 0.3;

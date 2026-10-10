@@ -4,14 +4,15 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import './style.css';
-import { OWNER, PILLARS, CENTER, HAMLETS, LAB, PROJECTS, AWARDS, ASSETS } from './data.js';
+import { OWNER, PILLARS, CENTER, HAMLETS, LAB, HOME, FUN, PROJECTS, AWARDS, ASSETS, NPC_TALK, CONTACT, FAVOURITES } from './data.js';
 import {
   buildSky, makeSkyMaterial, buildClouds, buildTerrain, buildGrass, buildLavender, buildMountains, buildTrees, buildPollen,
   heightAt, POND, PATHS, WORLD_RADIUS,
 } from './world.js';
-import { buildMonoliths, buildSkyRail, buildFloatingProps } from './landmarks.js';
+import { buildMonoliths, buildSkyRail, buildFloatingProps, buildStreetLamps } from './landmarks.js';
+import { createDayNight } from './daynight.js';
 import { buildVillage } from './village.js';
-import { makePerson, animate } from './characters.js';
+import { makePerson, animate, hit } from './characters.js';
 import { createUI } from './ui.js';
 
 // ---------- Renderer, scene, light ----------
@@ -28,7 +29,7 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.92;
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog('#cfe6f2', 130, 520);
+scene.fog = new THREE.Fog('#d3e9f4', 170, 620);
 const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.2, 2000);
 
 // Environment map from the sky, so the white metal reflects blue sky and green land.
@@ -51,7 +52,8 @@ if (ASSETS.skybox) {
   });
 }
 
-scene.add(new THREE.HemisphereLight('#cfe9ff', '#4f7d32', 1.0));
+const hemi = new THREE.HemisphereLight('#cfe9ff', '#4f7d32', 1.0);
+scene.add(hemi);
 const sun = new THREE.DirectionalLight('#fff4e0', 3.3);
 const SUN_DIR = new THREE.Vector3(0.55, 0.62, 0.35).normalize();
 sun.castShadow = true;
@@ -71,13 +73,13 @@ setShadowRange(50);
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.32, 0.55, 0.92);
+const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.2, 0.5, 0.95);
 if (!LITE) composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
 // ---------- World ----------
 
-buildSky(scene);
+const sky = buildSky(scene);
 const updateClouds = buildClouds(scene);
 const { terrain } = buildTerrain(scene);
 const grassWind = buildGrass(scene, LITE ? 60000 : 180000);
@@ -87,9 +89,11 @@ const colliders = [];
 buildTrees(scene, colliders);
 buildMonoliths(scene, colliders);
 const updateRail = buildSkyRail(scene, colliders);
+buildStreetLamps(scene, colliders);
 const updateProps = buildFloatingProps(scene);
 const updatePollen = buildPollen(scene);
 const village = buildVillage(scene);
+const dayNight = createDayNight({ scene, sun, hemi, sky, renderer, bloom });
 colliders.push(...village.colliders);
 
 // ---------- Player: Vibhor ----------
@@ -140,6 +144,8 @@ const PLACES = [
   { ...CENTER, x: 0, z: 0, y: heightAt(0, 0), reach: 16 },
   ...HAMLETS.map((h) => ({ ...h, reach: 22 })),
   { ...LAB, reach: 9 },
+  { ...FUN, reach: 16 },
+  { ...HOME, reach: 16 },
 ];
 
 function nearestPlace(x, z) {
@@ -162,10 +168,11 @@ function travelTo(id) {
   if (p.id === 'hq') {
     x = 0;
     z = 15;
-  } else if (p.id === 'lab') {
+  } else if (p.id === 'lab' || p.id === 'home' || p.id === 'fun') {
     const a = Math.atan2(p.z, p.x);
-    x = p.x - Math.cos(a) * 7;
-    z = p.z - Math.sin(a) * 7;
+    const back = p.id === 'lab' ? 7 : 11;
+    x = p.x - Math.cos(a) * back;
+    z = p.z - Math.sin(a) * back;
   } else {
     x = p.x - Math.cos(p.angle) * 8;
     z = p.z - Math.sin(p.angle) * 8;
@@ -190,12 +197,15 @@ const ui = createUI({
   places: PLACES,
   projects: PROJECTS,
   awards: AWARDS,
+  contact: CONTACT,
+  favourites: FAVOURITES,
   onEnter: () => setMode('walk'),
   onTour: () => setMode('tour'),
   onOverview: () => setMode(state.mode === 'overview' ? 'walk' : 'overview'),
   onTravel: (id) => travelTo(id),
   onTourStep: (d) => tourStep(d),
   onExitTour: () => travelTo(PLACES[state.tourIndex].id),
+  onTime: () => ui.setTimeMode(dayNight.cycle()),
 });
 
 function setMode(mode, { snap = false } = {}) {
@@ -225,7 +235,7 @@ function tourStep(d) {
 // ---------- Input ----------
 
 const keys = new Set();
-let nearProject = null;
+let nearThing = null;
 window.addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
   if (ui.modalOpen()) {
@@ -242,14 +252,16 @@ window.addEventListener('keydown', (e) => {
   else if (k === 't') setMode(state.mode === 'tour' ? 'walk' : 'tour');
   else if (k === 'h') ui.toggleHire();
   else if (k === 'm') ui.toggleMissions();
-  else if ((k === 'e' || k === 'enter') && nearProject) ui.openProject(nearProject);
+  else if (k === 'l') ui.setTimeMode(dayNight.cycle());
+  else if ((k === 'e' || k === 'enter') && nearThing) act(nearThing);
+  else if (k === 'f' && state.mode === 'walk') waveAtNeighbours();
   else if (k === ' ' && state.mode === 'walk' && state.air === 0) state.vy = 6.5;
   else if (k === 'escape') {
     if (ui.closeOverlays()) return;
     if (state.mode === 'tour') travelTo(PLACES[state.tourIndex].id);
     else if (state.mode === 'overview') setMode('walk');
     else ui.hidePlace();
-  } else if (/^[0-7]$/.test(k)) travelTo(PLACES[Number(k)].id);
+  } else if (/^[0-9]$/.test(k) && PLACES[Number(k)]) travelTo(PLACES[Number(k)].id);
   else if (state.mode === 'tour' && (k === 'arrowright' || k === 'arrowleft')) tourStep(k === 'arrowright' ? 1 : -1);
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
 });
@@ -301,9 +313,12 @@ const ndc = new THREE.Vector2();
 function pick(e) {
   ndc.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
   raycaster.setFromCamera(ndc, camera);
-  const hit = raycaster.intersectObjects(village.clickables, false)[0];
+  const h = raycaster.intersectObjects(village.clickables, false)[0];
   const ground = raycaster.intersectObject(terrain)[0];
-  if (hit && (!ground || hit.distance < ground.distance)) return { slug: hit.object.userData.slug };
+  if (h && (!ground || h.distance < ground.distance)) {
+    const ud = h.object.userData;
+    return { action: ud.action || { kind: 'project', slug: ud.slug } };
+  }
   return ground ? { point: ground.point } : null;
 }
 let lastHover = 0;
@@ -311,13 +326,13 @@ function hover(e) {
   const now = performance.now();
   if (now - lastHover < 80 || state.mode === 'intro') return;
   lastHover = now;
-  canvas.style.cursor = pick(e)?.slug ? 'pointer' : '';
+  canvas.style.cursor = pick(e)?.action ? 'pointer' : '';
 }
 canvas.addEventListener('pointerup', (e) => {
   pointers.delete(e.pointerId);
   if (drag && !drag.moved && (state.mode === 'walk' || state.mode === 'overview')) {
     const res = pick(e);
-    if (res?.slug) ui.openProject(res.slug);
+    if (res?.action) act(res.action);
     else if (res?.point && Math.hypot(res.point.x, res.point.z) < WORLD_RADIUS) {
       state.target = res.point.clone();
       marker.visible = true;
@@ -357,7 +372,7 @@ function movePlayer(dt) {
     if (keys.has('d') || keys.has('arrowright')) ix += 1;
     if (state.mode === 'walk') {
       if (keys.has('q')) state.yaw += dt * 1.8;
-      if (keys.has('e') && !nearProject) state.yaw -= dt * 1.8;
+      if (keys.has('e') && !nearThing) state.yaw -= dt * 1.8;
     }
   }
   const yaw = state.mode === 'overview' ? state.ovYaw : state.yaw;
@@ -417,7 +432,7 @@ function movePlayer(dt) {
   state.pos.y = ground + state.air;
   player.root.position.copy(state.pos);
   player.root.rotation.y = state.heading;
-  animate(player, state.air > 0.05 ? 'cheer' : 'walk', elapsed, state.speed);
+  animate(player, state.air > 0.05 ? 'jump' : 'walk', elapsed, state.speed);
   halo.visible = state.air < 0.05;
   if (state.target) {
     marker.position.set(state.target.x, heightAt(state.target.x, state.target.z) + 0.08, state.target.z);
@@ -477,13 +492,13 @@ function updateCamera(dt, t) {
   camera.position.copy(camPos);
   camera.lookAt(camLook);
 
-  const far = state.mode === 'walk' ? 520 : 900;
-  const near = state.mode === 'walk' ? 130 : 300;
+  const far = state.mode === 'walk' ? 620 : 950;
+  const near = state.mode === 'walk' ? 170 : 320;
   scene.fog.far = THREE.MathUtils.lerp(scene.fog.far, far, 1 - Math.exp(-dt * 2));
   scene.fog.near = THREE.MathUtils.lerp(scene.fog.near, near, 1 - Math.exp(-dt * 2));
   const focus = state.mode === 'walk' ? state.pos : camLook;
   sun.target.position.copy(focus);
-  sun.position.copy(focus).addScaledVector(SUN_DIR, 200);
+  sun.position.copy(focus).addScaledVector(dayNight.state.sunDir, 200);
 }
 
 // ---------- Proximity: departments, projects, stones, trophies, chatter ----------
@@ -494,8 +509,9 @@ const tmpV = new THREE.Vector3();
 function updateProximity(t) {
   if (state.mode !== 'walk') {
     ui.prompt(null);
-    nearProject = null;
+    nearThing = null;
     ui.speech(null);
+    ui.thoughts([]);
     return;
   }
   const p = nearestPlace(state.pos.x, state.pos.z);
@@ -505,18 +521,25 @@ function updateProximity(t) {
     if (p) ui.showPlace(p);
     else ui.hidePlace();
   }
-  // projects
+  // things to interact with: project billboards, the mailbox, the poster wall...
   let best = null;
   let bd = 4.5;
   for (const pr of village.projects) {
     const d = Math.hypot(state.pos.x - pr.x, state.pos.z - pr.z);
     if (d < bd) {
       bd = d;
-      best = pr.slug;
+      best = { kind: 'project', slug: pr.slug, label: PROJECTS[pr.slug].title, verb: 'View project' };
     }
   }
-  nearProject = best;
-  ui.prompt(best ? PROJECTS[best].title : null);
+  for (const it of village.interactables) {
+    const d = Math.hypot(state.pos.x - it.x, state.pos.z - it.z);
+    if (d < bd) {
+      bd = d;
+      best = it;
+    }
+  }
+  nearThing = best;
+  ui.prompt(best);
   // stones
   let stone = null;
   for (const s of village.stones) if (Math.hypot(state.pos.x - s.x, state.pos.z - s.z) < 3.4) stone = s;
@@ -525,35 +548,113 @@ function updateProximity(t) {
     if (stone) ui.toast(`<b>${stone.pillar.rune} ${stone.pillar.name}</b><br>${stone.pillar.text}`, 6000);
   }
   // trophies
-  for (const tr of village.trophies) {
-    if (tr.collected) continue;
+  village.trophies.forEach((tr, i) => {
+    if (tr.collected) return;
     if (Math.hypot(state.pos.x - tr.x, state.pos.z - tr.z) < 2.6) {
       tr.collected = true;
       tr.g.visible = false;
       tr.beam.visible = false;
+      if (village.home?.cups[i]) village.home.cups[i].visible = true;
       ui.collectTrophy(tr.award);
     }
-  }
-  // chatter: nearest speaker within 10 units
-  let sp = null;
-  let sd = 10;
-  for (const s of village.speakers) {
-    s.obj.getWorldPosition(tmpV);
-    const d = Math.hypot(state.pos.x - tmpV.x, state.pos.z - tmpV.z);
-    if (d < sd) {
-      sd = d;
-      sp = s;
+  });
+  updateNpcs(t);
+}
+
+// ---------- Villagers: look at you, think, ask, and fall over when you run into them ----------
+
+const npcPos = new THREE.Vector3();
+const npcQuat = new THREE.Quaternion();
+const tmpDir = new THREE.Vector3();
+village.npcs.forEach((n, i) => {
+  n.i = i;
+  n.talk = NPC_TALK[n.dept] || NPC_TALK.hq;
+  n.role = n.name || n.talk.roles[i % n.talk.roles.length];
+  n.color = PLACES.find((p) => p.id === n.dept)?.color || CENTER.color;
+  n.deptName = PLACES.find((p) => p.id === n.dept)?.name || '';
+});
+
+function updateNpcs(t) {
+  const near = [];
+  let asker = null;
+  let ad = 3.4;
+  for (const n of village.npcs) {
+    n.p.root.getWorldPosition(npcPos);
+    const dx = npcPos.x - state.pos.x;
+    const dz = npcPos.z - state.pos.z;
+    const d = Math.hypot(dx, dz);
+    n.d = d;
+    // bumping into people
+    if (d < 0.8 && state.speed > 1.2 && Math.abs(npcPos.y - state.pos.y) < 1.5) {
+      n.p.root.getWorldQuaternion(npcQuat);
+      tmpDir.set(dx, 0, dz).normalize().applyQuaternion(npcQuat.invert());
+      const type = state.speed > 6 || n.rider ? 'fall' : 'stumble';
+      if (hit(n.p, type, tmpDir, elapsed)) {
+        state.speed *= 0.3;
+        if (type === 'fall') ui.toast(`<b>Oops!</b> You knocked over a ${n.role.toLowerCase()}. They’ll be fine.`, 2500);
+      }
+    }
+    // look at the player when close
+    if (d < 7 && !n.p.react) {
+      n.p.root.getWorldQuaternion(npcQuat);
+      tmpDir.set(-dx, 0, -dz).applyQuaternion(npcQuat.invert());
+      n.p.look = THREE.MathUtils.clamp(Math.atan2(tmpDir.x, tmpDir.z), -1.2, 1.2);
+      n.p.lookW = Math.min(1, n.p.lookW + 0.08);
+    } else n.p.lookW = Math.max(0, n.p.lookW - 0.05);
+    if (d < 18) near.push(n);
+    if (d < ad && !n.rider) {
+      ad = d;
+      asker = n;
     }
   }
-  if (sp) {
-    sp.obj.getWorldPosition(tmpV);
-    tmpV.y += 0.55;
-    tmpV.project(camera);
-    if (tmpV.z < 1) {
-      const line = sp.lines[Math.floor(t / 5) % sp.lines.length];
-      ui.speech({ text: line, name: sp.name, color: sp.color, x: (tmpV.x * 0.5 + 0.5) * window.innerWidth, y: (-tmpV.y * 0.5 + 0.5) * window.innerHeight });
-    } else ui.speech(null);
+  // the closest person speaks; a few others show what they're thinking about
+  if (asker) {
+    npcPos.copy(asker.p.parts.head.getWorldPosition(npcPos));
+    npcPos.y += 0.45;
+    npcPos.project(camera);
+    const lines = asker.lines || asker.talk.asks;
+    const text = lines[(asker.i + Math.floor(elapsed / 6)) % lines.length];
+    if (npcPos.z < 1) ui.speech({ text, name: `${asker.role}${asker.deptName && !asker.lines ? ' · ' + asker.deptName : ''}`, color: asker.color, x: (npcPos.x * 0.5 + 0.5) * innerWidth, y: (-npcPos.y * 0.5 + 0.5) * innerHeight });
+    else ui.speech(null);
   } else ui.speech(null);
+  near.sort((a, b) => a.d - b.d);
+  const bubbles = [];
+  for (const n of near) {
+    if (n === asker || n.d < 3 || bubbles.length >= 5) continue;
+    n.p.parts.head.getWorldPosition(npcPos);
+    npcPos.y += 0.5;
+    npcPos.project(camera);
+    if (npcPos.z > 1 || Math.abs(npcPos.x) > 0.95 || Math.abs(npcPos.y) > 0.95) continue;
+    const th = n.talk.thoughts;
+    bubbles.push({
+      text: th[(n.i * 3 + Math.floor((t + n.i * 1.7) / 8)) % th.length],
+      color: n.color,
+      x: (npcPos.x * 0.5 + 0.5) * innerWidth,
+      y: (-npcPos.y * 0.5 + 0.5) * innerHeight,
+      scale: THREE.MathUtils.clamp(1.25 - n.d / 22, 0.6, 1),
+    });
+  }
+  ui.thoughts(bubbles);
+}
+
+function waveAtNeighbours() {
+  let n = 0;
+  for (const v of village.npcs) {
+    if (v.d < 9 && !v.p.react) {
+      v.p.react = { type: 'wave', t0: elapsed };
+      n++;
+    }
+  }
+  ui.toast(n ? `<b>👋 You waved.</b> ${n} ${n === 1 ? 'person waves' : 'people wave'} back.` : '<b>👋</b> Nobody close enough to wave back.', 2200);
+}
+
+function act(a) {
+  if (!a) return;
+  if (a.kind === 'project') ui.openProject(a.slug);
+  else if (a.kind === 'contact') ui.toggleHire(true, true);
+  else if (a.kind === 'home') ui.showPlace(PLACES.find((p) => p.id === 'home'));
+  else if (a.kind === 'fun') ui.showPlace(PLACES.find((p) => p.id === 'fun'));
+  else if (a.kind === 'poster') ui.toast(`<b>${a.item.title}</b> ${a.item.year ? `(${a.item.year})` : ''}<br>${a.item.note || ''}`, 6000);
 }
 
 // ---------- Labels & minimap ----------
@@ -673,6 +774,8 @@ function frame() {
   village.update(t, dt);
   grassWind.uTime.value = t;
   lavWind.uTime.value = t;
+  dayNight.update(dt);
+  ui.setClock(dayNight.label());
   updateClouds(t);
   updateRail(t);
   updateProps(t);
@@ -688,4 +791,4 @@ function frame() {
 requestAnimationFrame(frame);
 ui.ready();
 
-window.__shire = { state, setMode, travelTo, ui, renderer, scene };
+window.__shire = { state, setMode, travelTo, ui, renderer, scene, dayNight, village };

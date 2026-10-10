@@ -23,14 +23,43 @@ export const GOLD = new THREE.MeshPhysicalMaterial({ color: '#ffcf4a', metalness
 export const WOOD = new THREE.MeshStandardMaterial({ color: '#8a6440', roughness: 0.8 });
 export const DARK = new THREE.MeshStandardMaterial({ color: '#2a2f38', roughness: 0.5, metalness: 0.3 });
 export const MOUND = new THREE.MeshStandardMaterial({ color: '#5f9e3a', roughness: 0.95 });
-export const WINDOW_GLOW = new THREE.MeshStandardMaterial({ color: '#fff3cf', emissive: '#ffcf7a', emissiveIntensity: 1.2 });
+// Emissive materials that brighten at night, and additive light pools under lamps.
+export const NIGHT_GLOWS = new Set();
+export const NIGHT_POOLS = new Set();
+const nightGlow = (m) => {
+  m.userData.base = m.emissiveIntensity;
+  NIGHT_GLOWS.add(m);
+  return m;
+};
+export const WINDOW_GLOW = nightGlow(new THREE.MeshStandardMaterial({ color: '#fff3cf', emissive: '#ffcf7a', emissiveIntensity: 1.2 }));
 
 const cache = {};
 export const solid = (color, extra = {}) => {
   const key = color + JSON.stringify(extra);
   return (cache[key] ||= new THREE.MeshStandardMaterial({ color, roughness: 0.7, ...extra }));
 };
-export const glow = (color, intensity = 2) => solid(color, { emissive: color, emissiveIntensity: intensity });
+export const glow = (color, intensity = 2) => {
+  const m = solid(color, { emissive: color, emissiveIntensity: intensity });
+  if (!NIGHT_GLOWS.has(m)) nightGlow(m);
+  return m;
+};
+export function lightPool(color = '#ffd99a', base = 0.55) {
+  const m = new THREE.MeshBasicMaterial({ color, map: poolTexture(), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+  m.userData.base = base;
+  NIGHT_POOLS.add(m);
+  return m;
+}
+let _pool;
+function poolTexture() {
+  return (_pool ||= canvasTexture(128, 128, (ctx) => {
+    const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.5, 'rgba(255,255,255,0.35)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 128, 128);
+  }));
+}
 
 export function mesh(geo, material, x = 0, y = 0, z = 0, shadow = true) {
   const m = new THREE.Mesh(geo, material);

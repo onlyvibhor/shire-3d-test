@@ -7,11 +7,12 @@
     <meta name="description" content="Vibhor Mathur's portfolio as a walkable 3D village: every department is a community, and the work we shipped together sits on its streets." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Mono&family=Inter+Tight:wght@400;500;600;700&family=Instrument+Serif:ital@1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   </head>
   <body data-mode="intro">
     <canvas id="scene"></canvas>
     <div id="labels"></div>
+    <div id="thoughts"></div>
     <div id="speech"></div>
 
     <!-- Intro -->
@@ -33,7 +34,7 @@
           <button id="btn-enter" class="btn btn--big">Enter the village</button>
           <button id="btn-tour" class="btn btn--big btn--ghost">Take the guided tour</button>
         </div>
-        <p class="intro__keys keys-desktop"><kbd>W A S D</kbd> walk · <kbd>Shift</kbd> run · <kbd>Space</kbd> jump · <kbd>E</kbd> open project · drag to look · click to walk</p>
+        <p class="intro__keys keys-desktop"><kbd>W A S D</kbd> walk · <kbd>Shift</kbd> run · <kbd>Space</kbd> jump · <kbd>E</kbd> interact · <kbd>F</kbd> wave · <kbd>L</kbd> day/night · drag to look · click to walk</p>
         <p class="intro__keys keys-touch">Drag to look · tap the ground to walk · tap a billboard to open it</p>
       </div>
     </section>
@@ -45,6 +46,7 @@
         <div><b data-owner-name>Vibhor Mathur</b><span>Creative leader · Razorpay</span></div>
       </div>
       <nav class="hud__nav">
+        <button id="btn-time" class="btn btn--hud" title="Time of day (L)"><span>◐ Auto</span><b>09:30</b><kbd>L</kbd></button>
         <button id="btn-overview" class="btn btn--hud" title="Overview (O)"><span>Overview</span><kbd>O</kbd></button>
         <button id="btn-tour-hud" class="btn btn--hud" title="Guided tour (T)"><span>Tour</span><kbd>T</kbd></button>
         <button id="btn-hire" class="btn btn--hud btn--accent" title="Hire me (H)"><span>Hire me</span><kbd>H</kbd></button>
@@ -61,7 +63,7 @@
 
     <aside id="keys" class="keys-desktop">
       <div><kbd>WASD</kbd> walk <kbd>Shift</kbd> run <kbd>Space</kbd> jump</div>
-      <div><kbd>E</kbd> open project <kbd>0</kbd>–<kbd>7</kbd> fast travel</div>
+      <div><kbd>E</kbd> interact <kbd>F</kbd> wave <kbd>L</kbd> time <kbd>0</kbd>–<kbd>9</kbd> travel</div>
     </aside>
 
     <aside id="panel" aria-live="polite"></aside>
@@ -75,7 +77,7 @@
       <button id="tour-exit" class="btn btn--hud">Explore from here</button>
     </div>
 
-    <div id="project" class="modal" role="dialog" aria-modal="true"><div class="project__card"></div></div>
+    <div id="case" role="dialog" aria-modal="true" aria-label="Case study"></div>
 
     <div id="hire" class="modal" role="dialog" aria-modal="true" aria-labelledby="hire-title">
       <div class="hire__card">
@@ -83,7 +85,7 @@
         <div class="hire__head">
           <img data-owner-portrait alt="" />
           <div>
-            <p class="eyebrow">Hire me to make it better, award-winning, at scale</p>
+            <p class="eyebrow">Hire me · or just say hi</p>
             <h2 id="hire-title" data-owner-name>Vibhor Mathur</h2>
             <p data-owner-role></p>
           </div>
@@ -97,6 +99,16 @@
           <div><h3>Recognition</h3><ul id="hire-awards" class="hire__awards"></ul></div>
         </div>
         <div id="hire-links" class="hire__links"></div>
+        <form id="contact-form" class="contact-form">
+          <h3>Write to me</h3>
+          <div class="cf-row">
+            <label>Your name<input id="cf-name" name="name" required autocomplete="name" /></label>
+            <label>Email<input name="email" type="email" required autocomplete="email" /></label>
+          </div>
+          <label>I’d like to talk about<select id="cf-intent" name="intent"></select></label>
+          <label>Message<textarea name="message" rows="4" required placeholder="Tell me what you’re building…"></textarea></label>
+          <div class="cf-foot"><button class="btn" type="submit">Send message</button><span id="cf-status"></span></div>
+        </form>
       </div>
     </div>
 

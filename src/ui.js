@@ -1,7 +1,8 @@
+import { createCaseStudy } from './casestudy.js';
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-export function createUI({ owner, pillars, places, projects, awards, onEnter, onTour, onOverview, onTravel, onTourStep, onExitTour }) {
+export function createUI({ owner, pillars, places, projects, awards, contact, favourites, onEnter, onTour, onOverview, onTravel, onTourStep, onExitTour, onTime }) {
   const visited = new Set();
   const viewed = new Set();
   const trophies = new Set();
@@ -19,7 +20,7 @@ export function createUI({ owner, pillars, places, projects, awards, onEnter, on
   // ----- Intro -----
   $('#intro-legend').innerHTML = places
     .filter((p) => p.id !== 'hq')
-    .map((p) => `<li><i style="background:${p.color}"></i><b>${esc(p.name)}</b><span>${esc(p.place)} · ${p.projects.length} projects</span></li>`)
+    .map((p) => `<li><i style="background:${p.color}"></i><b>${esc(p.name)}</b><span>${esc(p.place)}${p.projects.length ? ` · ${p.projects.length} projects` : ""}</span></li>`)
     .join('');
   $('#intro-awards').innerHTML = awards.map((a) => `<li><span>🏆</span>${esc(a.name)}<em>${esc(a.detail)}</em></li>`).join('');
   $('#btn-enter').addEventListener('click', onEnter);
@@ -29,6 +30,16 @@ export function createUI({ owner, pillars, places, projects, awards, onEnter, on
   $('#btn-overview').addEventListener('click', onOverview);
   $('#btn-tour-hud').addEventListener('click', () => (mode === 'tour' ? onExitTour() : onTour()));
   $('#btn-hire').addEventListener('click', () => toggleHire(true));
+  $('#btn-time').addEventListener('click', () => onTime());
+  const clockEl = $('#btn-time b');
+  let clockText = '';
+  const setClock = (t) => {
+    if (t !== clockText) clockEl.textContent = clockText = t;
+  };
+  const setTimeMode = (m) => {
+    $('#btn-time span').textContent = `${m.icon} ${m.label}`;
+    toast(`<b>${m.icon} ${m.label}</b> ${m.id === 'auto' ? 'A full day passes every 8 minutes.' : 'Time of day locked.'} Press <kbd>L</kbd> to change.`, 3000);
+  };
   $('#missions-toggle').addEventListener('click', () => toggleMissions());
   $('#visited-dots').innerHTML = places
     .map((p, i) => `<button class="dot" data-id="${p.id}" style="--c:${p.color}" title="${i} · ${esc(p.name)}"></button>`)
@@ -96,6 +107,8 @@ export function createUI({ owner, pillars, places, projects, awards, onEnter, on
       <ul>${p.how.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
       ${p.makes ? `<div class="chips">${p.makes.map((m) => `<span class="chip">${esc(m)}</span>`).join('')}</div>` : ''}
       ${work ? `<h3>Work shipped together</h3><div class="works">${work}</div>` : ''}
+      ${p.id === 'fun' ? funExtra() : ''}
+      ${p.id === 'home' ? `<div class="numbers">${owner.numbers.map((n) => `<div><b>${esc(n.value)}</b><span>${esc(n.label)}</span></div>`).join('')}</div><button class="btn btn--wide" data-contact>✉️ Write to Vibhor</button>` : ''}
       ${p.id === 'hq' ? `<div class="numbers">${owner.numbers.map((n) => `<div><b>${esc(n.value)}</b><span>${esc(n.label)}</span></div>`).join('')}</div>` : ''}
       ${
         tour
@@ -108,10 +121,16 @@ export function createUI({ owner, pillars, places, projects, awards, onEnter, on
     panel.querySelector('.close').onclick = () => hidePlace();
     panel.querySelector('[data-next]')?.addEventListener('click', (e) => onTravel(e.currentTarget.dataset.next));
     panel.querySelector('[data-hire]')?.addEventListener('click', () => toggleHire(true));
+    panel.querySelector('[data-contact]')?.addEventListener('click', () => toggleHire(true, true));
     panel.querySelectorAll('[data-project]').forEach((b) => b.addEventListener('click', () => openProject(b.dataset.project)));
     panel.scrollTop = 0;
     panel.classList.add('is-open');
     markVisited(p.id);
+  }
+  function funExtra() {
+    const list = (title, items) =>
+      items.length ? `<h3>${title}</h3><ul class="favs">${items.map((i) => `<li><b>${esc(i.title)}</b>${i.year ? ` <em>${esc(i.year)}</em>` : ''}${i.note ? `<span>${esc(i.note)}</span>` : ''}</li>`).join('')}</ul>` : '';
+    return list('Films & references that shaped the work', favourites.influences) + list('Favourite films', favourites.films) + list('Favourite shows', favourites.shows);
   }
   function hidePlace() {
     panel.classList.remove('is-open');
@@ -125,70 +144,70 @@ export function createUI({ owner, pillars, places, projects, awards, onEnter, on
       setTimeout(() => toast(`<b>You’ve met the whole organisation.</b><br>Every team, one voice. That’s the job. <a href="#" data-hire-link>Let’s talk →</a>`, 9000), 1500);
   }
 
-  // ----- Project modal -----
-  const modal = $('#project');
-  let gallery = [];
-  let gi = 0;
-  function openProject(slug) {
-    const p = projects[slug];
-    if (!p) return;
-    gallery = p.images;
-    gi = 0;
-    const place = places.find((q) => q.projects.includes(slug));
-    modal.style.setProperty('--c', place?.color || '#2f6bff');
-    modal.querySelector('.project__card').innerHTML = `
-      <button class="close" data-close aria-label="Close">×</button>
-      <div class="project__media">
-        <img id="project-img" src="${gallery[0]}" alt="${esc(p.title)}" />
-        ${gallery.length > 1 ? `<button class="nav prev" data-step="-1" aria-label="Previous image">‹</button><button class="nav next" data-step="1" aria-label="Next image">›</button><div class="pips">${gallery.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : ''}
-      </div>
-      <div class="project__body">
-        <p class="eyebrow">${esc(place ? place.name : '')} · ${esc(p.client)} · ${esc(p.year)}</p>
-        <h2>${esc(p.title)}</h2>
-        <p class="tagline">${esc(p.tagline)}</p>
-        ${p.metrics.length ? `<div class="metrics">${p.metrics.map(([v, l]) => `<div><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join('')}</div>` : ''}
-        <p>${esc(p.summary)}</p>
-        ${p.awards ? `<ul class="awards">${p.awards.map((a) => `<li>🏆 ${esc(a)}</li>`).join('')}</ul>` : ''}
-        <p class="role"><span>My role</span>${esc(p.role)}</p>
-        <div class="actions">
-          <a class="btn" href="${esc(p.link)}" target="_blank" rel="noopener">Full case study ↗</a>
-          ${p.extra ? `<a class="btn btn--ghost" href="${esc(p.extra.href)}" target="_blank" rel="noopener">${esc(p.extra.label)} ↗</a>` : ''}
-        </div>
-      </div>`;
-    modal.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', () => stepGallery(Number(b.dataset.step))));
-    modal.classList.add('is-open');
-    if (!viewed.has(slug)) {
-      viewed.add(slug);
-      renderMissions();
-    }
-  }
-  function stepGallery(d) {
-    if (gallery.length < 2) return;
-    gi = (gi + d + gallery.length) % gallery.length;
-    $('#project-img').src = gallery[gi];
-    modal.querySelectorAll('.pips i').forEach((el, i) => el.classList.toggle('on', i === gi));
-  }
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal || e.target.closest('[data-close]')) modal.classList.remove('is-open');
+  // ----- Case studies -----
+  const caseStudy = createCaseStudy({
+    projects,
+    places,
+    onOpen: (slug) => {
+      if (!viewed.has(slug)) {
+        viewed.add(slug);
+        renderMissions();
+      }
+    },
   });
+  const openProject = (slug) => caseStudy.open(slug);
+  const stepGallery = () => {};
 
   // ----- Prompt & speech -----
   const promptEl = $('#prompt');
   let promptSlug = null;
-  function prompt(title) {
-    if (!title) {
+  let promptAction = null;
+  function prompt(thing) {
+    promptAction = thing;
+    if (!thing) {
       promptEl.classList.remove('is-open');
-      promptSlug = null;
       return;
     }
-    if (promptEl.dataset.title !== title) {
-      promptEl.dataset.title = title;
-      promptEl.innerHTML = `<kbd>E</kbd><span>View project</span><b>${esc(title)}</b>`;
-      promptSlug = Object.keys(projects).find((k) => projects[k].title === title);
+    const key = thing.verb + thing.label;
+    if (promptEl.dataset.key !== key) {
+      promptEl.dataset.key = key;
+      promptEl.innerHTML = `<kbd>E</kbd><span>${esc(thing.verb)}</span><b>${esc(thing.label)}</b>`;
     }
     promptEl.classList.add('is-open');
   }
-  promptEl.addEventListener('click', () => promptSlug && openProject(promptSlug));
+  promptEl.addEventListener('click', () => {
+    const a = promptAction;
+    if (!a) return;
+    if (a.kind === 'project') openProject(a.slug);
+    else if (a.kind === 'contact') toggleHire(true, true);
+    else if (a.kind === 'home' || a.kind === 'fun') showPlace(places.find((p) => p.id === a.kind));
+  });
+
+  // Thought bubbles over nearby villagers (a small pool of elements).
+  const thoughtRoot = $('#thoughts');
+  const pool = [];
+  function thoughts(list) {
+    while (pool.length < list.length) {
+      const el = document.createElement('div');
+      el.className = 'thought';
+      thoughtRoot.appendChild(el);
+      pool.push(el);
+    }
+    pool.forEach((el, i) => {
+      const b = list[i];
+      if (!b) {
+        el.classList.remove('is-open');
+        return;
+      }
+      if (el.dataset.text !== b.text) {
+        el.dataset.text = b.text;
+        el.textContent = b.text;
+      }
+      el.style.setProperty('--c', b.color);
+      el.style.transform = `translate(${b.x}px, ${b.y}px) translate(-50%, -100%) scale(${b.scale})`;
+      el.classList.add('is-open');
+    });
+  }
 
   const speechEl = $('#speech');
   function speech(s) {
@@ -241,11 +260,46 @@ export function createUI({ owner, pillars, places, projects, awards, onEnter, on
   hire.addEventListener('click', (e) => {
     if (e.target === hire || e.target.closest('[data-close]')) toggleHire(false);
   });
-  function toggleHire(force) {
+  function toggleHire(force, focusForm = false) {
     hire.classList.toggle('is-open', force ?? !hire.classList.contains('is-open'));
+    if (focusForm && hire.classList.contains('is-open')) {
+      setTimeout(() => {
+        $('#contact-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        $('#cf-name').focus({ preventScroll: true });
+      }, 250);
+    }
   }
+  // Contact form: posts to a form endpoint if configured, otherwise composes an email.
+  $('#cf-intent').innerHTML = contact.intents.map((i) => `<option>${esc(i)}</option>`).join('');
+  $('#contact-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const data = { name: f.name.value.trim(), email: f.email.value.trim(), intent: f.intent.value, message: f.message.value.trim() };
+    const status = $('#cf-status');
+    if (contact.endpoint) {
+      status.textContent = 'Sending…';
+      try {
+        const res = await fetch(contact.endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(data) });
+        if (!res.ok) throw new Error(res.status);
+        status.textContent = 'Sent! Vibhor will get back to you soon.';
+        f.reset();
+        toast('<b>✉️ Message sent.</b> Thanks for writing!', 4000);
+        return;
+      } catch {
+        status.textContent = 'Could not send from here, opening your email app instead.';
+      }
+    }
+    const subject = `${data.intent} · from ${data.name || 'the village'}`;
+    const body = `${data.message}\n\n${data.name}${data.email ? ` (${data.email})` : ''}`;
+    location.href = `mailto:${owner.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    status.textContent = 'Your email app should open with the message ready to send.';
+  });
   function closeOverlays() {
-    for (const el of [modal, hire]) {
+    if (caseStudy.isOpen()) {
+      caseStudy.close();
+      return true;
+    }
+    for (const el of [hire]) {
       if (el.classList.contains('is-open')) {
         el.classList.remove('is-open');
         return true;
@@ -253,7 +307,7 @@ export function createUI({ owner, pillars, places, projects, awards, onEnter, on
     }
     return false;
   }
-  const modalOpen = () => modal.classList.contains('is-open') || hire.classList.contains('is-open');
+  const modalOpen = () => caseStudy.isOpen() || hire.classList.contains('is-open');
 
   // ----- Tour -----
   $('#tour-prev').addEventListener('click', () => onTourStep(-1));
@@ -280,6 +334,6 @@ export function createUI({ owner, pillars, places, projects, awards, onEnter, on
 
   return {
     placeLabel, showPlace, hidePlace, toast, toggleHire, toggleMissions, closeOverlays, modalOpen, setMode, setTourProgress,
-    ready, openProject, stepGallery, prompt, speech, collectTrophy, visited,
+    ready, openProject, stepGallery, prompt, speech, thoughts, collectTrophy, visited, setClock, setTimeMode,
   };
 }

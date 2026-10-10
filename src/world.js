@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { HAMLETS, LAB } from './data.js';
+import { HAMLETS, LAB, HOME, FUN } from './data.js';
 import { windMaterial, canvasTexture } from './materials.js';
 
 // ---------- Layout ----------
@@ -23,12 +23,31 @@ LAB.angle = pondAngle;
 LAB.x = Math.cos(pondAngle) * 25;
 LAB.z = Math.sin(pondAngle) * 25;
 
+// Home and the Playhouse sit inside the ring, between hamlets.
+for (const [place, i] of [[FUN, 2], [HOME, 4]]) {
+  const a = (HAMLETS[i].angle + HAMLETS[i + 1].angle) / 2;
+  place.angle = a;
+  place.x = Math.cos(a) * 40;
+  place.z = Math.sin(a) * 40;
+}
+export const ZONES = [HOME, FUN];
+
 export const PATHS = [];
 HAMLETS.forEach((h, i) => {
   const n = HAMLETS[(i + 1) % HAMLETS.length];
   PATHS.push([0, 0, h.x, h.z]);
   PATHS.push([h.x, h.z, n.x, n.z]);
 });
+// Branch paths from the nearest spoke into each inner zone, keeping the centre plaza clear.
+for (const [z, i, r, edge] of [[FUN, 2, 32, 11], [HOME, 4, 32, 11], [LAB, 1, 19, 5.5]]) {
+  const a = HAMLETS[i].angle;
+  const sx = Math.cos(a) * r;
+  const sz = Math.sin(a) * r;
+  const dx = z.x - sx;
+  const dz = z.z - sz;
+  const l = Math.hypot(dx, dz);
+  PATHS.push([sx, sz, z.x - (dx / l) * edge, z.z - (dz / l) * edge]);
+}
 
 export function distToSegment(px, pz, [ax, az, bx, bz]) {
   const dx = bx - ax;
@@ -66,12 +85,14 @@ function rawHeight(x, z) {
 const CENTER_LEVEL = rawHeight(0, 0);
 HAMLETS.forEach((h) => (h.y = rawHeight(h.x, h.z)));
 LAB.y = rawHeight(LAB.x, LAB.z);
+for (const z of ZONES) z.y = rawHeight(z.x, z.z);
 
 export function heightAt(x, z) {
   let h = rawHeight(x, z);
   h = THREE.MathUtils.lerp(CENTER_LEVEL, h, smooth(9, 17, Math.hypot(x, z)));
   for (const hm of HAMLETS) h = THREE.MathUtils.lerp(hm.y, h, smooth(16, 28, Math.hypot(x - hm.x, z - hm.z)));
   h = THREE.MathUtils.lerp(LAB.y, h, smooth(7, 12, Math.hypot(x - LAB.x, z - LAB.z)));
+  for (const zn of ZONES) h = THREE.MathUtils.lerp(zn.y, h, smooth(14, 22, Math.hypot(x - zn.x, z - zn.z)));
   // Roads are gently levelled so they read as built paths.
   const pd = distToPath(x, z);
   if (pd < 6) h -= (1 - smooth(ROAD_HALF, 6, pd)) * 0.12;
@@ -95,6 +116,7 @@ export function rng(seed = 7) {
 function isClearing(x, z, pad = 0) {
   if (Math.hypot(x, z) < 10 + pad) return true;
   if (Math.hypot(x - LAB.x, z - LAB.z) < 7 + pad) return true;
+  for (const zn of ZONES) if (Math.hypot(x - zn.x, z - zn.z) < 13 + pad) return true;
   if (Math.hypot(x - POND.x, z - POND.z) < POND.r + 1.5 + pad) return true;
   for (const h of HAMLETS) if (Math.hypot(x - h.x, z - h.z) < 9 + pad) return true;
   return distToPath(x, z) < ROAD_HALF + 0.4 + pad;
@@ -231,7 +253,7 @@ export function buildTerrain(scene) {
   scene.add(terrain);
 
   // Roads as real ribbons, so their edges stay crisp at any distance.
-  const roadMat = new THREE.MeshStandardMaterial({ color: '#eceee9', roughness: 0.85 });
+  const roadMat = new THREE.MeshStandardMaterial({ color: '#d9dcd5', roughness: 0.9 });
   const ribbons = [];
   for (const [ax, az, bx, bz] of PATHS) {
     const len = Math.hypot(bx - ax, bz - az);
@@ -270,6 +292,7 @@ export function buildTerrain(scene) {
   for (const h of HAMLETS) plaza(h.x, h.z, 9.4, h.y);
   plaza(0, 0, 9.2, heightAt(0, 0));
   plaza(LAB.x, LAB.z, 6.6, LAB.y);
+  for (const zn of ZONES) plaza(zn.x, zn.z, 12.5, zn.y);
   for (const g of ribbons) if (g.attributes.uv) g.deleteAttribute('uv');
   const roads = new THREE.Mesh(mergeGeometries(ribbons.map((g) => (g.index ? g.toNonIndexed() : g))), roadMat);
   roads.receiveShadow = true;

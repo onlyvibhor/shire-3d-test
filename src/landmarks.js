@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { HAMLETS } from './data.js';
-import { heightAt, rng, distToPath, ROAD_HALF, POND } from './world.js';
-import { WHITE_METAL, BRUSHED, CHROME, CONCRETE, GLASS, mesh, canvasTexture, glow, mergeStatic } from './materials.js';
+import { heightAt, rng, distToPath, ROAD_HALF, POND, PATHS, ZONES } from './world.js';
+import { WHITE_METAL, BRUSHED, CHROME, CONCRETE, GLASS, mesh, canvasTexture, glow, mergeStatic, lightPool } from './materials.js';
 
 // White-metal monoliths, fluted columns and arches lining the roads.
 export function buildMonoliths(world, colliders) {
@@ -21,6 +21,7 @@ export function buildMonoliths(world, colliders) {
       const x = ca * d - sa * off * side;
       const z = sa * d + ca * off * side;
       const y = heightAt(x, z);
+      if (distToPath(x, z) < ROAD_HALF + 1.6 || ZONES.some((zn) => Math.hypot(x - zn.x, z - zn.z) < 16)) continue;
       if (r() < 0.6) {
         const w = 1.2 + r() * 1.4;
         const hgt = 4 + r() * 7;
@@ -49,7 +50,7 @@ export function buildMonoliths(world, colliders) {
     const d = 95 + r() * 65;
     const x = Math.cos(a) * d;
     const z = Math.sin(a) * d;
-    if (distToPath(x, z) < 8 || HAMLETS.some((h) => Math.hypot(x - h.x, z - h.z) < 26)) continue;
+    if (distToPath(x, z) < 8 || HAMLETS.some((h) => Math.hypot(x - h.x, z - h.z) < 26) || ZONES.some((zn) => Math.hypot(x - zn.x, z - zn.z) < 22)) continue;
     const hgt = 10 + r() * 16;
     const w = 2 + r() * 3;
     const s = mesh(slabGeo, WHITE_METAL, x, heightAt(x, z) + hgt / 2 - 1, z);
@@ -274,4 +275,59 @@ export function buildPondEdge(scene) {
   ring.rotation.x = Math.PI / 2;
   ring.position.set(POND.x, heightAt(POND.x + POND.r * 1.38, POND.z) - 0.1, POND.z);
   scene.add(ring);
+}
+
+// Street lamps along every road; their heads glow and pool light on the road at night.
+export function buildStreetLamps(world, colliders) {
+  const group = new THREE.Group();
+  const pools = new THREE.Group();
+  world.add(group, pools);
+  const head = glow('#fff1c9', 1.6);
+  const poolMat = lightPool('#ffd99a', 0.55);
+  const poolGeo = new THREE.PlaneGeometry(7, 7);
+  poolGeo.rotateX(-Math.PI / 2);
+  for (const [ax, az, bx, bz] of PATHS) {
+    const len = Math.hypot(bx - ax, bz - az);
+    const nx = -(bz - az) / len;
+    const nz = (bx - ax) / len;
+    for (let d = 16, k = 0; d < len - 12; d += 15, k++) {
+      const t = d / len;
+      const side = k % 2 ? 1 : -1;
+      const x = ax + (bx - ax) * t + nx * (ROAD_HALF + 0.7) * side;
+      const z = az + (bz - az) * t + nz * (ROAD_HALF + 0.7) * side;
+      if (Math.hypot(x, z) < 12 || HAMLETS.some((h) => Math.hypot(x - h.x, z - h.z) < 16) || ZONES.some((zn) => Math.hypot(x - zn.x, z - zn.z) < 14)) continue;
+      const y = heightAt(x, z);
+      const lamp = new THREE.Group();
+      lamp.position.set(x, y, z);
+      lamp.rotation.y = Math.atan2(-nx * side, -nz * side);
+      lamp.add(mesh(new THREE.CylinderGeometry(0.07, 0.11, 4.6, 8), WHITE_METAL, 0, 2.3, 0));
+      lamp.add(mesh(new THREE.BoxGeometry(0.1, 0.1, 1.3), WHITE_METAL, 0, 4.55, 0.6));
+      const h = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.1, 0.6), head);
+      h.position.set(0, 4.47, 1.15);
+      lamp.add(h);
+      group.add(lamp);
+      const pool = new THREE.Mesh(poolGeo, poolMat);
+      const px = x - nx * side * 1.1;
+      const pz = z - nz * side * 1.1;
+      pool.position.set(px, heightAt(px, pz) + 0.12, pz);
+      pools.add(pool);
+      colliders.push({ x, z, r: 0.25 });
+    }
+  }
+  for (const lamp of group.children) {
+    lamp.updateMatrix();
+  }
+  // bake lamps into a couple of meshes
+  const flat = new THREE.Group();
+  group.updateMatrixWorld(true);
+  for (const lamp of [...group.children]) {
+    for (const m of [...lamp.children]) {
+      m.applyMatrix4(lamp.matrix);
+      flat.add(m);
+    }
+  }
+  world.remove(group);
+  world.add(flat);
+  mergeStatic(flat);
+  mergeStatic(pools);
 }
