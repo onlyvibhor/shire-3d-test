@@ -196,8 +196,11 @@ export function makePerson(opts = {}) {
       H(cap, 0, 0.02, -0.008, { s: [0.97, 1.08, 1.04], r: [-0.2, 0, 0] });
   }
   if (beard) {
-    rig.add(head, G('beard2', () => new THREE.SphereGeometry(0.104, 16, 10, 0, Math.PI * 2, Math.PI * 0.55, Math.PI * 0.45)), hair, 0, -0.005, 0.012, { s: [0.92, 1.15, 1.0] });
-    rig.add(head, G('stache', () => new THREE.CapsuleGeometry(0.012, 0.05, 4, 6)), hair, 0, -0.035, 0.104, { r: [0, 0, Math.PI / 2] });
+    // a trimmed beard along the jaw, softened towards the skin tone
+    const beardCol = new THREE.Color(hair).lerp(new THREE.Color(skin), 0.25).getStyle();
+    rig.add(head, G('beard3', () => new THREE.SphereGeometry(0.1, 18, 10, -Math.PI * 0.12, Math.PI * 1.24, Math.PI * 0.6, Math.PI * 0.33)), beardCol, 0, -0.008, 0.006, { s: [0.95, 1.12, 1.0] });
+    rig.add(head, G('chin', () => new THREE.SphereGeometry(0.035, 10, 8)), beardCol, 0, -0.085, 0.07, { s: [1.3, 0.8, 0.8] });
+    rig.add(head, G('stache2', () => new THREE.CapsuleGeometry(0.008, 0.045, 4, 6)), beardCol, 0, -0.036, 0.106, { r: [0, 0, Math.PI / 2] });
   }
   // accessories
   const acc = opts.accessory ?? pickS(['none', 'glasses', 'none', 'cap', 'earrings', 'shades', 'none', 'headphones', 'beanie'], 9.7);
@@ -226,14 +229,14 @@ export function makePerson(opts = {}) {
   const makeArm = (side) => {
     const shoulder = new THREE.Group();
     shoulder.position.set(side * shoulderX, 0.5, 0);
-    rig.add(shoulder, G('delt', () => new THREE.SphereGeometry(0.068, 12, 10)), sleeveCol, 0, -0.01, 0);
+    rig.add(shoulder, G('delt', () => new THREE.SphereGeometry(0.06, 12, 10)), sleeveCol, side * -0.012, -0.03, 0, { s: [0.95, 1.1, 0.9] });
     rig.add(shoulder, G('upper2', () => new THREE.CapsuleGeometry(fem ? 0.046 : 0.054, 0.21, 4, 10)), sleeves === 'short' ? skin : sleeveCol, 0, -0.15, 0);
     if (sleeves === 'short') rig.add(shoulder, G('sleeve', () => new THREE.CylinderGeometry(0.065, 0.06, 0.12, 12)), sleeveCol, 0, -0.06, 0);
     const elbow = new THREE.Group();
     elbow.position.y = -0.3;
     shoulder.add(elbow);
     rig.add(elbow, G('fore2', () => new THREE.CapsuleGeometry(fem ? 0.038 : 0.044, 0.2, 4, 10)), sleeves === 'long' ? sleeveCol : skin, 0, -0.13, 0);
-    if (sleeves === 'rolled') rig.add(elbow, G('cuff', () => new THREE.TorusGeometry(0.05, 0.016, 6, 14)), sleeveCol, 0, -0.03, 0, { r: [Math.PI / 2, 0, 0] });
+    if (sleeves === 'rolled') rig.add(elbow, G('cuff', () => new THREE.CylinderGeometry(0.052, 0.05, 0.06, 12)), sleeveCol, 0, -0.02, 0);
     if (sleeves === 'long') rig.add(elbow, G('cuffl', () => new THREE.CylinderGeometry(0.05, 0.05, 0.03, 12)), style === 'blazer' ? top : sleeveCol, 0, -0.245, 0);
     rig.add(elbow, G('palm', () => new THREE.SphereGeometry(0.045, 10, 8)), skin, 0, -0.29, 0.005, { s: [0.75, 1.15, 0.55] });
     rig.add(elbow, G('thumb', () => new THREE.CapsuleGeometry(0.013, 0.035, 4, 6)), skin, side * -0.03, -0.27, 0.025, { r: [0.4, 0, side * 0.5] });
