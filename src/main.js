@@ -1,92 +1,134 @@
 import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import './style.css';
-import { OWNER, PILLARS, CENTER, HAMLETS } from './data.js';
-import { buildSky, buildTerrain, buildMountains, buildTrees, buildFlowers, buildPollen, heightAt, POND, PATHS, WORLD_RADIUS } from './world.js';
+import { OWNER, PILLARS, CENTER, HAMLETS, LAB, PROJECTS, AWARDS, ASSETS } from './data.js';
+import {
+  buildSky, makeSkyMaterial, buildClouds, buildTerrain, buildGrass, buildLavender, buildMountains, buildTrees, buildPollen,
+  heightAt, POND, PATHS, WORLD_RADIUS,
+} from './world.js';
+import { buildMonoliths, buildSkyRail, buildFloatingProps } from './landmarks.js';
 import { buildVillage } from './village.js';
-import { makeFolk, animate } from './characters.js';
+import { makePerson, animate } from './characters.js';
 import { createUI } from './ui.js';
 
-// ---------- Renderer & scene ----------
+// ---------- Renderer, scene, light ----------
 
 const canvas = document.getElementById('scene');
+// Lighter settings for phones and weak GPUs (or force with ?lite).
+const LITE = new URLSearchParams(location.search).has('lite') || matchMedia('(hover: none)').matches;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, LITE ? 1.25 : 1.75));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
+renderer.toneMappingExposure = 0.92;
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog('#e9dcc0', 80, 340);
-const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.3, 1400);
+scene.fog = new THREE.Fog('#cfe6f2', 130, 520);
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.2, 2000);
 
-const hemi = new THREE.HemisphereLight('#cfe6ff', '#6b7a3a', 1.5);
-scene.add(hemi);
-const sun = new THREE.DirectionalLight('#ffe2b0', 3.0);
-const SUN_DIR = new THREE.Vector3(0.55, 0.75, 0.35).normalize();
+// Environment map from the sky, so the white metal reflects blue sky and green land.
+{
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const envScene = new THREE.Scene();
+  envScene.add(new THREE.Mesh(new THREE.SphereGeometry(100, 32, 16), makeSkyMaterial()));
+  const ground = new THREE.Mesh(new THREE.CircleGeometry(100, 32), new THREE.MeshBasicMaterial({ color: '#5d9a3c' }));
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -8;
+  envScene.add(ground);
+  scene.environment = pmrem.fromScene(envScene, 0.03).texture;
+  scene.environmentIntensity = 1.0;
+}
+if (ASSETS.skybox) {
+  new THREE.TextureLoader().load(ASSETS.skybox, (t) => {
+    t.mapping = THREE.EquirectangularReflectionMapping;
+    t.colorSpace = THREE.SRGBColorSpace;
+    scene.background = t;
+  });
+}
+
+scene.add(new THREE.HemisphereLight('#cfe9ff', '#4f7d32', 1.0));
+const sun = new THREE.DirectionalLight('#fff4e0', 3.3);
+const SUN_DIR = new THREE.Vector3(0.55, 0.62, 0.35).normalize();
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
-sun.shadow.bias = -0.0004;
-sun.shadow.normalBias = 0.04;
+sun.shadow.mapSize.setScalar(LITE ? 1024 : 2048);
+sun.shadow.bias = -0.0003;
+sun.shadow.normalBias = 0.05;
 scene.add(sun, sun.target);
 function setShadowRange(r) {
   const c = sun.shadow.camera;
   c.left = c.bottom = -r;
   c.right = c.top = r;
   c.near = 1;
-  c.far = 400;
+  c.far = 500;
   c.updateProjectionMatrix();
 }
-setShadowRange(55);
+setShadowRange(50);
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.32, 0.55, 0.92);
+if (!LITE) composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+// ---------- World ----------
 
 buildSky(scene);
+const updateClouds = buildClouds(scene);
 const { terrain } = buildTerrain(scene);
+const grassWind = buildGrass(scene, LITE ? 60000 : 180000);
+const lavWind = buildLavender(scene, LITE ? 6000 : 14000);
 buildMountains(scene);
 const colliders = [];
 buildTrees(scene, colliders);
-buildFlowers(scene);
+buildMonoliths(scene, colliders);
+const updateRail = buildSkyRail(scene, colliders);
+const updateProps = buildFloatingProps(scene);
 const updatePollen = buildPollen(scene);
 const village = buildVillage(scene);
 colliders.push(...village.colliders);
 
-// ---------- Player ----------
+// ---------- Player: Vibhor ----------
 
-const player = makeFolk({ vest: CENTER.color, shirt: '#f6efd9', cloak: '#3e5a2e', hair: '#5a3a22', seed: 0.31 });
-const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.07, 6, 14), new THREE.MeshStandardMaterial({ color: '#c0392b' }));
-scarf.rotation.x = Math.PI / 2;
-scarf.position.y = 1.0;
-player.parts.body.add(scarf);
-// A soft ring under the player so you can always find yourself.
+const player = makePerson({
+  seed: 0.31, skin: '#a8754f', hair: '#141010', beard: true, longHair: false, top: '#efe7d6', pants: '#363b46',
+  sleeves: 'short', watch: true, lanyard: false, shoes: '#f4f4f2', scale: 1.02,
+});
 const halo = new THREE.Mesh(
-  new THREE.RingGeometry(0.7, 0.9, 32),
-  new THREE.MeshBasicMaterial({ color: '#ffe08a', transparent: true, opacity: 0.6, depthWrite: false })
+  new THREE.RingGeometry(0.6, 0.78, 40),
+  new THREE.MeshBasicMaterial({ color: '#2f6bff', transparent: true, opacity: 0.5, depthWrite: false, toneMapped: false })
 );
 halo.rotation.x = -Math.PI / 2;
-halo.position.y = 0.06;
+halo.position.y = 0.05;
 player.root.add(halo);
 scene.add(player.root);
 
 const marker = new THREE.Mesh(
-  new THREE.RingGeometry(0.35, 0.55, 24),
-  new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.8, depthWrite: false })
+  new THREE.RingGeometry(0.35, 0.55, 28),
+  new THREE.MeshBasicMaterial({ color: '#2f6bff', transparent: true, opacity: 0.85, depthWrite: false })
 );
 marker.rotation.x = -Math.PI / 2;
 marker.visible = false;
 scene.add(marker);
 
 const state = {
-  mode: 'intro', // intro | walk | overview | tour
-  pos: new THREE.Vector3(0, 0, 14),
+  mode: 'intro',
+  pos: new THREE.Vector3(0, 0, 15),
+  vy: 0,
+  air: 0,
   heading: Math.PI,
   speed: 0,
   target: null,
   yaw: 0,
-  pitch: 0.38,
-  dist: 9,
+  pitch: 0.3,
+  dist: 7,
   ovYaw: 0.6,
   ovPitch: 0.95,
-  ovDist: 175,
+  ovDist: 190,
   tourIndex: 0,
   tourT: 0,
 };
@@ -95,8 +137,9 @@ state.pos.y = heightAt(state.pos.x, state.pos.z);
 // ---------- Places ----------
 
 const PLACES = [
-  { ...CENTER, x: 0, z: 0, y: heightAt(0, 0) },
-  ...HAMLETS.map((h) => ({ ...h })),
+  { ...CENTER, x: 0, z: 0, y: heightAt(0, 0), reach: 16 },
+  ...HAMLETS.map((h) => ({ ...h, reach: 22 })),
+  { ...LAB, reach: 9 },
 ];
 
 function nearestPlace(x, z) {
@@ -104,8 +147,7 @@ function nearestPlace(x, z) {
   let bd = Infinity;
   for (const p of PLACES) {
     const d = Math.hypot(x - p.x, z - p.z);
-    const reach = p.id === 'hall' ? 16 : 22;
-    if (d < reach && d < bd) {
+    if (d < p.reach && d < bd) {
       bd = d;
       best = p;
     }
@@ -117,20 +159,26 @@ function travelTo(id) {
   const p = PLACES.find((q) => q.id === id);
   if (!p) return;
   let x, z;
-  if (p.id === 'hall') {
+  if (p.id === 'hq') {
     x = 0;
-    z = 14;
+    z = 15;
+  } else if (p.id === 'lab') {
+    const a = Math.atan2(p.z, p.x);
+    x = p.x - Math.cos(a) * 7;
+    z = p.z - Math.sin(a) * 7;
   } else {
-    x = p.x - Math.cos(p.angle) * 10;
-    z = p.z - Math.sin(p.angle) * 10;
+    x = p.x - Math.cos(p.angle) * 8;
+    z = p.z - Math.sin(p.angle) * 8;
   }
   state.pos.set(x, heightAt(x, z), z);
   const dx = p.x - x;
   const dz = p.z - z;
   state.heading = Math.atan2(dx, dz);
   state.yaw = Math.atan2(-dx, -dz);
-  state.pitch = 0.32;
+  state.pitch = 0.3;
+  state.dist = Math.min(state.dist, 6.5);
   state.target = null;
+  marker.visible = false;
   setMode('walk', { snap: true });
 }
 
@@ -140,23 +188,23 @@ const ui = createUI({
   owner: OWNER,
   pillars: PILLARS,
   places: PLACES,
+  projects: PROJECTS,
+  awards: AWARDS,
   onEnter: () => setMode('walk'),
   onTour: () => setMode('tour'),
   onOverview: () => setMode(state.mode === 'overview' ? 'walk' : 'overview'),
   onTravel: (id) => travelTo(id),
   onTourStep: (d) => tourStep(d),
-  onExitTour: () => {
-    travelTo(PLACES[state.tourIndex].id);
-  },
+  onExitTour: () => travelTo(PLACES[state.tourIndex].id),
 });
 
 function setMode(mode, { snap = false } = {}) {
   const prev = state.mode;
   state.mode = mode;
   ui.setMode(mode);
-  setShadowRange(mode === 'walk' ? 55 : 140);
+  setShadowRange(mode === 'walk' ? 50 : 150);
   if (mode === 'tour') {
-    state.tourIndex = prev === 'tour' ? state.tourIndex : 0;
+    if (prev !== 'tour') state.tourIndex = 0;
     state.tourT = 0;
     ui.showPlace(PLACES[state.tourIndex], { tour: true, index: state.tourIndex, total: PLACES.length });
   }
@@ -177,9 +225,14 @@ function tourStep(d) {
 // ---------- Input ----------
 
 const keys = new Set();
+let nearProject = null;
 window.addEventListener('keydown', (e) => {
-  if (e.target.closest && e.target.closest('input, textarea')) return;
   const k = e.key.toLowerCase();
+  if (ui.modalOpen()) {
+    if (k === 'escape') ui.closeOverlays();
+    else if (k === 'arrowright' || k === 'arrowleft') ui.stepGallery(k === 'arrowright' ? 1 : -1);
+    return;
+  }
   keys.add(k);
   if (state.mode === 'intro') {
     if (k === 'enter' || k === ' ') setMode('walk');
@@ -188,12 +241,15 @@ window.addEventListener('keydown', (e) => {
   if (k === 'o') setMode(state.mode === 'overview' ? 'walk' : 'overview');
   else if (k === 't') setMode(state.mode === 'tour' ? 'walk' : 'tour');
   else if (k === 'h') ui.toggleHire();
+  else if (k === 'm') ui.toggleMissions();
+  else if ((k === 'e' || k === 'enter') && nearProject) ui.openProject(nearProject);
+  else if (k === ' ' && state.mode === 'walk' && state.air === 0) state.vy = 6.5;
   else if (k === 'escape') {
     if (ui.closeOverlays()) return;
     if (state.mode === 'tour') travelTo(PLACES[state.tourIndex].id);
     else if (state.mode === 'overview') setMode('walk');
-    else ui.hidePlace(true);
-  } else if (/^[0-6]$/.test(k)) travelTo(PLACES[Number(k)].id);
+    else ui.hidePlace();
+  } else if (/^[0-7]$/.test(k)) travelTo(PLACES[Number(k)].id);
   else if (state.mode === 'tour' && (k === 'arrowright' || k === 'arrowleft')) tourStep(k === 'arrowright' ? 1 : -1);
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
 });
@@ -214,7 +270,10 @@ canvas.addEventListener('pointerdown', (e) => {
   }
 });
 canvas.addEventListener('pointermove', (e) => {
-  if (!pointers.has(e.pointerId)) return;
+  if (!pointers.has(e.pointerId)) {
+    hover(e);
+    return;
+  }
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (pointers.size === 2) {
     const [a, b] = [...pointers.values()];
@@ -231,21 +290,36 @@ canvas.addEventListener('pointermove', (e) => {
   if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 6) drag.moved = true;
   if (state.mode === 'overview') {
     state.ovYaw -= dx * 0.005;
-    state.ovPitch = THREE.MathUtils.clamp(state.ovPitch + dy * 0.004, 0.35, 1.45);
+    state.ovPitch = THREE.MathUtils.clamp(state.ovPitch + dy * 0.004, 0.3, 1.45);
   } else if (state.mode === 'walk') {
     state.yaw -= dx * 0.006;
-    state.pitch = THREE.MathUtils.clamp(state.pitch + dy * 0.004, 0.05, 1.2);
+    state.pitch = THREE.MathUtils.clamp(state.pitch + dy * 0.004, -0.15, 1.2);
   }
 });
 const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+function pick(e) {
+  ndc.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
+  raycaster.setFromCamera(ndc, camera);
+  const hit = raycaster.intersectObjects(village.clickables, false)[0];
+  const ground = raycaster.intersectObject(terrain)[0];
+  if (hit && (!ground || hit.distance < ground.distance)) return { slug: hit.object.userData.slug };
+  return ground ? { point: ground.point } : null;
+}
+let lastHover = 0;
+function hover(e) {
+  const now = performance.now();
+  if (now - lastHover < 80 || state.mode === 'intro') return;
+  lastHover = now;
+  canvas.style.cursor = pick(e)?.slug ? 'pointer' : '';
+}
 canvas.addEventListener('pointerup', (e) => {
   pointers.delete(e.pointerId);
   if (drag && !drag.moved && (state.mode === 'walk' || state.mode === 'overview')) {
-    const ndc = new THREE.Vector2((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
-    raycaster.setFromCamera(ndc, camera);
-    const hit = raycaster.intersectObject(terrain)[0];
-    if (hit && Math.hypot(hit.point.x, hit.point.z) < WORLD_RADIUS) {
-      state.target = hit.point.clone();
+    const res = pick(e);
+    if (res?.slug) ui.openProject(res.slug);
+    else if (res?.point && Math.hypot(res.point.x, res.point.z) < WORLD_RADIUS) {
+      state.target = res.point.clone();
       marker.visible = true;
     }
   }
@@ -253,8 +327,8 @@ canvas.addEventListener('pointerup', (e) => {
 });
 canvas.addEventListener('pointercancel', (e) => pointers.delete(e.pointerId));
 function zoom(delta) {
-  if (state.mode === 'overview') state.ovDist = THREE.MathUtils.clamp(state.ovDist * (1 + delta * 0.001), 60, 300);
-  else if (state.mode === 'walk') state.dist = THREE.MathUtils.clamp(state.dist * (1 + delta * 0.001), 3.5, 28);
+  if (state.mode === 'overview') state.ovDist = THREE.MathUtils.clamp(state.ovDist * (1 + delta * 0.001), 60, 320);
+  else if (state.mode === 'walk') state.dist = THREE.MathUtils.clamp(state.dist * (1 + delta * 0.001), 3, 26);
 }
 canvas.addEventListener('wheel', (e) => {
   e.preventDefault();
@@ -265,34 +339,34 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// ---------- Simulation ----------
+// ---------- Player movement ----------
 
-const PLAYER_R = 0.5;
+const PLAYER_R = 0.45;
+const dir = new THREE.Vector2();
 function movePlayer(dt) {
   let ix = 0;
   let iz = 0;
-  if (state.mode === 'walk' || state.mode === 'overview') {
+  const playing = state.mode === 'walk' || state.mode === 'overview';
+  if (playing && !ui.modalOpen()) {
     if (keys.has('w') || keys.has('arrowup')) iz += 1;
     if (keys.has('s') || keys.has('arrowdown')) iz -= 1;
     if (keys.has('a') || keys.has('arrowleft')) ix -= 1;
     if (keys.has('d') || keys.has('arrowright')) ix += 1;
     if (state.mode === 'walk') {
       if (keys.has('q')) state.yaw += dt * 1.8;
-      if (keys.has('e')) state.yaw -= dt * 1.8;
+      if (keys.has('e') && !nearProject) state.yaw -= dt * 1.8;
     }
   }
   const yaw = state.mode === 'overview' ? state.ovYaw : state.yaw;
-  let dir = null;
+  let moving = false;
   if (ix || iz) {
     state.target = null;
     marker.visible = false;
-    const fx = -Math.sin(yaw);
-    const fz = -Math.cos(yaw);
-    const rx = Math.cos(yaw);
-    const rz = -Math.sin(yaw);
-    dir = new THREE.Vector2(fx * iz + rx * ix, fz * iz + rz * ix).normalize();
+    dir.set(-Math.sin(yaw) * iz + Math.cos(yaw) * ix, -Math.cos(yaw) * iz - Math.sin(yaw) * ix).normalize();
+    moving = true;
   } else if (state.target) {
     const dx = state.target.x - state.pos.x;
     const dz = state.target.z - state.pos.z;
@@ -300,12 +374,15 @@ function movePlayer(dt) {
     if (d < 0.4) {
       state.target = null;
       marker.visible = false;
-    } else dir = new THREE.Vector2(dx / d, dz / d);
+    } else {
+      dir.set(dx / d, dz / d);
+      moving = true;
+    }
   }
-  const running = keys.has('shift') || (state.target && state.pos.distanceTo(state.target) > 20);
-  const want = dir ? (running ? 9 : 4.5) : 0;
-  state.speed = THREE.MathUtils.lerp(state.speed, want, Math.min(1, dt * 8));
-  if (dir) {
+  const running = keys.has('shift') || (state.target && Math.hypot(state.target.x - state.pos.x, state.target.z - state.pos.z) > 18);
+  const want = moving ? (running ? 9 : 4.2) : 0;
+  state.speed = THREE.MathUtils.lerp(state.speed, want, Math.min(1, dt * 7));
+  if (moving) {
     let diff = Math.atan2(dir.x, dir.y) - state.heading;
     diff = Math.atan2(Math.sin(diff), Math.cos(diff));
     state.heading += diff * Math.min(1, dt * 10);
@@ -330,10 +407,18 @@ function movePlayer(dt) {
     state.pos.x *= WORLD_RADIUS / r;
     state.pos.z *= WORLD_RADIUS / r;
   }
-  state.pos.y = Math.max(heightAt(state.pos.x, state.pos.z), -2.4);
+  const ground = Math.max(heightAt(state.pos.x, state.pos.z), -2.3);
+  state.vy -= 18 * dt;
+  state.air += state.vy * dt;
+  if (state.air <= 0) {
+    state.air = 0;
+    state.vy = Math.max(0, state.vy);
+  }
+  state.pos.y = ground + state.air;
   player.root.position.copy(state.pos);
   player.root.rotation.y = state.heading;
-  animate(player, 'walk', elapsed, state.speed);
+  animate(player, state.air > 0.05 ? 'cheer' : 'walk', elapsed, state.speed);
+  halo.visible = state.air < 0.05;
   if (state.target) {
     marker.position.set(state.target.x, heightAt(state.target.x, state.target.z) + 0.08, state.target.z);
     marker.scale.setScalar(1 + Math.sin(elapsed * 6) * 0.15);
@@ -342,25 +427,19 @@ function movePlayer(dt) {
 
 // ---------- Camera ----------
 
-const camPos = new THREE.Vector3(120, 90, 120);
+const camPos = new THREE.Vector3(140, 100, 140);
 const camLook = new THREE.Vector3();
 let snapCamera = false;
 const desiredPos = new THREE.Vector3();
 const desiredLook = new THREE.Vector3();
-
-function orbitPoint(out, center, yaw, pitch, dist) {
-  return out.set(
-    center.x + Math.sin(yaw) * Math.cos(pitch) * dist,
-    center.y + Math.sin(pitch) * dist,
-    center.z + Math.cos(yaw) * Math.cos(pitch) * dist
-  );
-}
+const orbitPoint = (out, c, yaw, pitch, dist) =>
+  out.set(c.x + Math.sin(yaw) * Math.cos(pitch) * dist, c.y + Math.sin(pitch) * dist, c.z + Math.cos(yaw) * Math.cos(pitch) * dist);
 
 function updateCamera(dt, t) {
   let k = 4;
   if (state.mode === 'intro') {
-    desiredLook.set(0, 4, 0);
-    orbitPoint(desiredPos, desiredLook, t * 0.04 + 0.6, 0.55, 150);
+    desiredLook.set(0, 6, 0);
+    orbitPoint(desiredPos, desiredLook, t * 0.035 + 0.6, 0.42, 165);
     k = 1.5;
   } else if (state.mode === 'overview') {
     desiredLook.set(state.pos.x * 0.35, 0, state.pos.z * 0.35);
@@ -369,25 +448,27 @@ function updateCamera(dt, t) {
   } else if (state.mode === 'tour') {
     const p = PLACES[state.tourIndex];
     state.tourT += dt;
-    desiredLook.set(p.x, p.y + 3, p.z);
-    const base = p.id === 'hall' ? 0.6 : Math.atan2(-Math.cos(p.angle), -Math.sin(p.angle));
-    orbitPoint(desiredPos, desiredLook, base + Math.sin(state.tourT * 0.12) * 0.7, 0.42, p.id === 'hall' ? 34 : 30);
+    desiredLook.set(p.x, p.y + 3.5, p.z);
+    const base = p.angle !== undefined ? Math.atan2(-Math.cos(p.angle), -Math.sin(p.angle)) : 0.6;
+    const dist = p.id === 'hq' ? 34 : p.id === 'lab' ? 16 : 28;
+    orbitPoint(desiredPos, desiredLook, base + Math.sin(state.tourT * 0.12) * 0.7, 0.36, dist);
     k = 1.6;
-    ui.setTourProgress(Math.min(1, state.tourT / 9));
-    if (state.tourT > 9) tourStep(1);
+    ui.setTourProgress(Math.min(1, state.tourT / 10));
+    if (state.tourT > 10) tourStep(1);
   } else {
-    // Gently swing the camera behind the player while walking.
     if (state.speed > 0.5 && !drag) {
-      const behind = state.heading + Math.PI;
-      let diff = behind - state.yaw;
+      let diff = state.heading + Math.PI - state.yaw;
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       state.yaw += diff * Math.min(1, dt * 0.9);
     }
-    desiredLook.set(state.pos.x, state.pos.y + 1.4, state.pos.z);
+    desiredLook.set(state.pos.x, state.pos.y + 1.6, state.pos.z);
     orbitPoint(desiredPos, desiredLook, state.yaw, state.pitch, state.dist);
-    const ground = heightAt(desiredPos.x, desiredPos.z) + 1.0;
+    // over-the-shoulder offset, GTA style
+    desiredPos.x += Math.cos(state.yaw) * 0.6;
+    desiredPos.z -= Math.sin(state.yaw) * 0.6;
+    const ground = heightAt(desiredPos.x, desiredPos.z) + 0.8;
     if (desiredPos.y < ground) desiredPos.y = ground;
-    k = 6;
+    k = 7;
   }
   const a = snapCamera ? 1 : 1 - Math.exp(-dt * k);
   snapCamera = false;
@@ -396,22 +477,27 @@ function updateCamera(dt, t) {
   camera.position.copy(camPos);
   camera.lookAt(camLook);
 
-  // Fog and shadows follow the view.
-  const far = state.mode === 'walk' ? 340 : 700;
-  const near = state.mode === 'walk' ? 80 : 220;
+  const far = state.mode === 'walk' ? 520 : 900;
+  const near = state.mode === 'walk' ? 130 : 300;
   scene.fog.far = THREE.MathUtils.lerp(scene.fog.far, far, 1 - Math.exp(-dt * 2));
   scene.fog.near = THREE.MathUtils.lerp(scene.fog.near, near, 1 - Math.exp(-dt * 2));
   const focus = state.mode === 'walk' ? state.pos : camLook;
   sun.target.position.copy(focus);
-  sun.position.copy(focus).addScaledVector(SUN_DIR, 150);
+  sun.position.copy(focus).addScaledVector(SUN_DIR, 200);
 }
 
-// ---------- Proximity: panels and standing stones ----------
+// ---------- Proximity: departments, projects, stones, trophies, chatter ----------
 
 let lastPlaceId = null;
 let lastStone = null;
-function updateProximity() {
-  if (state.mode !== 'walk') return;
+const tmpV = new THREE.Vector3();
+function updateProximity(t) {
+  if (state.mode !== 'walk') {
+    ui.prompt(null);
+    nearProject = null;
+    ui.speech(null);
+    return;
+  }
   const p = nearestPlace(state.pos.x, state.pos.z);
   const id = p ? p.id : null;
   if (id !== lastPlaceId) {
@@ -419,14 +505,55 @@ function updateProximity() {
     if (p) ui.showPlace(p);
     else ui.hidePlace();
   }
-  let stone = null;
-  for (const s of village.stones) {
-    if (Math.hypot(state.pos.x - s.x, state.pos.z - (s.z)) < 3.4) stone = s;
+  // projects
+  let best = null;
+  let bd = 4.5;
+  for (const pr of village.projects) {
+    const d = Math.hypot(state.pos.x - pr.x, state.pos.z - pr.z);
+    if (d < bd) {
+      bd = d;
+      best = pr.slug;
+    }
   }
+  nearProject = best;
+  ui.prompt(best ? PROJECTS[best].title : null);
+  // stones
+  let stone = null;
+  for (const s of village.stones) if (Math.hypot(state.pos.x - s.x, state.pos.z - s.z) < 3.4) stone = s;
   if (stone !== lastStone) {
     lastStone = stone;
     if (stone) ui.toast(`<b>${stone.pillar.rune} ${stone.pillar.name}</b><br>${stone.pillar.text}`, 6000);
   }
+  // trophies
+  for (const tr of village.trophies) {
+    if (tr.collected) continue;
+    if (Math.hypot(state.pos.x - tr.x, state.pos.z - tr.z) < 2.6) {
+      tr.collected = true;
+      tr.g.visible = false;
+      tr.beam.visible = false;
+      ui.collectTrophy(tr.award);
+    }
+  }
+  // chatter: nearest speaker within 10 units
+  let sp = null;
+  let sd = 10;
+  for (const s of village.speakers) {
+    s.obj.getWorldPosition(tmpV);
+    const d = Math.hypot(state.pos.x - tmpV.x, state.pos.z - tmpV.z);
+    if (d < sd) {
+      sd = d;
+      sp = s;
+    }
+  }
+  if (sp) {
+    sp.obj.getWorldPosition(tmpV);
+    tmpV.y += 0.55;
+    tmpV.project(camera);
+    if (tmpV.z < 1) {
+      const line = sp.lines[Math.floor(t / 5) % sp.lines.length];
+      ui.speech({ text: line, name: sp.name, color: sp.color, x: (tmpV.x * 0.5 + 0.5) * window.innerWidth, y: (-tmpV.y * 0.5 + 0.5) * window.innerHeight });
+    } else ui.speech(null);
+  } else ui.speech(null);
 }
 
 // ---------- Labels & minimap ----------
@@ -434,12 +561,12 @@ function updateProximity() {
 const anchor = new THREE.Vector3();
 function updateLabels() {
   for (const p of PLACES) {
-    anchor.set(p.x, p.y + (p.id === 'hall' ? 16 : 11), p.z);
+    anchor.set(p.x, p.y + (p.id === 'hq' ? 17 : p.id === 'lab' ? 7 : 13), p.z);
     const dist = anchor.distanceTo(camera.position);
     anchor.project(camera);
     const visible = anchor.z < 1 && Math.abs(anchor.x) < 1.1 && Math.abs(anchor.y) < 1.1 && state.mode !== 'intro';
     const near = state.mode === 'walk' && lastPlaceId === p.id;
-    ui.placeLabel(p.id, (anchor.x * 0.5 + 0.5) * window.innerWidth, (-anchor.y * 0.5 + 0.5) * window.innerHeight, visible && !near && dist < 420, dist);
+    ui.placeLabel(p.id, (anchor.x * 0.5 + 0.5) * window.innerWidth, (-anchor.y * 0.5 + 0.5) * window.innerHeight, visible && !near && dist < 480, dist);
   }
 }
 
@@ -447,70 +574,90 @@ const mini = document.getElementById('minimap');
 const mctx = mini.getContext('2d');
 function drawMinimap() {
   const S = mini.width;
-  const scale = (S / 2 - 8) / 125;
   const cx = S / 2;
-  mctx.clearRect(0, 0, S, S);
+  // GTA-style: the map rotates with the camera and is centred on the player.
+  const scale = (S / 2) / 70;
+  const yaw = state.mode === 'overview' ? state.ovYaw : state.yaw;
   mctx.save();
+  mctx.clearRect(0, 0, S, S);
   mctx.beginPath();
-  mctx.arc(cx, cx, S / 2 - 2, 0, Math.PI * 2);
-  mctx.fillStyle = '#6f9a46';
-  mctx.fill();
+  mctx.roundRect(0, 0, S, S, 22);
   mctx.clip();
-  mctx.strokeStyle = '#c9a874';
-  mctx.lineWidth = 3;
+  mctx.fillStyle = '#5fa53b';
+  mctx.fillRect(0, 0, S, S);
+  mctx.translate(cx, cx);
+  mctx.rotate(yaw);
+  mctx.scale(scale, scale);
+  mctx.translate(-state.pos.x, -state.pos.z);
+  mctx.fillStyle = 'rgba(160,140,220,0.35)';
+  mctx.strokeStyle = '#f2f3ef';
+  mctx.lineWidth = 5.2;
+  mctx.lineCap = 'round';
   for (const [ax, az, bx, bz] of PATHS) {
     mctx.beginPath();
-    mctx.moveTo(cx + ax * scale, cx + az * scale);
-    mctx.lineTo(cx + bx * scale, cx + bz * scale);
+    mctx.moveTo(ax, az);
+    mctx.lineTo(bx, bz);
     mctx.stroke();
   }
-  mctx.fillStyle = '#5b9cc6';
+  mctx.strokeStyle = 'rgba(255,255,255,0.55)';
+  mctx.lineWidth = 1.5;
   mctx.beginPath();
-  mctx.arc(cx + POND.x * scale, cx + POND.z * scale, POND.r * scale, 0, Math.PI * 2);
+  mctx.arc(0, 0, 104, 0, Math.PI * 2);
+  mctx.stroke();
+  mctx.fillStyle = '#4fb4d8';
+  mctx.beginPath();
+  mctx.arc(POND.x, POND.z, POND.r * 1.4, 0, Math.PI * 2);
   mctx.fill();
   for (const p of PLACES) {
     mctx.fillStyle = p.color;
-    mctx.strokeStyle = '#2d2418';
+    mctx.strokeStyle = '#ffffff';
     mctx.lineWidth = 2;
     mctx.beginPath();
-    mctx.arc(cx + p.x * scale, cx + p.z * scale, p.id === 'hall' ? 8 : 7, 0, Math.PI * 2);
+    mctx.arc(p.x, p.z, p.id === 'lab' ? 4 : 7, 0, Math.PI * 2);
     mctx.fill();
     mctx.stroke();
-    if (ui.visited.has(p.id)) {
-      mctx.fillStyle = '#fff';
-      mctx.font = 'bold 9px Inter, sans-serif';
-      mctx.textAlign = 'center';
-      mctx.textBaseline = 'middle';
-      mctx.fillText('✓', cx + p.x * scale, cx + p.z * scale + 0.5);
-    }
   }
-  // camera view cone
-  const yaw = state.mode === 'overview' ? state.ovYaw : state.yaw;
-  const px = cx + state.pos.x * scale;
-  const pz = cx + state.pos.z * scale;
-  mctx.fillStyle = 'rgba(255,255,255,0.18)';
-  mctx.beginPath();
-  mctx.moveTo(px, pz);
-  mctx.arc(px, pz, 34, Math.atan2(-Math.cos(yaw), -Math.sin(yaw)) - 0.45, Math.atan2(-Math.cos(yaw), -Math.sin(yaw)) + 0.45);
-  mctx.closePath();
-  mctx.fill();
-  // player arrow
+  for (const tr of village.trophies) {
+    if (tr.collected) continue;
+    mctx.fillStyle = '#ffcf3a';
+    mctx.strokeStyle = '#7a4a00';
+    mctx.beginPath();
+    mctx.moveTo(tr.x, tr.z - 4.5);
+    mctx.lineTo(tr.x + 4, tr.z + 3);
+    mctx.lineTo(tr.x - 4, tr.z + 3);
+    mctx.closePath();
+    mctx.fill();
+    mctx.stroke();
+  }
+  mctx.restore();
+  // player arrow (fixed at centre)
   mctx.save();
-  mctx.translate(px, pz);
-  mctx.rotate(-state.heading + Math.PI);
-  mctx.fillStyle = '#ffe08a';
-  mctx.strokeStyle = '#2d2418';
-  mctx.lineWidth = 1.5;
+  mctx.translate(cx, cx);
+  mctx.rotate(Math.PI - state.heading + yaw);
+  mctx.fillStyle = '#ffffff';
+  mctx.strokeStyle = '#2f6bff';
+  mctx.lineWidth = 2;
   mctx.beginPath();
-  mctx.moveTo(0, -7);
-  mctx.lineTo(5, 5);
-  mctx.lineTo(0, 2.5);
-  mctx.lineTo(-5, 5);
+  mctx.moveTo(0, -9);
+  mctx.lineTo(6.5, 7);
+  mctx.lineTo(0, 3.5);
+  mctx.lineTo(-6.5, 7);
   mctx.closePath();
   mctx.fill();
   mctx.stroke();
   mctx.restore();
-  mctx.restore();
+  // north marker
+  const nx = cx + Math.sin(yaw) * (cx - 13);
+  const ny = cx - Math.cos(yaw) * (cx - 13);
+  mctx.fillStyle = '#0f172a';
+  mctx.beginPath();
+  mctx.arc(nx, ny, 9, 0, Math.PI * 2);
+  mctx.fill();
+  mctx.fillStyle = '#fff';
+  mctx.font = '700 11px Inter, sans-serif';
+  mctx.textAlign = 'center';
+  mctx.textBaseline = 'middle';
+  mctx.fillText('N', nx, ny + 0.5);
 }
 
 // ---------- Loop ----------
@@ -518,23 +665,27 @@ function drawMinimap() {
 const timer = new THREE.Timer();
 timer.connect(document);
 let elapsed = 0;
-function frame(now) {
-  timer.update(now);
+function frame() {
+  timer.update();
   const dt = Math.min(timer.getDelta(), 0.05);
   const t = (elapsed = timer.getElapsed());
   movePlayer(dt);
   village.update(t, dt);
+  grassWind.uTime.value = t;
+  lavWind.uTime.value = t;
+  updateClouds(t);
+  updateRail(t);
+  updateProps(t);
   updatePollen(t);
   updateCamera(dt, t);
-  updateProximity();
+  updateProximity(t);
   updateLabels();
   drawMinimap();
   halo.material.opacity = 0.35 + Math.sin(t * 3) * 0.2;
-  renderer.render(scene, camera);
+  composer.render();
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 ui.ready();
 
-// Handy for debugging and screenshots.
-window.__shire = { state, setMode, travelTo };
+window.__shire = { state, setMode, travelTo, ui, renderer, scene };
