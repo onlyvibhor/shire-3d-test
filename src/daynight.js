@@ -42,7 +42,7 @@ export const TIME_MODES = [
   { id: 'night', label: 'Night', icon: '🌙', hour: 22 },
 ];
 
-export function createDayNight({ scene, sun, hemi, sky, renderer, bloom }) {
+export function createDayNight({ scene, root = scene, sun, hemi, sky, renderer, bloom, ocean }) {
   const state = { hour: 9.5, mode: 0, night: 0, sunDir: new THREE.Vector3() };
 
   // Stars
@@ -59,7 +59,7 @@ export function createDayNight({ scene, sun, hemi, sky, renderer, bloom }) {
   starGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   const starMat = new THREE.PointsMaterial({ color: '#ffffff', size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0, fog: false, depthWrite: false });
   const stars = new THREE.Points(starGeo, starMat);
-  scene.add(stars);
+  root.add(stars);
 
   // Moon
   const moonTex = (() => {
@@ -77,7 +77,7 @@ export function createDayNight({ scene, sun, hemi, sky, renderer, bloom }) {
   })();
   const moon = new THREE.Sprite(new THREE.SpriteMaterial({ map: moonTex, fog: false, transparent: true, depthWrite: false, opacity: 0 }));
   moon.scale.set(90, 90, 1);
-  scene.add(moon);
+  root.add(moon);
 
   const skyU = sky.material.uniforms;
   const moonDir = new THREE.Vector3(-0.45, 0.62, -0.4).normalize();
@@ -110,6 +110,11 @@ export function createDayNight({ scene, sun, hemi, sky, renderer, bloom }) {
     }
     for (const m of NIGHT_GLOWS) m.emissiveIntensity = m.userData.base * (0.35 + s.night * 1.4);
     for (const m of NIGHT_POOLS) m.opacity = s.night * m.userData.base;
+    if (ocean) {
+      ocean.uniforms.uSun.value.copy(state.sunDir);
+      ocean.uniforms.uNight.value = s.night;
+      ocean.uniforms.uSky.value.copy(s.hor).lerp(s.mid, 0.4);
+    }
   }
 
   function update(dt) {

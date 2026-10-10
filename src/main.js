@@ -4,12 +4,13 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import './style.css';
-import { OWNER, PILLARS, CENTER, HAMLETS, LAB, HOME, FUN, PROJECTS, AWARDS, ASSETS, NPC_TALK, CONTACT, FAVOURITES } from './data.js';
+import { OWNER, PILLARS, CENTER, HAMLETS, LAB, HOME, FUN, AIHUB, HALL, PROJECTS, AWARDS, ASSETS, NPC_TALK, CONTACT, FAVOURITES, TOOLS, AWARD_LIST } from './data.js';
 import {
   buildSky, makeSkyMaterial, buildClouds, buildTerrain, buildGrass, buildLavender, buildMountains, buildTrees, buildPollen,
-  heightAt, POND, PATHS, WORLD_RADIUS,
+  heightAt, POND, PATHS, WORLD_RADIUS, buildOcean, SEA_LEVEL, coastR,
 } from './world.js';
-import { buildMonoliths, buildSkyRail, buildFloatingProps, buildStreetLamps } from './landmarks.js';
+import { buildMonoliths, buildSkyRail, buildFloatingProps, buildStreetLamps, buildCoast } from './landmarks.js';
+import { buildInteriors } from './interiors.js';
 import { createDayNight } from './daynight.js';
 import { buildVillage } from './village.js';
 import { makePerson, animate, hit } from './characters.js';
@@ -79,28 +80,35 @@ composer.addPass(new OutputPass());
 
 // ---------- World ----------
 
-const sky = buildSky(scene);
-const updateClouds = buildClouds(scene);
-const { terrain } = buildTerrain(scene);
-const grassWind = buildGrass(scene, LITE ? 60000 : 180000);
-const lavWind = buildLavender(scene, LITE ? 6000 : 14000);
-buildMountains(scene);
+// Everything on the island lives in `outdoor`, so it can be hidden when you step inside a building.
+const outdoor = new THREE.Group();
+scene.add(outdoor);
+const sky = buildSky(outdoor);
+const updateClouds = buildClouds(outdoor);
+const { terrain } = buildTerrain(outdoor);
+const ocean = buildOcean(outdoor);
+const grassWind = buildGrass(outdoor, LITE ? 60000 : 180000);
+const lavWind = buildLavender(outdoor, LITE ? 6000 : 14000);
+buildMountains(outdoor);
 const colliders = [];
-buildTrees(scene, colliders);
-buildMonoliths(scene, colliders);
-const updateRail = buildSkyRail(scene, colliders);
-buildStreetLamps(scene, colliders);
-const updateProps = buildFloatingProps(scene);
-const updatePollen = buildPollen(scene);
-const village = buildVillage(scene);
-const dayNight = createDayNight({ scene, sun, hemi, sky, renderer, bloom });
+buildTrees(outdoor, colliders);
+buildMonoliths(outdoor, colliders);
+const updateRail = buildSkyRail(outdoor, colliders);
+buildStreetLamps(outdoor, colliders);
+const coast = buildCoast(outdoor, colliders);
+const updateProps = buildFloatingProps(outdoor);
+const updatePollen = buildPollen(outdoor);
+const village = buildVillage(outdoor);
+const dayNight = createDayNight({ scene, root: outdoor, sun, hemi, sky, renderer, bloom, ocean: ocean });
+const rooms = buildInteriors(scene);
+for (const room of Object.values(rooms)) room.interactables.push({ kind: 'exit', label: 'Back to the island', verb: 'Exit', x: room.origin.x + room.exit.x, z: room.origin.z + room.exit.z });
 colliders.push(...village.colliders);
 
 // ---------- Player: Vibhor ----------
 
 const player = makePerson({
-  seed: 0.31, skin: '#a8754f', hair: '#141010', beard: true, longHair: false, top: '#efe7d6', pants: '#363b46',
-  sleeves: 'short', watch: true, lanyard: false, shoes: '#f4f4f2', scale: 1.02,
+  seed: 0.31, style: 'linen', fem: false, skin: '#a8754f', hair: '#141010', hairStyle: 'quiff', beard: true, top: '#efe7d6', outer: null,
+  pants: '#363b46', shoes: '#f4f4f2', sleeves: 'rolled', watch: true, accessory: 'none', noBag: true, scale: 1.02,
 });
 const halo = new THREE.Mesh(
   new THREE.RingGeometry(0.6, 0.78, 40),
@@ -146,6 +154,8 @@ const PLACES = [
   { ...LAB, reach: 9 },
   { ...FUN, reach: 16 },
   { ...HOME, reach: 16 },
+  { ...AIHUB, reach: 17 },
+  { ...HALL, reach: 16 },
 ];
 
 function nearestPlace(x, z) {
@@ -161,16 +171,28 @@ function nearestPlace(x, z) {
   return best;
 }
 
+function leaveRoomNow() {
+  if (!state.indoor) return;
+  state.indoor.group.visible = false;
+  outdoor.visible = true;
+  state.indoor = null;
+  scene.fog = savedFog;
+  scene.background = null;
+  hemi.groundColor.set('#4f7d32');
+  ui.setIndoor(null);
+}
+
 function travelTo(id) {
   const p = PLACES.find((q) => q.id === id);
   if (!p) return;
+  leaveRoomNow();
   let x, z;
   if (p.id === 'hq') {
     x = 0;
     z = 15;
-  } else if (p.id === 'lab' || p.id === 'home' || p.id === 'fun') {
+  } else if (['lab', 'home', 'fun', 'ai', 'awards'].includes(p.id)) {
     const a = Math.atan2(p.z, p.x);
-    const back = p.id === 'lab' ? 7 : 11;
+    const back = p.id === 'lab' ? 7 : p.id === 'home' ? 14 : 20;
     x = p.x - Math.cos(a) * back;
     z = p.z - Math.sin(a) * back;
   } else {
@@ -199,6 +221,8 @@ const ui = createUI({
   awards: AWARDS,
   contact: CONTACT,
   favourites: FAVOURITES,
+  tools: TOOLS,
+  awardList: AWARD_LIST,
   onEnter: () => setMode('walk'),
   onTour: () => setMode('tour'),
   onOverview: () => setMode(state.mode === 'overview' ? 'walk' : 'overview'),
@@ -210,6 +234,7 @@ const ui = createUI({
 
 function setMode(mode, { snap = false } = {}) {
   const prev = state.mode;
+  if (mode === 'overview' || mode === 'tour') leaveRoomNow();
   state.mode = mode;
   ui.setMode(mode);
   setShadowRange(mode === 'walk' ? 50 : 150);
@@ -258,7 +283,8 @@ window.addEventListener('keydown', (e) => {
   else if (k === ' ' && state.mode === 'walk' && state.air === 0) state.vy = 6.5;
   else if (k === 'escape') {
     if (ui.closeOverlays()) return;
-    if (state.mode === 'tour') travelTo(PLACES[state.tourIndex].id);
+    if (state.indoor) exitRoom();
+    else if (state.mode === 'tour') travelTo(PLACES[state.tourIndex].id);
     else if (state.mode === 'overview') setMode('walk');
     else ui.hidePlace();
   } else if (/^[0-9]$/.test(k) && PLACES[Number(k)]) travelTo(PLACES[Number(k)].id);
@@ -313,8 +339,8 @@ const ndc = new THREE.Vector2();
 function pick(e) {
   ndc.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
   raycaster.setFromCamera(ndc, camera);
-  const h = raycaster.intersectObjects(village.clickables, false)[0];
-  const ground = raycaster.intersectObject(terrain)[0];
+  const h = raycaster.intersectObjects(state.indoor ? state.indoor.clickables : village.clickables, false)[0];
+  const ground = raycaster.intersectObject(state.indoor ? state.indoor.floor : terrain)[0];
   if (h && (!ground || h.distance < ground.distance)) {
     const ud = h.object.userData;
     return { action: ud.action || { kind: 'project', slug: ud.slug } };
@@ -333,7 +359,7 @@ canvas.addEventListener('pointerup', (e) => {
   if (drag && !drag.moved && (state.mode === 'walk' || state.mode === 'overview')) {
     const res = pick(e);
     if (res?.action) act(res.action);
-    else if (res?.point && Math.hypot(res.point.x, res.point.z) < WORLD_RADIUS) {
+    else if (res?.point && (state.indoor || heightAt(res.point.x, res.point.z) > SEA_LEVEL + 0.5 || jettyAt(res.point.x, res.point.z))) {
       state.target = res.point.clone();
       marker.visible = true;
     }
@@ -402,11 +428,25 @@ function movePlayer(dt) {
     diff = Math.atan2(Math.sin(diff), Math.cos(diff));
     state.heading += diff * Math.min(1, dt * 10);
   }
+  const prevX = state.pos.x;
+  const prevZ = state.pos.z;
   if (state.speed > 0.01) {
     state.pos.x += Math.sin(state.heading) * state.speed * dt;
     state.pos.z += Math.cos(state.heading) * state.speed * dt;
   }
-  for (const c of colliders) {
+  const room = state.indoor;
+  for (const c of room ? room.colliders : colliders) {
+    if (c.box) {
+      const b = c.box;
+      if (state.pos.x > b.minX - PLAYER_R && state.pos.x < b.maxX + PLAYER_R && state.pos.z > b.minZ - PLAYER_R && state.pos.z < b.maxZ + PLAYER_R) {
+        // push out along the shallowest axis
+        const pushes = [b.minX - PLAYER_R - state.pos.x, b.maxX + PLAYER_R - state.pos.x, b.minZ - PLAYER_R - state.pos.z, b.maxZ + PLAYER_R - state.pos.z];
+        const k = pushes.reduce((best, v, i) => (Math.abs(v) < Math.abs(pushes[best]) ? i : best), 0);
+        if (k < 2) state.pos.x += pushes[k];
+        else state.pos.z += pushes[k];
+      }
+      continue;
+    }
     const dx = state.pos.x - c.x;
     const dz = state.pos.z - c.z;
     const min = c.r + PLAYER_R;
@@ -417,12 +457,27 @@ function movePlayer(dt) {
       state.pos.z = c.z + (dz / d) * min;
     }
   }
-  const r = Math.hypot(state.pos.x, state.pos.z);
-  if (r > WORLD_RADIUS) {
-    state.pos.x *= WORLD_RADIUS / r;
-    state.pos.z *= WORLD_RADIUS / r;
+  let ground;
+  if (room) {
+    const b = room.bounds;
+    const lx = state.pos.x - room.origin.x;
+    const lz = state.pos.z - room.origin.z;
+    // walking out through the door takes you back outside
+    if (lz > b.maxZ && Math.abs(lx) < 1.4 && state.speed > 0.5 && Math.cos(state.heading) > 0.3) exitRoom();
+    state.pos.x = room.origin.x + THREE.MathUtils.clamp(lx, b.minX, b.maxX);
+    state.pos.z = room.origin.z + THREE.MathUtils.clamp(lz, b.minZ, b.maxZ);
+    ground = room.origin.y;
+  } else {
+    const onJetty = jettyAt(state.pos.x, state.pos.z);
+    if (!onJetty && heightAt(state.pos.x, state.pos.z) < SEA_LEVEL + 0.5) {
+      // the sea stops you at the water's edge
+      state.pos.x = prevX;
+      state.pos.z = prevZ;
+      state.target = null;
+      marker.visible = false;
+    }
+    ground = jettyAt(state.pos.x, state.pos.z) ? coast.jetty.y : Math.max(heightAt(state.pos.x, state.pos.z), -2.3);
   }
-  const ground = Math.max(heightAt(state.pos.x, state.pos.z), -2.3);
   state.vy -= 18 * dt;
   state.air += state.vy * dt;
   if (state.air <= 0) {
@@ -435,9 +490,93 @@ function movePlayer(dt) {
   animate(player, state.air > 0.05 ? 'jump' : 'walk', elapsed, state.speed);
   halo.visible = state.air < 0.05;
   if (state.target) {
-    marker.position.set(state.target.x, heightAt(state.target.x, state.target.z) + 0.08, state.target.z);
+    marker.position.set(state.target.x, (state.indoor ? state.indoor.origin.y : heightAt(state.target.x, state.target.z)) + 0.08, state.target.z);
     marker.scale.setScalar(1 + Math.sin(elapsed * 6) * 0.15);
   }
+}
+
+function jettyAt(x, z) {
+  const j = coast.jetty;
+  const px = x - j.x0;
+  const pz = z - j.z0;
+  const along = px * j.dx + pz * j.dz;
+  const lateral = Math.abs(px * j.dz - pz * j.dx);
+  return along > -1 && along < j.len && lateral < j.half;
+}
+
+// ---------- Going indoors ----------
+
+const savedFog = scene.fog;
+const INDOOR = {
+  ai: { bg: '#060b16', hemi: ['#cfe9ff', '#1a2440', 1.0], sun: ['#e6f4ff', 1.6], exp: 1.0, bloom: [0.55, 0.75] },
+  home: { bg: '#f4e9db', hemi: ['#fff1de', '#8a6a4a', 1.35], sun: ['#ffe6c4', 2.2], exp: 1.0, bloom: [0.25, 0.9] },
+  fun: { bg: '#120a1c', hemi: ['#ffd9f0', '#2a1630', 0.85], sun: ['#ffd7a8', 1.3], exp: 1.05, bloom: [0.6, 0.72] },
+  awards: { bg: '#121119', hemi: ['#fff4dc', '#2a2620', 1.0], sun: ['#fff1cf', 2.4], exp: 1.0, bloom: [0.45, 0.8] },
+};
+function applyIndoorLight(room) {
+  const L = INDOOR[room.id];
+  scene.fog = null;
+  scene.background = new THREE.Color(L.bg);
+  hemi.color.set(L.hemi[0]);
+  hemi.groundColor.set(L.hemi[1]);
+  hemi.intensity = L.hemi[2];
+  sun.color.set(L.sun[0]);
+  sun.intensity = L.sun[1];
+  renderer.toneMappingExposure = L.exp;
+  scene.environmentIntensity = 0.55;
+  bloom.strength = L.bloom[0];
+  bloom.threshold = L.bloom[1];
+  sun.target.position.set(room.origin.x, 0, room.origin.z);
+  sun.position.set(room.origin.x + 6, 40, room.origin.z + 10);
+}
+
+function enterRoom(id) {
+  const room = rooms[id];
+  if (!room || state.indoor) return;
+  ui.fade(() => {
+    state.outdoorReturn = { x: state.pos.x, z: state.pos.z, heading: state.heading + Math.PI, yaw: state.yaw + Math.PI };
+    state.indoor = room;
+    outdoor.visible = false;
+    room.group.visible = true;
+    state.pos.set(room.origin.x + room.spawn.x, room.origin.y, room.origin.z + room.spawn.z);
+    state.heading = room.spawn.heading;
+    state.yaw = 0;
+    state.pitch = 0.28;
+    state.dist = Math.min(state.dist, 5.5);
+    state.target = null;
+    marker.visible = false;
+    setShadowRange(24);
+    applyIndoorLight(room);
+    lastPlaceId = null;
+    snapCamera = true;
+    const place = PLACES.find((p) => p.id === id);
+    ui.setIndoor(place);
+  });
+}
+
+function exitRoom() {
+  const room = state.indoor;
+  if (!room) return;
+  ui.fade(() => {
+    room.group.visible = false;
+    outdoor.visible = true;
+    state.indoor = null;
+    scene.fog = savedFog;
+    scene.background = null;
+    hemi.groundColor.set('#4f7d32');
+    const back = state.outdoorReturn;
+    if (back) {
+      // step out a little from the door, facing away from it
+      state.pos.set(back.x + Math.sin(back.heading) * 1.5, 0, back.z + Math.cos(back.heading) * 1.5);
+      state.heading = back.heading;
+      state.yaw = back.yaw;
+    }
+    state.pos.y = heightAt(state.pos.x, state.pos.z);
+    setShadowRange(50);
+    lastPlaceId = null;
+    snapCamera = true;
+    ui.setIndoor(null);
+  });
 }
 
 // ---------- Camera ----------
@@ -481,8 +620,15 @@ function updateCamera(dt, t) {
     // over-the-shoulder offset, GTA style
     desiredPos.x += Math.cos(state.yaw) * 0.6;
     desiredPos.z -= Math.sin(state.yaw) * 0.6;
-    const ground = heightAt(desiredPos.x, desiredPos.z) + 0.8;
-    if (desiredPos.y < ground) desiredPos.y = ground;
+    if (state.indoor) {
+      const R = state.indoor;
+      desiredPos.x = R.origin.x + THREE.MathUtils.clamp(desiredPos.x - R.origin.x, -R.w / 2 + 0.4, R.w / 2 - 0.4);
+      desiredPos.z = R.origin.z + THREE.MathUtils.clamp(desiredPos.z - R.origin.z, -R.d / 2 + 0.4, R.d / 2 - 0.4);
+      desiredPos.y = THREE.MathUtils.clamp(desiredPos.y, R.origin.y + 0.6, R.origin.y + R.h - 0.5);
+    } else {
+      const ground = heightAt(desiredPos.x, desiredPos.z) + 0.8;
+      if (desiredPos.y < ground) desiredPos.y = ground;
+    }
     k = 7;
   }
   const a = snapCamera ? 1 : 1 - Math.exp(-dt * k);
@@ -494,6 +640,7 @@ function updateCamera(dt, t) {
 
   const far = state.mode === 'walk' ? 620 : 950;
   const near = state.mode === 'walk' ? 170 : 320;
+  if (state.indoor) return;
   scene.fog.far = THREE.MathUtils.lerp(scene.fog.far, far, 1 - Math.exp(-dt * 2));
   scene.fog.near = THREE.MathUtils.lerp(scene.fog.near, near, 1 - Math.exp(-dt * 2));
   const focus = state.mode === 'walk' ? state.pos : camLook;
@@ -514,7 +661,7 @@ function updateProximity(t) {
     ui.thoughts([]);
     return;
   }
-  const p = nearestPlace(state.pos.x, state.pos.z);
+  const p = state.indoor ? PLACES.find((q) => q.id === state.indoor.id) : nearestPlace(state.pos.x, state.pos.z);
   const id = p ? p.id : null;
   if (id !== lastPlaceId) {
     lastPlaceId = id;
@@ -524,14 +671,14 @@ function updateProximity(t) {
   // things to interact with: project billboards, the mailbox, the poster wall...
   let best = null;
   let bd = 4.5;
-  for (const pr of village.projects) {
+  for (const pr of state.indoor ? [] : village.projects) {
     const d = Math.hypot(state.pos.x - pr.x, state.pos.z - pr.z);
     if (d < bd) {
       bd = d;
       best = { kind: 'project', slug: pr.slug, label: PROJECTS[pr.slug].title, verb: 'View project' };
     }
   }
-  for (const it of village.interactables) {
+  for (const it of state.indoor ? state.indoor.interactables : village.interactables) {
     const d = Math.hypot(state.pos.x - it.x, state.pos.z - it.z);
     if (d < bd) {
       bd = d;
@@ -539,6 +686,8 @@ function updateProximity(t) {
     }
   }
   nearThing = best;
+  // walking right up to a door takes you inside
+  if (best?.kind === 'enter' && bd < 1.0 && state.speed > 0.5) enterRoom(best.room);
   ui.prompt(best);
   // stones
   let stone = null;
@@ -548,13 +697,13 @@ function updateProximity(t) {
     if (stone) ui.toast(`<b>${stone.pillar.rune} ${stone.pillar.name}</b><br>${stone.pillar.text}`, 6000);
   }
   // trophies
-  village.trophies.forEach((tr, i) => {
+  if (!state.indoor) village.trophies.forEach((tr, i) => {
     if (tr.collected) return;
     if (Math.hypot(state.pos.x - tr.x, state.pos.z - tr.z) < 2.6) {
       tr.collected = true;
       tr.g.visible = false;
       tr.beam.visible = false;
-      if (village.home?.cups[i]) village.home.cups[i].visible = true;
+      if (rooms.home.cups[i]) rooms.home.cups[i].visible = true;
       ui.collectTrophy(tr.award);
     }
   });
@@ -566,7 +715,8 @@ function updateProximity(t) {
 const npcPos = new THREE.Vector3();
 const npcQuat = new THREE.Quaternion();
 const tmpDir = new THREE.Vector3();
-village.npcs.forEach((n, i) => {
+const allNpcs = [...village.npcs, ...Object.values(rooms).flatMap((r) => r.npcs)];
+allNpcs.forEach((n, i) => {
   n.i = i;
   n.talk = NPC_TALK[n.dept] || NPC_TALK.hq;
   n.role = n.name || n.talk.roles[i % n.talk.roles.length];
@@ -578,7 +728,7 @@ function updateNpcs(t) {
   const near = [];
   let asker = null;
   let ad = 3.4;
-  for (const n of village.npcs) {
+  for (const n of state.indoor ? state.indoor.npcs : village.npcs) {
     n.p.root.getWorldPosition(npcPos);
     const dx = npcPos.x - state.pos.x;
     const dz = npcPos.z - state.pos.z;
@@ -639,7 +789,7 @@ function updateNpcs(t) {
 
 function waveAtNeighbours() {
   let n = 0;
-  for (const v of village.npcs) {
+  for (const v of state.indoor ? state.indoor.npcs : village.npcs) {
     if (v.d < 9 && !v.p.react) {
       v.p.react = { type: 'wave', t0: elapsed };
       n++;
@@ -655,6 +805,13 @@ function act(a) {
   else if (a.kind === 'home') ui.showPlace(PLACES.find((p) => p.id === 'home'));
   else if (a.kind === 'fun') ui.showPlace(PLACES.find((p) => p.id === 'fun'));
   else if (a.kind === 'poster') ui.toast(`<b>${a.item.title}</b> ${a.item.year ? `(${a.item.year})` : ''}<br>${a.item.note || ''}`, 6000);
+  else if (a.kind === 'enter') enterRoom(a.room);
+  else if (a.kind === 'exit') exitRoom();
+  else if (a.kind === 'toast') ui.toast(a.text, 5000);
+  else if (a.kind === 'hire') ui.toggleHire(true);
+  else if (a.kind === 'place') ui.showPlace(PLACES.find((p) => p.id === a.id));
+  else if (a.kind === 'screen') ui.openProject(a.screen.userData.action.slug);
+  else if (['tools', 'awards', 'leadership'].includes(a.kind)) ui.showInfo(a.kind);
 }
 
 // ---------- Labels & minimap ----------
@@ -665,7 +822,7 @@ function updateLabels() {
     anchor.set(p.x, p.y + (p.id === 'hq' ? 17 : p.id === 'lab' ? 7 : 13), p.z);
     const dist = anchor.distanceTo(camera.position);
     anchor.project(camera);
-    const visible = anchor.z < 1 && Math.abs(anchor.x) < 1.1 && Math.abs(anchor.y) < 1.1 && state.mode !== 'intro';
+    const visible = !state.indoor && anchor.z < 1 && Math.abs(anchor.x) < 1.1 && Math.abs(anchor.y) < 1.1 && state.mode !== 'intro';
     const near = state.mode === 'walk' && lastPlaceId === p.id;
     ui.placeLabel(p.id, (anchor.x * 0.5 + 0.5) * window.innerWidth, (-anchor.y * 0.5 + 0.5) * window.innerHeight, visible && !near && dist < 480, dist);
   }
@@ -676,6 +833,44 @@ const mctx = mini.getContext('2d');
 function drawMinimap() {
   const S = mini.width;
   const cx = S / 2;
+  if (state.indoor) {
+    // floor plan of the room you're in
+    const R = state.indoor;
+    const sc = (S - 40) / Math.max(R.w, R.d);
+    mctx.save();
+    mctx.clearRect(0, 0, S, S);
+    mctx.beginPath();
+    mctx.roundRect(0, 0, S, S, 22);
+    mctx.clip();
+    mctx.fillStyle = '#0f172a';
+    mctx.fillRect(0, 0, S, S);
+    mctx.translate(cx, cx);
+    mctx.fillStyle = 'rgba(255,255,255,0.08)';
+    mctx.strokeStyle = 'rgba(255,255,255,0.6)';
+    mctx.lineWidth = 2;
+    mctx.fillRect((-R.w / 2) * sc, (-R.d / 2) * sc, R.w * sc, R.d * sc);
+    mctx.strokeRect((-R.w / 2) * sc, (-R.d / 2) * sc, R.w * sc, R.d * sc);
+    mctx.fillStyle = '#4ade80';
+    mctx.fillRect(-1.5 * sc, (R.d / 2) * sc - 3, 3 * sc, 6);
+    for (const it of R.interactables) {
+      mctx.fillStyle = it.kind === 'exit' ? '#4ade80' : PLACES.find((p) => p.id === R.id)?.color || '#fff';
+      mctx.beginPath();
+      mctx.arc((it.x - R.origin.x) * sc, (it.z - R.origin.z) * sc, 3.5, 0, Math.PI * 2);
+      mctx.fill();
+    }
+    mctx.translate((state.pos.x - R.origin.x) * sc, (state.pos.z - R.origin.z) * sc);
+    mctx.rotate(Math.PI - state.heading);
+    mctx.fillStyle = '#ffffff';
+    mctx.beginPath();
+    mctx.moveTo(0, -8);
+    mctx.lineTo(6, 6);
+    mctx.lineTo(0, 3);
+    mctx.lineTo(-6, 6);
+    mctx.closePath();
+    mctx.fill();
+    mctx.restore();
+    return;
+  }
   // GTA-style: the map rotates with the camera and is centred on the player.
   const scale = (S / 2) / 70;
   const yaw = state.mode === 'overview' ? state.ovYaw : state.yaw;
@@ -774,8 +969,11 @@ function frame() {
   village.update(t, dt);
   grassWind.uTime.value = t;
   lavWind.uTime.value = t;
-  dayNight.update(dt);
+  if (!state.indoor) dayNight.update(dt);
+  else for (const u of state.indoor.updaters) u.update(t, dt);
   ui.setClock(dayNight.label());
+  ocean.uniforms.uTime.value = t;
+  coast.update(t, dayNight.state.night);
   updateClouds(t);
   updateRail(t);
   updateProps(t);
@@ -791,4 +989,4 @@ function frame() {
 requestAnimationFrame(frame);
 ui.ready();
 
-window.__shire = { state, setMode, travelTo, ui, renderer, scene, dayNight, village };
+window.__shire = { state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, enterRoom, exitRoom };

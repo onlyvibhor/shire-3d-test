@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-    <title>Vibhor Mathur · Creative leader</title>
+    <title>Vibhor Mathur · Creative director</title>
     <meta name="description" content="Vibhor Mathur's portfolio as a walkable 3D village: every department is a community, and the work we shipped together sits on its streets." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -17,7 +17,8 @@
 
     <!-- Intro -->
     <section id="intro">
-      <div class="intro__card">
+      <div class="orbs"><i></i><i></i><i></i></div>
+      <div class="intro__card tilt">
         <div class="intro__head">
           <img data-owner-portrait alt="Vibhor Mathur" />
           <div>
@@ -31,7 +32,7 @@
         <ul id="intro-legend" class="legend"></ul>
         <ul id="intro-awards" class="intro__awards"></ul>
         <div class="intro__actions">
-          <button id="btn-enter" class="btn btn--big">Enter the village</button>
+          <button id="btn-enter" class="btn btn--big">Enter the island</button>
           <button id="btn-tour" class="btn btn--big btn--ghost">Take the guided tour</button>
         </div>
         <p class="intro__keys keys-desktop"><kbd>W A S D</kbd> walk · <kbd>Shift</kbd> run · <kbd>Space</kbd> jump · <kbd>E</kbd> interact · <kbd>F</kbd> wave · <kbd>L</kbd> day/night · drag to look · click to walk</p>
@@ -43,7 +44,7 @@
     <header id="hud">
       <div class="hud__brand">
         <img data-owner-portrait alt="" />
-        <div><b data-owner-name>Vibhor Mathur</b><span>Creative leader · Razorpay</span></div>
+        <div><b data-owner-name>Vibhor Mathur</b><span>Creative director · Razorpay</span></div>
       </div>
       <nav class="hud__nav">
         <button id="btn-time" class="btn btn--hud" title="Time of day (L)"><span>🔄 Auto</span><b>09:30</b><kbd>L</kbd></button>
@@ -80,7 +81,7 @@
     <div id="case" role="dialog" aria-modal="true" aria-label="Case study"></div>
 
     <div id="hire" class="modal" role="dialog" aria-modal="true" aria-labelledby="hire-title">
-      <div class="hire__card">
+      <div class="hire__card tilt">
         <button class="close" data-close aria-label="Close">×</button>
         <div class="hire__head">
           <img data-owner-portrait alt="" />
@@ -91,13 +92,19 @@
           </div>
         </div>
         <p class="lead" data-owner-tagline></p>
+        <h3>Hire me for</h3>
+        <p id="hire-for" class="hire-for"></p>
         <div id="hire-numbers" class="numbers"></div>
+        <h3>Numbers the work moved</h3>
+        <div id="hire-results" class="results"></div>
         <h3>What I bring</h3>
         <ul id="hire-pillars" class="pillars"></ul>
         <div class="hire__cols">
           <div><h3>Path</h3><ul id="hire-path" class="path"></ul></div>
           <div><h3>Recognition</h3><ul id="hire-awards" class="hire__awards"></ul></div>
         </div>
+        <h3>In pictures</h3>
+        <div id="hire-gallery" class="gallery"></div>
         <div id="hire-links" class="hire__links"></div>
         <form id="contact-form" class="contact-form">
           <h3>Write to me</h3>
@@ -112,6 +119,8 @@
       </div>
     </div>
 
+    <div id="indoor"></div>
+    <div id="fader"></div>
     <div id="loader"><span>Building the village…</span></div>
     <script type="module" src="/src/main.js"></script>
   </body>

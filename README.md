@@ -1,7 +1,8 @@
 # Vibhor Mathur: a portfolio you can walk through
 
-A 3D open-world portfolio that plays in the browser. The organisation is a Shire-style village, styled after the
-Razorpay Magic Checkout world: a bright cyan sky, lush hills, lavender meadows, and shiny white-metal monoliths.
+A 3D open-world portfolio that plays in the browser. The organisation is a Shire-style village on a small island
+surrounded by sea, styled after the Razorpay Magic Checkout world: a bright cyan sky, lush hills, lavender meadows,
+and shiny white-metal monoliths.
 Each department is a hamlet. Its villagers are at work, and the projects we shipped together stand on
 billboards in its square.
 
@@ -15,8 +16,10 @@ billboards in its square.
 | Scribes' Court | Content & Copy | Trial of the Century, Payments on WhatsApp |
 | The Workshop | Design Studio | AI Toolkit, Grofers logo guidelines, Mentoring |
 | The Night Lab (by the pond) | After hours | Habitats, Absolut Landscapes, AI Experiments |
-| Jaipur Pink House | Vibhor's home | About, path, trophy cabinet, mailbox with a contact form |
-| The Playhouse | Hobbies & entertainment | Open-air cinema, stop-motion table, found-object art, arcade, poster wall |
+| Jaipur Pink House (walk-in) | Vibhor's home | Career wall, portrait, trophy cabinet, bookshelf with writing and teaching, mentoring corner, typewriter contact form, a sleepy cat |
+| AI Hub (walk-in dome) | Innovation & automation | Holographic core, the four AI tools at their stations, the tool stack wall, a founder-photo conveyor, principles, workshop corner |
+| The Playhouse (walk-in dome) | Hobbies & entertainment | Cinema of the studio's films, Modern Junkyard stop-motion set, Power found-object gallery, arcade, poster wall |
+| Hall of Fame (walk-in dome) | Awards | Every award on a lit pedestal with its winning project, award-night photos, the Trial of the Century stage |
 
 Each hamlet has its own scene:
 - **The Arena:** founders are filmed on a cricket pitch.
@@ -38,8 +41,12 @@ night. At night, street lamps, windows and screens light up.
 Delivery drones fly between the teams, scooters ride the ring road, and you'll find a filter-coffee bar and a
 video wall at HQ, domes across the hills, and big roadside ad boards for the campaigns.
 
-Opening a project shows the full case study from the portfolio repo (`src/content/`), styled like the repo's own
-case pages.
+Home, the AI Hub, the Playhouse and the Hall of Fame are walk-in sets. Walk up to the door (or press **E**) to go
+inside; walk back out through the door (or press **Esc**) to return to the island.
+
+Opening a project shows the full case study from the portfolio repo (`src/content/`), laid out like the repo's case
+pages but restyled as a dark, glassy 3D page. All popups use the same frosted-glass style, with depth shadows and a
+3D tilt.
 
 ## Play
 

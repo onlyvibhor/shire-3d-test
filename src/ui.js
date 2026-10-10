@@ -2,7 +2,7 @@ import { createCaseStudy } from './casestudy.js';
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-export function createUI({ owner, pillars, places, projects, awards, contact, favourites, onEnter, onTour, onOverview, onTravel, onTourStep, onExitTour, onTime }) {
+export function createUI({ owner, pillars, places, projects, awards, contact, favourites, tools = [], awardList = [], onEnter, onTour, onOverview, onTravel, onTourStep, onExitTour, onTime }) {
   const visited = new Set();
   const viewed = new Set();
   const trophies = new Set();
@@ -132,6 +132,55 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
       items.length ? `<h3>${title}</h3><ul class="favs">${items.map((i) => `<li><b>${esc(i.title)}</b>${i.year ? ` <em>${esc(i.year)}</em>` : ''}${i.note ? `<span>${esc(i.note)}</span>` : ''}</li>`).join('')}</ul>` : '';
     return list('Films & references that shaped the work', favourites.influences) + list('Favourite films', favourites.films) + list('Favourite shows', favourites.shows);
   }
+  // Generic info panels: the AI stack, the awards, writing and leadership notes.
+  function showInfo(kind) {
+    const C = { tools: '#00c2ff', awards: '#f5b700', leadership: '#e0786a' }[kind];
+    let body = '';
+    if (kind === 'tools') {
+      body = `<p class="eyebrow">AI Hub · The stack</p><h2>Tools the studio builds with</h2>
+        <p class="lead">Models are ingredients. The product is the interface and the system wrapped around them.</p>
+        <div class="tool-grid">${tools.map((t) => `<div class="tool-chip"><b>${esc(t.name)}</b><span>${esc(t.use)}</span></div>`).join('')}</div>`;
+    } else if (kind === 'awards') {
+      body = `<p class="eyebrow">Recognition</p><h2>Awards & recognition</h2>
+        <div class="award-list">${awardList.map((a) => `<div class="award ${a.tier}"><span>🏆</span><div><b>${esc(a.title)} · ${esc(a.category)}</b><em>${esc(a.show)} ${esc(a.year)}${a.project ? ` · ${esc(projects[a.project].title)}` : ' · Razorpay Creative & Design Team'}</em></div></div>`).join('')}</div>`;
+    } else if (kind === 'leadership') {
+      body = `<p class="eyebrow">From the bookshelf</p><h2>Leadership notes & writing</h2>
+        <ul>${['Keep widening the toolkit', 'Make goals measurable', 'Build a culture that can take risks', 'Design for the business, not just the brief'].map((x) => `<li>${x}</li>`).join('')}</ul>
+        <h3>Writing</h3><div class="works">${owner.writing.map((w) => `<a class="work work--text" href="${esc(w.url)}" target="_blank" rel="noopener"><span><b>${esc(w.title)}</b><em>${esc(w.date)} ↗</em></span></a>`).join('')}</div>
+        <h3>Teaching</h3><ul>${owner.teaching.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
+    }
+    panel.style.setProperty('--c', C);
+    panel.innerHTML = `<button class="close" aria-label="Close">×</button>${body}`;
+    panel.querySelector('.close').onclick = () => hidePlace();
+    panel.scrollTop = 0;
+    panel.classList.add('is-open');
+  }
+
+  // Fade to black and back, for doors.
+  const fader = $('#fader');
+  let fading = false;
+  function fade(cb) {
+    if (fading) return;
+    fading = true;
+    fader.classList.add('is-on');
+    setTimeout(() => {
+      cb();
+      setTimeout(() => {
+        fader.classList.remove('is-on');
+        fading = false;
+      }, 120);
+    }, 380);
+  }
+  const indoorEl = $('#indoor');
+  function setIndoor(place) {
+    document.body.classList.toggle('is-indoor', !!place);
+    if (place) {
+      indoorEl.style.setProperty('--c', place.color);
+      indoorEl.innerHTML = `<i></i><span>Inside</span><b>${esc(place.name)}</b><em>Walk out the door or press <kbd>Esc</kbd> to leave</em>`;
+      toast(`<b>Welcome to ${esc(place.name)}.</b> Walk around and press <kbd>E</kbd> near anything that glows.`, 4500);
+    }
+  }
+
   function hidePlace() {
     panel.classList.remove('is-open');
   }
@@ -250,6 +299,16 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
 
   // ----- Hire modal -----
   const hire = $('#hire');
+  $('#hire-for').textContent = owner.hireFor;
+  $('#hire-results').innerHTML = owner.results.map((r) => `<button class="result" data-slug="${r.slug}"><b>${esc(r.value)}</b><span>${esc(r.label)}</span></button>`).join('');
+  $('#hire-results').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-slug]');
+    if (b) {
+      toggleHire(false);
+      openProject(b.dataset.slug);
+    }
+  });
+  $('#hire-gallery').innerHTML = owner.gallery.map((g) => `<figure><img src="${esc(g.image)}" alt="${esc(g.caption)}" loading="lazy" /><figcaption>${esc(g.caption)}</figcaption></figure>`).join('');
   $('#hire-numbers').innerHTML = owner.numbers.map((n) => `<div><b>${esc(n.value)}</b><span>${esc(n.label)}</span></div>`).join('');
   $('#hire-pillars').innerHTML = pillars.map((p) => `<li><span class="rune">${esc(p.rune)}</span><div><b>${esc(p.name)}</b><p>${esc(p.text)}</p></div></li>`).join('');
   $('#hire-path').innerHTML = owner.path.map((p) => `<li><span>${esc(p.years)}</span><b>${esc(p.org)}</b><p>${esc(p.role)}</p></li>`).join('');
@@ -327,6 +386,21 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
       toast('<b>Welcome to the village.</b><br>Walk up to a billboard and press <kbd>E</kbd> to open a project.', 6000);
     }
   }
+  // Cards that lean towards the pointer
+  document.querySelectorAll('.tilt').forEach((el) => {
+    el.addEventListener('pointermove', (e) => {
+      const r = el.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5;
+      const y = (e.clientY - r.top) / r.height - 0.5;
+      el.style.setProperty('--ry', `${x * 6}deg`);
+      el.style.setProperty('--rx', `${-y * 5}deg`);
+    });
+    el.addEventListener('pointerleave', () => {
+      el.style.setProperty('--ry', '0deg');
+      el.style.setProperty('--rx', '0deg');
+    });
+  });
+
   function ready() {
     document.body.classList.add('is-ready');
     document.body.dataset.mode = mode;
@@ -334,6 +408,6 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
 
   return {
     placeLabel, showPlace, hidePlace, toast, toggleHire, toggleMissions, closeOverlays, modalOpen, setMode, setTourProgress,
-    ready, openProject, stepGallery, prompt, speech, thoughts, collectTrophy, visited, setClock, setTimeMode,
+    ready, openProject, stepGallery, prompt, speech, thoughts, collectTrophy, visited, setClock, setTimeMode, showInfo, fade, setIndoor,
   };
 }

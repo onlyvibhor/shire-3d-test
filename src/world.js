@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { HAMLETS, LAB, HOME, FUN } from './data.js';
+import { HAMLETS, LAB, HOME, FUN, AIHUB, HALL } from './data.js';
 import { windMaterial, canvasTexture } from './materials.js';
 
 // ---------- Layout ----------
 
 export const HAMLET_RADIUS = 72;
-export const WORLD_RADIUS = 178;
-export const WATER_LEVEL = -1.6;
+export const WORLD_RADIUS = 175;
+export const WATER_LEVEL = -1.0;
 export const ROAD_HALF = 2.6;
 
 HAMLETS.forEach((h, i) => {
@@ -24,13 +24,13 @@ LAB.x = Math.cos(pondAngle) * 25;
 LAB.z = Math.sin(pondAngle) * 25;
 
 // Home and the Playhouse sit inside the ring, between hamlets.
-for (const [place, i] of [[FUN, 2], [HOME, 4]]) {
-  const a = (HAMLETS[i].angle + HAMLETS[i + 1].angle) / 2;
+for (const [place, i] of [[FUN, 2], [HALL, 3], [HOME, 4], [AIHUB, 5]]) {
+  const a = HAMLETS[i].angle + Math.PI / 6;
   place.angle = a;
   place.x = Math.cos(a) * 40;
   place.z = Math.sin(a) * 40;
 }
-export const ZONES = [HOME, FUN];
+export const ZONES = [HOME, FUN, AIHUB, HALL];
 
 export const PATHS = [];
 HAMLETS.forEach((h, i) => {
@@ -39,7 +39,7 @@ HAMLETS.forEach((h, i) => {
   PATHS.push([h.x, h.z, n.x, n.z]);
 });
 // Branch paths from the nearest spoke into each inner zone, keeping the centre plaza clear.
-for (const [z, i, r, edge] of [[FUN, 2, 32, 11], [HOME, 4, 32, 11], [LAB, 1, 19, 5.5]]) {
+for (const [z, i, r, edge] of [[FUN, 2, 32, 11], [HALL, 3, 32, 11], [HOME, 4, 32, 11], [AIHUB, 5, 32, 11], [LAB, 1, 19, 5.5]]) {
   const a = HAMLETS[i].angle;
   const sx = Math.cos(a) * r;
   const sz = Math.sin(a) * r;
@@ -68,17 +68,28 @@ export const smooth = (a, b, x) => {
   return t * t * (3 - 2 * t);
 };
 
+// The island's coastline radius at a given angle.
+export const SEA_LEVEL = -1.0;
+export function coastR(a) {
+  return 152 + 9 * Math.sin(3 * a + 1) + 6 * Math.sin(5 * a + 0.4) + 3 * Math.sin(9 * a);
+}
+
 function rawHeight(x, z) {
   let h =
     2.0 * Math.sin(x * 0.035) * Math.cos(z * 0.03) +
     1.3 * Math.sin(x * 0.07 + 1.3) * Math.sin(z * 0.06 + 0.7) +
     0.45 * Math.sin(x * 0.15 + z * 0.11);
   const r = Math.hypot(x, z);
+  const a = Math.atan2(z, x);
+  const R = coastR(a);
   h += 6 * Math.exp(-(r * r) / (2 * 22 * 22)); // the Party Tree hill
-  // Big rolling green hills around the valley, like a postcard.
-  const outer = smooth(95, 150, r);
-  h += outer * (7 + 6 * Math.sin(Math.atan2(z, x) * 5 + 1.2) + 4 * Math.sin(x * 0.045) * Math.cos(z * 0.05));
-  h += Math.pow(Math.max(0, r - 150) * 0.2, 1.55);
+  // A ring of rolling green hills, easing down to the beaches.
+  const ring = smooth(92, 118, r) * (1 - smooth(R - 30, R - 12, r));
+  h += ring * (6 + 4 * Math.sin(a * 5 + 1.2) + 3 * Math.sin(x * 0.045) * Math.cos(z * 0.05));
+  h += 2.5; // keep the inland meadows comfortably above the sea
+  // Beach, then the sea floor.
+  const coast = smooth(R - 14, R + 16, r);
+  h = THREE.MathUtils.lerp(h, -10, coast);
   return h;
 }
 
@@ -97,7 +108,7 @@ export function heightAt(x, z) {
   const pd = distToPath(x, z);
   if (pd < 6) h -= (1 - smooth(ROAD_HALF, 6, pd)) * 0.12;
   const pdist = Math.hypot(x - POND.x, z - POND.z);
-  h -= 4.5 * (1 - smooth(0, POND.r * 1.3, pdist));
+  h -= 6.5 * (1 - smooth(0, POND.r * 1.3, pdist));
   return h;
 }
 
@@ -232,6 +243,8 @@ export function buildTerrain(scene) {
   const pos = geo.attributes.position;
   const colors = new Float32Array(pos.count * 3);
   const deep = new THREE.Color('#3f8a2c');
+  const sand = new THREE.Color('#ecdcb0');
+  const wetSand = new THREE.Color('#bfa77a');
   const lush = new THREE.Color('#5fae38');
   const sunny = new THREE.Color('#9ccf4c');
   const c = new THREE.Color();
@@ -243,6 +256,9 @@ export function buildTerrain(scene) {
     const n = 0.5 + 0.5 * Math.sin(x * 0.11 + Math.cos(z * 0.09) * 2.0) * Math.cos(z * 0.07);
     c.copy(deep).lerp(lush, 0.45 + n * 0.45);
     c.lerp(sunny, Math.max(0, Math.sin(x * 0.03 + 2) * Math.sin(z * 0.025 + 1)) * 0.45 + Math.max(0, y - 6) * 0.015);
+    // sandy beaches and wet sand under the shallows
+    c.lerp(sand, 1 - smooth(SEA_LEVEL + 0.9, SEA_LEVEL + 2.2, y));
+    c.lerp(wetSand, 1 - smooth(SEA_LEVEL - 1.5, SEA_LEVEL + 0.2, y));
     colors.set([c.r, c.g, c.b], i * 3);
   }
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
@@ -325,13 +341,6 @@ export function buildTerrain(scene) {
   curbs.receiveShadow = true;
   scene.add(curbs);
 
-  const water = new THREE.Mesh(
-    new THREE.CircleGeometry(POND.r * 1.5, 48),
-    new THREE.MeshPhysicalMaterial({ color: '#4fb4d8', roughness: 0.04, metalness: 0.15, transparent: true, opacity: 0.9, clearcoat: 1 })
-  );
-  water.rotation.x = -Math.PI / 2;
-  water.position.set(POND.x, WATER_LEVEL, POND.z);
-  scene.add(water);
   return { terrain };
 }
 
@@ -372,12 +381,12 @@ export function buildGrass(scene, count = 180000) {
   let guard = 0;
   while (i < count && guard++ < count * 4) {
     const a = r() * Math.PI * 2;
-    const d = 4 + Math.sqrt(r()) * 172;
+    const d = 4 + Math.sqrt(r()) * 165;
     const x = Math.cos(a) * d;
     const z = Math.sin(a) * d;
     if (isClearing(x, z)) continue;
     const y = heightAt(x, z);
-    if (y < WATER_LEVEL + 0.3) continue;
+    if (y < WATER_LEVEL + 0.3 || y < SEA_LEVEL + 2.2) continue;
     const h = 0.35 + r() * 0.5 + smooth(60, 150, d) * 0.5;
     q.setFromAxisAngle(up, r() * Math.PI);
     m.compose(new THREE.Vector3(x, y - 0.05, z), q, new THREE.Vector3(1 + r() * 0.6, h, 1));
@@ -434,7 +443,7 @@ export function buildLavender(scene, count = 14000) {
     const d = Math.sqrt(r()) * p.rad;
     const x = p.x + Math.cos(a) * d * 1.4;
     const z = p.z + Math.sin(a) * d;
-    if (isClearing(x, z)) continue;
+    if (isClearing(x, z) || heightAt(x, z) < SEA_LEVEL + 2.4) continue;
     const s = 0.8 + r() * 0.7;
     q.setFromEuler(new THREE.Euler((r() - 0.5) * 0.3, r() * 6, (r() - 0.5) * 0.3));
     m.compose(new THREE.Vector3(x, heightAt(x, z) - 0.05, z), q, new THREE.Vector3(s, s, s));
@@ -459,7 +468,7 @@ export function buildTrees(scene, colliders) {
     const d = 22 + Math.sqrt(r()) * 168;
     const x = Math.cos(a) * d;
     const z = Math.sin(a) * d;
-    if (isClearing(x, z, 3)) continue;
+    if (isClearing(x, z, 3) || heightAt(x, z) < SEA_LEVEL + 2.6) continue;
     if (HAMLETS.some((h) => Math.hypot(x - h.x, z - h.z) < 27)) continue;
     if (Math.hypot(x, z) < 26) continue;
     if (d < 110 && r() < 0.6) continue;
@@ -520,12 +529,13 @@ export function buildMountains(scene) {
   const mat = new THREE.MeshStandardMaterial({ color: '#7fa7b8', flatShading: true, roughness: 1 });
   const snow = new THREE.MeshStandardMaterial({ color: '#f3f7fa', flatShading: true });
   for (let i = 0; i < 40; i++) {
+    if (r() < 0.45) continue; // gaps of open sea between the far islands
     const a = (i / 40) * Math.PI * 2 + r() * 0.1;
-    const d = 330 + r() * 80;
+    const d = 420 + r() * 120;
     const h = 60 + r() * 90;
     const rad = 50 + r() * 40;
     const m = new THREE.Mesh(new THREE.ConeGeometry(rad, h, 8), mat);
-    m.position.set(Math.cos(a) * d, h / 2 - 6, Math.sin(a) * d);
+    m.position.set(Math.cos(a) * d, h / 2 - 12, Math.sin(a) * d);
     m.rotation.y = r() * 3;
     scene.add(m);
     if (h > 110) {
@@ -575,4 +585,78 @@ export function buildPollen(scene) {
     }
     geo.attributes.position.needsUpdate = true;
   };
+}
+
+// ---------- The sea ----------
+
+export function buildOcean(scene) {
+  const mat = new THREE.ShaderMaterial({
+    fog: true,
+    transparent: true,
+    uniforms: THREE.UniformsUtils.merge([
+      THREE.UniformsLib.fog,
+      {
+        uTime: { value: 0 },
+        uDeep: { value: new THREE.Color('#0f6fa6') },
+        uShallow: { value: new THREE.Color('#3cc6d8') },
+        uSky: { value: new THREE.Color('#bfe6ff') },
+        uSun: { value: new THREE.Vector3(0.5, 0.6, 0.3).normalize() },
+        uNight: { value: 0 },
+      },
+    ]),
+    vertexShader: `
+      uniform float uTime;
+      varying vec3 vW;
+      #include <fog_pars_vertex>
+      void main() {
+        vec3 p = position;
+        vec4 w = modelMatrix * vec4(p, 1.0);
+        float r = length(w.xz);
+        w.y += (sin(w.x * 0.08 + uTime * 0.9) + sin(w.z * 0.11 - uTime * 0.7)) * 0.18 * smoothstep(150.0, 260.0, r);
+        vW = w.xyz;
+        vec4 mvPosition = viewMatrix * w;
+        gl_Position = projectionMatrix * mvPosition;
+        #include <fog_vertex>
+      }`,
+    fragmentShader: `
+      uniform float uTime; uniform vec3 uDeep; uniform vec3 uShallow; uniform vec3 uSky; uniform vec3 uSun; uniform float uNight;
+      varying vec3 vW;
+      #include <fog_pars_fragment>
+      float coastR(float a) { return 152.0 + 9.0 * sin(3.0 * a + 1.0) + 6.0 * sin(5.0 * a + 0.4) + 3.0 * sin(9.0 * a); }
+      void main() {
+        float t = uTime;
+        vec2 p = vW.xz;
+        // layered waves for the normal
+        vec2 g = vec2(0.0);
+        g += vec2(cos(p.x * 0.21 + t * 1.3), 0.0) * 0.20;
+        g += vec2(0.0, cos(p.y * 0.17 - t * 1.1)) * 0.20;
+        g += vec2(cos((p.x + p.y) * 0.43 + t * 2.1)) * 0.08;
+        g += vec2(cos((p.x - p.y) * 0.9 - t * 2.7)) * 0.04;
+        vec3 n = normalize(vec3(-g.x, 1.0, -g.y));
+        vec3 v = normalize(cameraPosition - vW);
+        float fres = pow(1.0 - max(dot(n, v), 0.0), 3.0);
+        float r = length(p);
+        float R = coastR(atan(p.y, p.x));
+        float shore = 1.0 - smoothstep(R - 4.0, R + 34.0, r);
+        vec3 col = mix(uDeep, uShallow, shore * 0.85);
+        col = mix(col, uSky, fres * 0.6);
+        vec3 h = normalize(uSun + v);
+        float spec = pow(max(dot(n, h), 0.0), 220.0) * (1.0 - uNight * 0.8);
+        col += vec3(1.0, 0.97, 0.9) * spec * 2.5;
+        // foam where waves meet the beach
+        float band = 1.0 - smoothstep(0.0, 6.0, abs(r - (R + 4.0 + sin(t * 0.8 + atan(p.y, p.x) * 12.0) * 1.2)));
+        float foam = band * (0.55 + 0.45 * sin(r * 1.7 - t * 2.4 + sin(p.x * 0.3) * 2.0));
+        col = mix(col, vec3(1.0), clamp(foam, 0.0, 1.0) * 0.8);
+        col *= mix(1.0, 0.35, uNight);
+        gl_FragColor = vec4(col, 0.94);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+        #include <fog_fragment>
+      }`,
+  });
+  const sea = new THREE.Mesh(new THREE.PlaneGeometry(2400, 2400, 200, 200), mat);
+  sea.rotation.x = -Math.PI / 2;
+  sea.position.y = SEA_LEVEL;
+  scene.add(sea);
+  return mat;
 }

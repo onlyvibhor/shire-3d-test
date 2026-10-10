@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { HAMLETS, PILLARS, CENTER, LAB, PROJECTS, AWARDS, HOME, FUN, FAVOURITES, OWNER } from './data.js';
+import { HAMLETS, PILLARS, CENTER, LAB, PROJECTS, AWARDS, HOME, FUN, FAVOURITES, OWNER, AIHUB, HALL } from './data.js';
 import { heightAt, rng, PATHS, ROAD_HALF, distToPath } from './world.js';
 import { makeDome, makeDrone, makeScooter, makeDesk, makeMonitorWall, dashboardTexture, makeCafe, makeAdBoard, screenMat } from './props.js';
 import { makePerson, giveProp, animate } from './characters.js';
@@ -457,8 +457,8 @@ function buildHamlet(scene, h, i, ctx) {
       }
       g.add(ringG);
       collider(g, 3.2, 0, 2);
-      const b1 = makePerson({ seed: r(), top: '#c0392b', sleeves: 'short', lanyard: false });
-      const b2 = makePerson({ seed: r(), top: '#1a4fd6', sleeves: 'short', lanyard: false });
+      const b1 = makePerson({ seed: r(), style: 'streetwear', top: '#c0392b', outer: null, accessory: 'none', noBag: true, fem: false });
+      const b2 = makePerson({ seed: r(), style: 'streetwear', top: '#1a4fd6', outer: null, accessory: 'none', noBag: true, fem: false });
       giveProp(b1, 'glove', '#c0392b');
       giveProp(b2, 'glove', '#1a4fd6');
       b1.root.position.set(-0.7, 0.62, 2);
@@ -778,7 +778,7 @@ function buildTrophies(scene, ctx) {
   const spots = [
     [HAMLETS[0].angle + Math.PI / 6, 118],
     [HAMLETS[2].angle + Math.PI / 6, 122],
-    [HAMLETS[3].angle + Math.PI / 6, 150],
+    [HAMLETS[3].angle + Math.PI / 6, 126],
     [HAMLETS[4].angle + Math.PI / 6, 120],
   ];
   ctx.trophies = AWARDS.map((award, k) => {
@@ -998,60 +998,37 @@ function buildHome(scene, ctx) {
     for (let k = 0; k < 10; k++) g.add(mesh(new THREE.IcosahedronGeometry(0.18, 0), solid(flowers[k % 4]), sx * 6.5 + (r() - 0.5) * 3, 0.5, 5.5 + (r() - 0.5) * 1.1));
   }
 
-  // About panels: the story of the person who lives here
-  const panels = [
-    [[['Jaipur → Bengaluru', 52, 800], ['Self-taught designer from Jaipur, with a B.Tech in Computer Engineering from GEC Bikaner.', 30, 500, '#334155'], ['Designing narratives by day. Crafting emotions through art by night.', 30, 600, H.color]]],
-    [[['11 years', 64, 800, H.color], ['Grofers (now Blinkit), 2015–2021: Associate Director, Marketing Design.', 28, 500, '#334155'], ['Razorpay, 2021–now: Communication Design Senior Manager across Payments, RazorpayX and POS.', 28, 500, '#334155']]],
-    [[['How I lead', 52, 800], ['Keep widening the toolkit.', 30, 600, '#334155'], ['Make goals measurable.', 30, 600, '#334155'], ['Build a culture that can take risks.', 30, 600, '#334155'], ['Design for the business, not just the brief.', 30, 600, '#334155']]],
-  ];
-  panels.forEach(([lines], k) => {
-    const { g: pg, face: f } = standingPanel(textPanel(lines, H.color), { kind: 'home' });
-    const x = -8 + k * 0;
-    const z = -0.5 + k * 2.8;
-    pg.position.set(-8.6, 0, z);
-    pg.rotation.y = face(-8.6, z, 0, z + 2);
-    g.add(pg);
-    collider(g, 1.1, -8.6, z);
-    ctx.clickables.push(f);
-  });
-  // Portrait on an easel
-  const easel = new THREE.Group();
-  easel.position.set(7.2, 0, 1.6);
-  easel.rotation.y = face(7.2, 1.6, 0, 6);
-  easel.add(mesh(new THREE.BoxGeometry(1.7, 1.7, 0.08), WOOD, 0, 1.9, 0));
-  const portrait = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5), screenMat(OWNER.portrait, 1));
-  portrait.position.set(0, 1.9, 0.05);
-  easel.add(portrait);
-  for (const x of [-0.6, 0.6]) easel.add(mesh(new THREE.BoxGeometry(0.06, 2.2, 0.06), WOOD, x, 1.0, -0.15));
-  g.add(easel);
-  collider(g, 0.8, 7.2, 1.6);
-
-  // Trophy cabinet: fills up as you find the awards
-  const cab = new THREE.Group();
-  cab.position.set(-3.6, 0, -1.8);
-  cab.add(mesh(new THREE.BoxGeometry(3.2, 0.9, 1), WHITE_METAL, 0, 0.45, 0));
-  cab.add(mesh(new THREE.BoxGeometry(3.2, 1.6, 1), GLASS, 0, 1.7, 0, false));
-  const cups = [];
-  for (let k = 0; k < 4; k++) {
-    const cup = new THREE.Group();
-    const pts = [[0, 0], [0.18, 0], [0.06, 0.08], [0.05, 0.3], [0.2, 0.42], [0.22, 0.65], [0, 0.55]].map(([x, y]) => new THREE.Vector2(x, y));
-    cup.add(new THREE.Mesh(new THREE.LatheGeometry(pts, 16), GOLD));
-    cup.position.set(-1.1 + k * 0.73, 0.95, 0);
-    cup.visible = false;
-    cab.add(cup);
-    cups.push(cup);
-  }
-  g.add(cab);
-  collider(g, 1.7, -3.6, -1.8);
-  const cabLabel = new THREE.Object3D();
-  cabLabel.position.set(-3.6, 0, -0.6);
-  cabLabel.userData.interact = { kind: 'home', label: 'Trophy cabinet', verb: 'About Vibhor' };
-  g.add(cabLabel);
+  // The front door leads inside
+  const doorMarker = new THREE.Object3D();
+  doorMarker.position.set(0, 0, -2.0);
+  doorMarker.userData.interact = { kind: 'enter', room: 'home', label: 'Vibhor’s Home', verb: 'Go inside' };
+  g.add(doorMarker);
+  door.userData.action = { kind: 'enter', room: 'home' };
+  door.userData.dynamic = true;
+  ctx.clickables.push(door);
+  const welcome = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.6, 0.5),
+    new THREE.MeshBasicMaterial({
+      map: canvasTexture(1024, 196, (c, w, h) => {
+        c.fillStyle = '#f6e6d2';
+        c.fillRect(0, 0, w, h);
+        c.fillStyle = '#7a3b2e';
+        c.font = '700 96px "Bricolage Grotesque", Inter, sans-serif';
+        c.textAlign = 'center';
+        c.textBaseline = 'middle';
+        c.fillText('Welcome · Swagat', w / 2, h / 2 + 6);
+      }),
+      toneMapped: false,
+    })
+  );
+  welcome.position.set(0, 3.95, -3.4);
+  welcome.userData.dynamic = true;
+  g.add(welcome);
 
   // A visitor reading the panels and one waiting by the mailbox
   const v1 = makePerson({ accent: H.color, seed: r() });
-  v1.root.position.set(-6.2, 0, 1);
-  v1.root.rotation.y = face(-6.2, 1, -8.6, 1);
+  v1.root.position.set(-6.2, 0, 2);
+  v1.root.rotation.y = face(-6.2, 2, 0, -3);
   g.add(v1.root);
   const v2 = makePerson({ accent: H.color, seed: r(), longHair: true });
   v2.root.position.set(3.6, 0, 8.6);
@@ -1061,7 +1038,6 @@ function buildHome(scene, ctx) {
   ctx.npcs.push({ p: v1, dept: 'home' }, { p: v2, dept: 'home', lines: H.quotes, name: 'Neighbour' });
 
   deepMerge(g);
-  ctx.home = { cups };
 }
 
 // ---------- The Playhouse: films, stop motion, found objects, arcade ----------
@@ -1099,187 +1075,131 @@ function posterTexture(item, color, kind) {
   });
 }
 
-function buildPlayhouse(scene, ctx) {
-  const F = FUN;
-  const r = rng(505);
-  const g = new THREE.Group();
-  g.position.set(F.x, F.y, F.z);
-  g.rotation.y = Math.atan2(-F.x, -F.z);
-  scene.add(g);
-  const face = (x, z, tx = 0, tz = 0) => Math.atan2(tx - x, tz - z);
-  const U = ctx.updaters;
-  const npc = (action, x, z, rotY, opts = {}, lines) => {
-    const p = makePerson({ accent: F.color, seed: r(), ...opts });
-    p.root.position.set(x, opts.y ?? 0, z);
-    p.root.rotation.y = rotY;
-    g.add(p.root);
-    U.push({ update: (t) => animate(p, action, t) });
-    ctx.npcs.push({ p, dept: 'fun', lines, name: lines ? 'Playhouse host' : undefined });
-    return p;
-  };
+function signTexture(text, sub, color, dark = true) {
+  return canvasTexture(1024, 256, (c, w, h) => {
+    c.fillStyle = dark ? '#0f172a' : '#ffffff';
+    c.beginPath();
+    c.roundRect(0, 0, w, h, 60);
+    c.fill();
+    c.fillStyle = color;
+    c.fillRect(60, h - 22, w - 120, 8);
+    c.fillStyle = dark ? '#ffffff' : '#0f172a';
+    c.font = '800 112px "Bricolage Grotesque", Inter, sans-serif';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText(text, w / 2, h * 0.42, w - 80);
+    c.fillStyle = color;
+    c.font = '600 40px Inter, sans-serif';
+    c.fillText(sub, w / 2, h * 0.78, w - 80);
+  });
+}
 
-  // Open-air cinema
-  const screenG = new THREE.Group();
-  screenG.position.set(0, 0, -7.5);
-  for (const x of [-6.4, 6.4]) screenG.add(mesh(new THREE.BoxGeometry(0.4, 9.5, 0.4), WHITE_METAL, x, 4.75, -0.2));
-  screenG.add(mesh(new THREE.BoxGeometry(13.2, 7.6, 0.3), WHITE_METAL, 0, 5.6, -0.25));
-  const films = ['trial', 'ring', 'btb', 'ace', 't20'].map((slug) => screenMat(PROJECTS[slug].images[0], 12 / 6.75));
-  const screen = new THREE.Mesh(new THREE.PlaneGeometry(12, 6.75), films[0]);
-  screen.position.set(0, 5.6, -0.08);
-  screen.userData.action = { kind: 'project', slug: 'trial' };
-  screen.userData.dynamic = true;
-  screenG.add(screen);
-  const marquee = new THREE.Mesh(
-    new THREE.PlaneGeometry(6, 0.8),
-    new THREE.MeshBasicMaterial({
-      map: canvasTexture(1024, 136, (c, w, h) => {
-        c.fillStyle = '#0f172a';
-        c.fillRect(0, 0, w, h);
-        c.fillStyle = '#ffd84a';
-        c.font = '800 72px "Bricolage Grotesque", Inter, sans-serif';
-        c.textAlign = 'center';
-        c.textBaseline = 'middle';
-        c.fillText('NOW SHOWING · STUDIO FILMS', w / 2, h / 2 + 4, w - 40);
-      }),
-      toneMapped: false,
-    })
-  );
-  marquee.position.set(0, 9.85, -0.08);
-  marquee.userData.dynamic = true;
-  screenG.add(marquee);
-  g.add(screenG);
-  collider(g, 1, -6.4, -7.5);
-  collider(g, 1, 6.4, -7.5);
-  ctx.clickables.push(screen);
-  const filmSlugs = ['trial', 'ring', 'btb', 'ace', 't20'];
-  U.push({
-    update: (t) => {
-      const k = Math.floor(t / 7) % films.length;
-      if (screen.material !== films[k]) {
-        screen.material = films[k];
-        screen.userData.action = { kind: 'project', slug: filmSlugs[k] };
-      }
+// A big walk-in dome: the door leads to an indoor set.
+function buildZoneDome(scene, ctx, place, { radius = 10, glass = false, extras } = {}) {
+  const r = rng(place.id.length * 97);
+  const g = new THREE.Group();
+  g.position.set(place.x, place.y, place.z);
+  g.rotation.y = Math.atan2(-place.x, -place.z);
+  scene.add(g);
+  const dome = makeDome(radius, place.color, { glass });
+  dome.position.z = -2;
+  g.add(dome);
+  collider(g, radius + 0.2, 0, -2);
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(7, 1.75), new THREE.MeshBasicMaterial({ map: signTexture(place.name.toUpperCase(), place.place, place.color), transparent: true, toneMapped: false }));
+  sign.position.set(0, radius * 0.72, -2 + radius * 0.98);
+  sign.rotation.x = -0.25;
+  sign.userData.dynamic = true;
+  g.add(sign);
+  // glowing archway and a path of lights to the door
+  const doorZ = -2 + radius * 1.15;
+  const archGlow = new THREE.Mesh(new THREE.TorusGeometry(radius * 0.27, 0.12, 8, 32, Math.PI), glow(place.color, 3));
+  archGlow.position.set(0, radius * 0.48, doorZ + 0.05);
+  g.add(archGlow);
+  for (let k = 0; k < 4; k++) {
+    for (const sx of [-1, 1]) g.add(mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.5, 10), glow(place.color, 2), sx * 2.2, 0.25, doorZ + 1.5 + k * 2.2));
+  }
+  const marker = new THREE.Object3D();
+  marker.position.set(0, 0, doorZ + 1.2);
+  marker.userData.interact = { kind: 'enter', room: place.id, label: place.name, verb: 'Go inside' };
+  g.add(marker);
+  const doorHit = new THREE.Mesh(new THREE.PlaneGeometry(radius * 0.5, radius * 0.6), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
+  doorHit.position.set(0, radius * 0.3, doorZ + 0.06);
+  doorHit.userData.action = { kind: 'enter', room: place.id };
+  doorHit.userData.dynamic = true;
+  g.add(doorHit);
+  ctx.clickables.push(doorHit);
+  // a greeter by the door
+  const p = makePerson({ accent: place.color, seed: r(), style: ['blazer', 'streetwear', 'kurta'][place.id.length % 3] });
+  p.root.position.set(3.2, 0, doorZ + 2.2);
+  p.root.rotation.y = Math.atan2(-3.2, 4);
+  g.add(p.root);
+  ctx.updaters.push({ update: (t) => animate(p, 'talk', t) });
+  ctx.npcs.push({ p, dept: place.id, lines: place.quotes, name: `${place.name} host` });
+  extras?.(g, doorZ, r);
+  deepMerge(g);
+}
+
+function buildPlayhouse(scene, ctx) {
+  buildZoneDome(scene, ctx, FUN, {
+    radius: 10,
+    extras: (g, doorZ) => {
+      // popcorn cart outside
+      const pop = new THREE.Group();
+      pop.position.set(-6, 0, doorZ + 3);
+      pop.add(mesh(new THREE.BoxGeometry(1.6, 1, 1), solid('#d64545'), 0, 0.8, 0));
+      for (let k = 0; k < 6; k++) pop.add(mesh(new THREE.BoxGeometry(0.28, 0.06, 1.3), solid(k % 2 ? '#ffffff' : '#d64545'), -0.7 + k * 0.28, 2.3, 0));
+      for (const x of [-0.7, 0.7]) pop.add(mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.3, 6), WHITE_METAL, x, 1.65, 0));
+      g.add(pop);
+      collider(g, 1.1, -6, doorZ + 3);
     },
   });
+}
 
-  // Bean bags with an audience
-  const bagColors = ['#ff9f1c', '#2f6bff', '#ff4f8b', '#00a79d', '#7b5cff', '#f2a516'];
-  [[-3, -1.5], [0, -1], [3, -1.5], [-1.6, 1.4], [1.6, 1.4]].forEach(([x, z], k) => {
-    const bag = mesh(new THREE.SphereGeometry(0.75, 16, 12), solid(bagColors[k % bagColors.length], { roughness: 0.9 }), x, 0.35, z);
-    bag.scale.set(1, 0.55, 1);
-    g.add(bag);
-    collider(g, 0.7, x, z);
-    if (k !== 1) {
-      const viewer = npc(k % 2 ? 'sit' : 'coffee', x, z + 0.1, Math.PI, { y: 0.0 });
-      if (k % 2 === 0) giveProp(viewer, 'cup', '#ffffff');
-      viewer.root.position.y = k % 2 ? -0.05 : 0.0;
-    }
+function buildAIHubDome(scene, ctx) {
+  buildZoneDome(scene, ctx, AIHUB, {
+    radius: 11,
+    glass: true,
+    extras: (g) => {
+      // floating data cubes orbiting the dome
+      const cubes = [];
+      for (let k = 0; k < 10; k++) {
+        const c = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), glow(k % 2 ? AIHUB.color : '#7b5cff', 2.5));
+        c.userData.dynamic = true;
+        g.add(c);
+        cubes.push(c);
+      }
+      ctx.updaters.push({
+        update: (t) =>
+          cubes.forEach((c, k) => {
+            const a = t * 0.3 + (k / cubes.length) * Math.PI * 2;
+            c.position.set(Math.cos(a) * 13, 6 + Math.sin(t + k) * 1.5, -2 + Math.sin(a) * 13);
+            c.rotation.set(t + k, t * 0.7, 0);
+          }),
+      });
+    },
   });
+}
 
-  // Popcorn cart
-  const pop = new THREE.Group();
-  pop.position.set(7.2, 0, 2.5);
-  pop.rotation.y = face(7.2, 2.5);
-  pop.add(mesh(new THREE.BoxGeometry(1.6, 1, 1), solid('#d64545'), 0, 0.8, 0));
-  pop.add(mesh(new THREE.BoxGeometry(1.5, 1, 0.9), GLASS, 0, 1.8, 0, false));
-  for (let k = 0; k < 18; k++) pop.add(mesh(new THREE.IcosahedronGeometry(0.08, 0), solid('#fff4c2'), (r() - 0.5) * 1.2, 1.4 + r() * 0.6, (r() - 0.5) * 0.6, false));
-  for (let k = 0; k < 6; k++) pop.add(mesh(new THREE.BoxGeometry(0.28, 0.06, 1.3), solid(k % 2 ? '#ffffff' : '#d64545'), -0.7 + k * 0.28, 2.5, 0));
-  for (const x of [-0.6, 0.6]) {
-    const wheel = mesh(new THREE.TorusGeometry(0.28, 0.07, 8, 16), DARK, x, 0.3, 0.55);
-    pop.add(wheel);
-  }
-  g.add(pop);
-  collider(g, 1.1, 7.2, 2.5);
-  npc('talk', 7.2, 1.2, face(7.2, 1.2, 0, 0), { top: '#d64545' }, F.quotes);
-
-  // Arcade cabinet: Back in the Ring, the game
-  const arc = new THREE.Group();
-  arc.position.set(-7.5, 0, 2.5);
-  arc.rotation.y = face(-7.5, 2.5);
-  arc.add(mesh(new THREE.BoxGeometry(1.1, 2.1, 0.9), solid('#1d2b4f'), 0, 1.05, 0));
-  arc.add(mesh(new THREE.BoxGeometry(1.15, 0.12, 0.6), solid(F.color), 0, 1.15, 0.5));
-  const arcScreen = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.7), screenMat(PROJECTS.ring.images[0], 0.9 / 0.7));
-  arcScreen.position.set(0, 1.65, 0.455);
-  arcScreen.userData.action = { kind: 'project', slug: 'ring' };
-  arcScreen.userData.dynamic = true;
-  arc.add(arcScreen);
-  g.add(arc);
-  ctx.clickables.push(arcScreen);
-  collider(g, 0.8, -7.5, 2.5);
-  const gamer = npc('type', -7.5, 3.6, face(-7.5, 3.6, -7.5, 2.5));
-  const arcMarker = new THREE.Object3D();
-  arcMarker.position.set(-7.5, 0, 3.9);
-  arcMarker.userData.project = 'ring';
-  g.add(arcMarker);
-
-  // Stop-motion table
-  const sm = new THREE.Group();
-  sm.position.set(-6.5, 0, -3.5);
-  sm.rotation.y = face(-6.5, -3.5);
-  sm.add(mesh(new THREE.BoxGeometry(2.2, 0.08, 1.4), WOOD, 0, 0.9, 0));
-  for (const [x, z] of [[-1, -0.6], [1, -0.6], [-1, 0.6], [1, 0.6]]) sm.add(mesh(new THREE.BoxGeometry(0.07, 0.9, 0.07), DARK, x, 0.45, z));
-  sm.add(mesh(new THREE.BoxGeometry(2.1, 1.0, 0.05), solid('#bfe3ff'), 0, 1.45, -0.65));
-  const clay = ['#ff8fb1', '#ffd84a', '#7b5cff'];
-  for (let k = 0; k < 3; k++) {
-    sm.add(mesh(new THREE.CapsuleGeometry(0.07, 0.12, 4, 8), solid(clay[k], { roughness: 0.95 }), -0.5 + k * 0.45, 1.06, -0.1));
-    sm.add(mesh(new THREE.SphereGeometry(0.06, 10, 8), solid(clay[k], { roughness: 0.95 }), -0.5 + k * 0.45, 1.2, -0.1));
-  }
-  sm.add(mesh(new THREE.BoxGeometry(0.25, 0.18, 0.3), DARK, 0, 2.0, 0.5));
-  sm.add(mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.1, 6), DARK, 0, 1.45, 0.65));
-  const softbox = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.1), glow('#ffffff', 1.5));
-  softbox.position.set(0.9, 2.1, 0.4);
-  softbox.rotation.x = -0.6;
-  sm.add(softbox);
-  g.add(sm);
-  collider(g, 1.3, -6.5, -3.5);
-  npc('think', -5.2, -2.6, face(-5.2, -2.6, -6.5, -3.5));
-
-  // Found-object sculpture
-  const fo = new THREE.Group();
-  fo.position.set(6.8, 0, -3.5);
-  fo.add(mesh(new THREE.CylinderGeometry(0.7, 0.8, 1.2, 20), WHITE_METAL, 0, 0.6, 0));
-  fo.add(mesh(new THREE.CylinderGeometry(0.28, 0.2, 0.35, 16), solid('#ffffff'), 0, 1.4, 0));
-  fo.add(mesh(new THREE.TorusGeometry(0.16, 0.04, 8, 16, Math.PI), solid('#ffffff'), 0.3, 1.42, 0));
-  fo.add(mesh(new THREE.TorusKnotGeometry(0.25, 0.05, 48, 8), CHROME, 0, 1.95, 0));
-  fo.add(mesh(new THREE.BoxGeometry(0.5, 0.12, 0.3), solid('#ff9f1c'), -0.1, 2.35, 0.05));
-  fo.add(mesh(new THREE.ConeGeometry(0.12, 0.4, 8), solid('#2f6bff'), 0.15, 2.6, 0));
-  g.add(fo);
-  collider(g, 0.9, 6.8, -3.5);
-
-  // Hobby dome
-  const dome = makeDome(3.4, F.color);
-  dome.position.set(10.5, 0, -7);
-  dome.rotation.y = face(10.5, -7);
-  g.add(dome);
-  collider(g, 3.6, 10.5, -7);
-
-  // Poster wall: films and references that shaped the work, plus personal favourites
-  const items = [
-    ...FAVOURITES.influences.map((i) => ({ ...i, kind: 'Inspired the work' })),
-    ...FAVOURITES.films.map((i) => ({ ...i, kind: 'Favourite film' })),
-    ...FAVOURITES.shows.map((i) => ({ ...i, kind: 'Favourite show' })),
-  ];
-  const wall = new THREE.Group();
-  wall.position.set(-11.2, 0, -2);
-  wall.rotation.y = face(-11.2, -2, 0, -2);
-  const width = Math.max(3, items.length) * 1.7;
-  wall.add(mesh(new THREE.BoxGeometry(width + 0.6, 3.4, 0.25), WHITE_METAL, 0, 2.2, -0.15));
-  items.forEach((item, k) => {
-    const poster = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 2.1), new THREE.MeshBasicMaterial({ map: posterTexture(item, bagColors[k % bagColors.length], item.kind), toneMapped: false }));
-    poster.position.set(-width / 2 + 0.85 + k * 1.7, 2.2, 0);
-    poster.userData.action = { kind: 'poster', item };
-    poster.userData.dynamic = true;
-    wall.add(poster);
-    ctx.clickables.push(poster);
+function buildHallDome(scene, ctx) {
+  buildZoneDome(scene, ctx, HALL, {
+    radius: 10,
+    extras: (g, doorZ) => {
+      // golden columns and a giant trophy on the roof
+      for (const sx of [-1, 1]) {
+        g.add(mesh(new THREE.CylinderGeometry(0.45, 0.5, 7, 20), GOLD, sx * 4.2, 3.5, doorZ + 0.8));
+        g.add(mesh(new THREE.BoxGeometry(1.4, 0.4, 1.4), GOLD, sx * 4.2, 7.1, doorZ + 0.8));
+      }
+      const pts = [[0, 0], [1.2, 0], [0.4, 0.5], [0.3, 1.8], [1.1, 2.4], [1.3, 3.8], [0, 3.4]].map(([x, y]) => new THREE.Vector2(x, y));
+      const cup = mesh(new THREE.LatheGeometry(pts, 32), GOLD, 0, 12.2, -2);
+      cup.userData.dynamic = true;
+      g.add(cup);
+      ctx.updaters.push({ update: (t) => (cup.rotation.y = t * 0.4) });
+      const carpet = new THREE.Mesh(new THREE.PlaneGeometry(3, 9), solid('#a3182f', { roughness: 1 }));
+      carpet.rotation.x = -Math.PI / 2;
+      carpet.position.set(0, 0.12, doorZ + 4.5);
+      g.add(carpet);
+    },
   });
-  g.add(wall);
-  collider(g, width / 2, -11.2, -2);
-  const wallMarker = new THREE.Object3D();
-  wallMarker.position.set(-9.6, 0, -2);
-  wallMarker.userData.interact = { kind: 'fun', label: 'The poster wall', verb: 'Hobbies & favourites' };
-  g.add(wallMarker);
-
-  deepMerge(g);
 }
 
 // ---------- Café and video wall at HQ ----------
@@ -1373,7 +1293,7 @@ function buildAdBoards(scene, ctx) {
 // ---------- Big domes on the hills ----------
 
 function buildHillDomes(scene) {
-  const spots = [[-150, 138, 11], [-15, 142, 9], [95, 150, 12], [210, 136, 10]];
+  const spots = [[-150, 127, 8], [-15, 128, 8], [95, 128, 9], [225, 126, 8]];
   const colors = ['#2f6bff', '#00a79d', '#ff4f8b', '#7b5cff'];
   spots.forEach(([deg, d, rad], k) => {
     const a = THREE.MathUtils.degToRad(deg);
@@ -1393,7 +1313,7 @@ function buildDrones(scene, ctx) {
   const drones = [];
   const hq = new THREE.Vector3(0, heightAt(0, 0) + 16, 0);
   // Delivery runs from HQ to every hamlet and the two inner zones
-  const targets = [...HAMLETS, HOME, FUN];
+  const targets = [...HAMLETS, HOME, FUN, AIHUB, HALL];
   targets.forEach((h, k) => {
     const d = makeDrone(h.color, true);
     scene.add(d);
@@ -1491,6 +1411,8 @@ export function buildVillage(scene) {
   buildCouriers(scene, ctx);
   buildHome(scene, ctx);
   buildPlayhouse(scene, ctx);
+  buildAIHubDome(scene, ctx);
+  buildHallDome(scene, ctx);
   buildCafeAndWall(scene, ctx);
   buildAdBoards(scene, ctx);
   buildHillDomes(scene);
@@ -1526,5 +1448,5 @@ export function buildVillage(scene) {
     smoke(t);
   };
 
-  return { update, colliders, stones: ctx.stones, npcs: ctx.npcs, clickables: ctx.clickables, trophies: ctx.trophies, projects, interactables, home: ctx.home };
+  return { update, colliders, stones: ctx.stones, npcs: ctx.npcs, clickables: ctx.clickables, trophies: ctx.trophies, projects, interactables };
 }

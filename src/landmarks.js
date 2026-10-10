@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { HAMLETS } from './data.js';
-import { heightAt, rng, distToPath, ROAD_HALF, POND, PATHS, ZONES } from './world.js';
-import { WHITE_METAL, BRUSHED, CHROME, CONCRETE, GLASS, mesh, canvasTexture, glow, mergeStatic, lightPool } from './materials.js';
+import { heightAt, rng, distToPath, ROAD_HALF, POND, PATHS, ZONES, coastR, SEA_LEVEL } from './world.js';
+import { WHITE_METAL, BRUSHED, CHROME, CONCRETE, GLASS, DARK as DARK_RAIL, mesh, canvasTexture, glow, mergeStatic, lightPool, solid } from './materials.js';
 
 // White-metal monoliths, fluted columns and arches lining the roads.
 export function buildMonoliths(world, colliders) {
@@ -47,7 +47,7 @@ export function buildMonoliths(world, colliders) {
   // A few big free-standing slabs on the hills, for silhouette.
   for (let i = 0; i < 16; i++) {
     const a = r() * Math.PI * 2;
-    const d = 95 + r() * 65;
+    const d = 92 + r() * 38;
     const x = Math.cos(a) * d;
     const z = Math.sin(a) * d;
     if (distToPath(x, z) < 8 || HAMLETS.some((h) => Math.hypot(x - h.x, z - h.z) < 26) || ZONES.some((zn) => Math.hypot(x - zn.x, z - zn.z) < 22)) continue;
@@ -330,4 +330,98 @@ export function buildStreetLamps(world, colliders) {
   world.add(flat);
   mergeStatic(flat);
   mergeStatic(pools);
+}
+
+// ---------- Coast: a jetty with a bobbing sailboat, and a lighthouse ----------
+
+export function buildCoast(scene, colliders) {
+  const deck = new THREE.MeshStandardMaterial({ color: '#b08a5f', roughness: 0.85 });
+  const ja = THREE.MathUtils.degToRad(60);
+  const R = coastR(ja);
+  const jetty = new THREE.Group();
+  const start = R - 10;
+  jetty.position.set(Math.cos(ja) * start, 0, Math.sin(ja) * start);
+  jetty.rotation.y = Math.atan2(Math.cos(ja), Math.sin(ja));
+  const len = 34;
+  const topY = SEA_LEVEL + 1.3;
+  for (let k = 0; k < len / 2; k++) {
+    const z = k * 2;
+    jetty.add(mesh(new THREE.BoxGeometry(3.4, 0.2, 1.9), deck, 0, topY, z));
+    if (k % 2 === 0) for (const x of [-1.6, 1.6]) jetty.add(mesh(new THREE.CylinderGeometry(0.13, 0.13, 4, 8), deck, x, topY - 1.8, z));
+  }
+  for (const x of [-1.65, 1.65]) jetty.add(mesh(new THREE.BoxGeometry(0.1, 0.1, len), WHITE_METAL, x, topY + 0.7, len / 2 - 1));
+  for (let k = 0; k < 6; k++) {
+    const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), glow('#fff1c9', 2));
+    lamp.position.set(k % 2 ? 1.65 : -1.65, topY + 1.0, 2 + k * 6);
+    jetty.add(lamp);
+  }
+  scene.add(jetty);
+  mergeStatic(jetty);
+  // Walkable deck for the player (an oriented strip).
+  const jettyInfo = { x0: jetty.position.x, z0: jetty.position.z, dx: Math.cos(ja), dz: Math.sin(ja), len: len - 1, half: 1.5, y: topY + 0.1 };
+
+  // Sailboat moored at the end
+  const boat = new THREE.Group();
+  const hull = mesh(new THREE.CylinderGeometry(1.3, 0.7, 5.5, 16, 1, false, 0, Math.PI), WHITE_METAL);
+  hull.rotation.set(Math.PI / 2, 0, Math.PI);
+  hull.position.y = 0.2;
+  boat.add(hull);
+  boat.add(mesh(new THREE.BoxGeometry(2.4, 0.15, 5.2), deck, 0, 0.25, 0));
+  boat.add(mesh(new THREE.CylinderGeometry(0.07, 0.09, 7, 8), CHROME, 0, 3.7, 0.4));
+  const sail = new THREE.Shape();
+  sail.moveTo(0, 0);
+  sail.lineTo(0, 6.2);
+  sail.lineTo(-2.8, 0.2);
+  sail.lineTo(0, 0);
+  const sailMesh = new THREE.Mesh(new THREE.ShapeGeometry(sail), new THREE.MeshStandardMaterial({ color: '#ffffff', side: THREE.DoubleSide, roughness: 0.6 }));
+  sailMesh.position.set(0, 0.6, 0.4);
+  sailMesh.rotation.y = Math.PI / 2;
+  sailMesh.castShadow = true;
+  boat.add(sailMesh);
+  boat.add(mesh(new THREE.BoxGeometry(2.42, 0.18, 0.4), glow('#2f6bff', 1.5), 0, 0.55, 2.2));
+  const bd = start + len + 3;
+  boat.position.set(Math.cos(ja) * bd + Math.cos(ja + Math.PI / 2) * 4, SEA_LEVEL + 0.2, Math.sin(ja) * bd + Math.sin(ja + Math.PI / 2) * 4);
+  boat.rotation.y = jetty.rotation.y;
+  scene.add(boat);
+
+  // Lighthouse on a rocky point
+  const la = THREE.MathUtils.degToRad(205);
+  const lr = coastR(la) - 6;
+  const lx = Math.cos(la) * lr;
+  const lz = Math.sin(la) * lr;
+  const ly = Math.max(heightAt(lx, lz), SEA_LEVEL + 0.5);
+  const lh = new THREE.Group();
+  lh.position.set(lx, ly, lz);
+  for (let k = 0; k < 5; k++) {
+    const seg = mesh(new THREE.CylinderGeometry(1.6 - k * 0.18, 1.78 - k * 0.18, 2.4, 20), k % 2 ? solid('#e5484d') : WHITE_METAL, 0, 1.2 + k * 2.4, 0);
+    lh.add(seg);
+  }
+  lh.add(mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.2, 20), DARK_RAIL, 0, 12.1, 0));
+  const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 1.2, 16), glow('#fff4c2', 3));
+  lamp.position.y = 12.8;
+  lh.add(lamp);
+  lh.add(mesh(new THREE.ConeGeometry(1.25, 1.2, 20), solid('#e5484d'), 0, 14, 0));
+  const beam = new THREE.Mesh(
+    new THREE.ConeGeometry(3, 26, 24, 1, true),
+    new THREE.MeshBasicMaterial({ color: '#fff4c2', transparent: true, opacity: 0.12, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })
+  );
+  beam.rotation.z = Math.PI / 2;
+  beam.position.x = 13;
+  const beamPivot = new THREE.Group();
+  beamPivot.position.y = 12.8;
+  beamPivot.add(beam);
+  lh.add(beamPivot);
+  scene.add(lh);
+  colliders.push({ x: lx, z: lz, r: 2 });
+
+  return {
+    jetty: jettyInfo,
+    update: (t, night) => {
+      boat.position.y = SEA_LEVEL + 0.2 + Math.sin(t * 1.1) * 0.15;
+      boat.rotation.z = Math.sin(t * 0.9) * 0.05;
+      boat.rotation.x = Math.sin(t * 0.7) * 0.03;
+      beamPivot.rotation.y = t * 0.6;
+      beam.material.opacity = 0.03 + night * 0.16;
+    },
+  };
 }

@@ -5,8 +5,8 @@ const img = (name) => `work/${name}.jpg`;
 export const OWNER = {
   name: 'Vibhor Mathur',
   role: 'Communication Design Senior Manager, Razorpay',
-  short: 'Creative leader · Razorpay',
-  tagline: 'I turn one photograph into a full production, and a handful of designers into a studio that ships it.',
+  short: 'Creative director & design leader',
+  tagline: 'I turn brand briefs into campaigns through design, build tools that scale the visuals, and have fun doing it.',
   intro:
     'Every organisation is a village. Brand, product marketing, product, social, content and design each keep their own hamlet, craft and rhythm. My job is the roads between them. Walk the village, meet each department, and see the work we shipped together.',
   email: 'onlyvibhor@gmail.com',
@@ -16,6 +16,41 @@ export const OWNER = {
     { label: 'LinkedIn', href: 'https://www.linkedin.com/in/onlyvibhor/' },
     { label: 'Instagram', href: 'https://www.instagram.com/onlyvibhor/' },
     { label: 'ADPList', href: 'https://adplist.org/mentors/vibhor-mathur' },
+    { label: 'YouTube', href: 'https://www.youtube.com/channel/UCYz6bkPGCR3gapGpoDKuSDg' },
+    { label: 'Profile (PDF)', href: 'assets/docs/vibhor-mathur-profile.pdf' },
+  ],
+  hireFor:
+    'Creative and art direction for brand films, launch videos and campaigns; AI-native film and campaign production; interactive landing pages and games; building and leading in-house design teams and visual systems; custom AI design tools for studios; and design mentoring or workshops on AI in design.',
+  results: [
+    { value: '8.1M', label: 'unique viewers', slug: 't20' },
+    { value: '2.1M+', label: 'impressions', slug: 'trial' },
+    { value: '81', label: 'TV films, no cameras', slug: 't20' },
+    { value: '133%', label: 'lift in purchase intent', slug: 't20' },
+    { value: '30', label: 'AI ad films, one photo each', slug: 'btb' },
+    { value: '29.1M', label: 'media reach for a launch', slug: 'money' },
+  ],
+  teaching: [
+    'ADPList: one-to-one design mentor',
+    'GrowthSchool: mentor and webinar host',
+    'Samanvaya (Rotaract 3191) at BMS College of Engineering: design in brand building, 2023',
+    'IIIT-Delhi E-Summit: fireside chat on design leadership, 2024',
+    'AI in art and design workshop: image, video and AI-assisted UI, 2024',
+    'AI design workshops for Whole Truth Foods and Wolfkrafft',
+    'JK Lakshmipat University, Jaipur: short course on generative AI design',
+  ],
+  writing: [
+    { title: 'Embracing Creative Leadership in 2025: Strategies for In-House Design Teams', date: 'Apr 2024', url: 'https://www.onlyvibhor.com/post/setting-up-design-lead-goals-for-2025' },
+    { title: 'Navigating the Frontier of Creativity: The Potential of AI in Art and Design', date: 'Mar 2024', url: 'https://www.onlyvibhor.com/post/navigating-the-frontier-of-creativity-unveiling-the-potential-of-ai-in-art-and-design' },
+    { title: 'Habitats without the life', date: 'Dec 2023', url: 'https://www.onlyvibhor.com/post/habitats-without-the-life' },
+    { title: 'Stable Diffusion AI and ControlNet', date: 'Nov 2023', url: 'https://www.onlyvibhor.com/post/stable-diffusion-ai-and-controlnet' },
+  ],
+  gallery: [
+    { image: 'assets/img/about/on-set.jpg', caption: 'On set' },
+    { image: 'assets/img/about/brand-disruption-awards-2026.jpg', caption: 'ET Brand Disruption Awards 2026' },
+    { image: 'assets/img/about/reimagine-awards-stage.jpg', caption: 'On stage at the Reimagine Awards' },
+    { image: 'assets/img/mentor/photo.jpg', caption: 'Presenting at a workshop' },
+    { image: 'assets/img/mentor/iiitd-panel.jpg', caption: 'IIIT-Delhi E-Summit' },
+    { image: 'assets/img/mentor/samanvaya-talk.jpg', caption: 'Samanvaya workshop, Bengaluru' },
   ],
   numbers: [
     { value: '11', label: 'years in consumer commerce and fintech' },
@@ -156,7 +191,7 @@ export const PROJECTS = {
     summary:
       'A boxing-film trailer, a parallax landing page and a playable game, built end to end in-house. Every opponent you beat unlocks a new Netbanking feature.',
     metrics: [['3', 'pieces: film, arena, game'], ['100%', 'AI characters']],
-    images: [img('ring-cover')],
+    images: [img('ring-cover'), 'assets/img/p/ring-poster.jpg', 'assets/img/p/ring-art-direction.jpg'],
     link: 'https://www.behance.net/gallery/254798253/Back-in-the-ring-Netbanking-Comeback-Razorpay',
   },
   conv: {
@@ -267,17 +302,60 @@ export const PROJECTS = {
     images: [img('absolut-4'), img('absolut-1')],
     link: 'https://www.onlyvibhor.com/post/stable-diffusion-ai-and-controlnet',
   },
-  aiexp: {
-    repo: 'ai-experiments',
-    title: 'AI Experiments',
-    client: 'Personal · AI art',
-    year: '2023',
-    role: 'Artist',
-    tagline: 'AI images, videos and animations.',
-    summary: 'Midjourney, Stable Diffusion, RunwayML, PIKA Labs and Kaiber AI experiments.',
+  'ai-works': {
+    title: 'AI Works',
+    client: 'Personal · AI film & art',
+    year: 'Ongoing',
+    role: 'Artist & director',
+    tagline: 'Rajasthan in Midjourney, a red reel, and a few short films.',
+    summary: 'A Rajasthan series shot in Midjourney and a red reel, followed by short films, an abstract short and an AI ad.',
     metrics: [],
-    images: [img('aiexp-10'), img('aiexp-11')],
-    link: 'https://www.behance.net/gallery/185757595/AI-Experiments',
+    images: ['assets/img/ai/ai-works-cover.jpg', 'assets/img/ai/midjourney-1.jpg', 'assets/img/ai/midjourney-2.jpg'],
+    link: 'https://www.instagram.com/onlyvibhor/',
+  },
+  'modern-junkyard': {
+    title: 'Modern Junkyard',
+    client: 'Stop-motion studio',
+    year: '2017–2018',
+    role: 'Co-founder · Animator',
+    tagline: 'Our studio of stop motion, with an UrbanClap film at its heart.',
+    summary: 'An April Fool film for UrbanClap, dancing vegetables, wool typography and a Holi film for Grofers, all frame by frame.',
+    metrics: [],
+    images: ['assets/img/lab/modern-junkyard-urbanclap.jpg'],
+    link: 'https://www.youtube.com/@modernjunkyard606',
+  },
+  power: {
+    title: 'Power',
+    client: 'Found-object art',
+    year: '2021',
+    role: 'Artist',
+    tagline: 'Finding inner power in everyday electrical accessories.',
+    summary: 'Assemblages of sockets, switches and wires with words, where electrical power becomes a metaphor for courage, inspiration and instinct.',
+    metrics: [],
+    images: ['assets/img/lab/power-1.jpg', 'assets/img/lab/power-2.jpg', 'assets/img/lab/power-3.jpg'],
+    link: 'https://www.terrain.art/discover/artists/onlyvibhor',
+  },
+  birds: {
+    title: 'Birds',
+    client: 'Digital collage · Illustration',
+    year: '2018–2020',
+    role: 'Artist',
+    tagline: 'Three years of one subject, in three different languages.',
+    summary: 'Animated birds: collages of flowers, leaves and fruit, surreal city-and-nature scenes, and birds drawn in single white lines.',
+    metrics: [],
+    images: ['assets/img/lab/birds-v08.jpg', 'assets/img/lab/birds-15.jpg', 'assets/img/lab/birds-16.jpg'],
+    link: 'https://www.onlyvibhor.com/birds',
+  },
+  eyes: {
+    title: 'Eyes',
+    client: 'Digital collage',
+    year: '2021',
+    role: 'Artist',
+    tagline: 'An emotion diary, told through the sense we trust most.',
+    summary: 'Thirty animated collages about emotions, dreams, fears and the lessons we learn through our eyes.',
+    metrics: [['30', 'animated collages']],
+    images: ['assets/img/lab/eyes-v05.jpg'],
+    link: 'https://www.onlyvibhor.com/eyes',
   },
 };
 
@@ -435,7 +513,7 @@ export const LAB = {
   lead: 'After hours: AI art, stop motion and found objects.',
   how: ['Personal experiments that feed the day job', 'Stable Diffusion, ControlNet, Midjourney, Runway'],
   makes: ['AI art', 'Stop motion'],
-  projects: ['habitats', 'absolut', 'aiexp'],
+  projects: ['ai-works', 'habitats', 'absolut'],
   quotes: ['Every landscape here started as an animal silhouette.', 'Warhol loved the Absolut bottle. So did ControlNet.'],
 };
 
@@ -469,10 +547,77 @@ export const FUN = {
     'AI art experiments with Stable Diffusion, ControlNet and Midjourney',
     'Fun, quirky content for Instagram, from introspective musings to one-liners',
   ],
-  makes: ['Stop motion', 'Found objects', 'AI art', 'Instagram'],
-  projects: [],
+  makes: ['Stop motion', 'Found objects', 'Collage', 'Instagram'],
+  projects: ['modern-junkyard', 'power', 'birds', 'eyes'],
   quotes: ['Grab some popcorn. The screen is showing the studio’s films.', 'Want the arcade? Back in the Ring started as a game idea.'],
 };
+
+// The AI Hub: where design and AI become tools and automations for the whole organisation.
+export const AIHUB = {
+  id: 'ai',
+  name: 'AI Hub',
+  place: 'Innovation & automation lab',
+  color: '#00c2ff',
+  lead: 'Design plus AI, turned into tools the whole organisation uses. Repetitive work becomes a button; designers ship what used to wait in a queue.',
+  how: [
+    'Automate the set tasks: one founder photo in, a 4K campaign library out',
+    'Scale production: 81 TV films, a newspaper front page and 200+ posts from one pipeline',
+    'Make AI easy to learn: interfaces, not prompts, so beginners are productive on day one',
+    'Let designers ship interactive web, landing pages and games themselves',
+  ],
+  makes: ['In-house AI tools', 'Automation pipelines', 'AI workshops'],
+  projects: ['toolkit', 'social-gen', 'razorbae', 'mentor'],
+  quotes: ['Prompts are inputs. Tools are modules. Systems create consistency.', 'Every tool here started as a task we were tired of repeating.'],
+};
+
+// The Hall of Fame: every award, with the work that won it.
+export const HALL = {
+  id: 'awards',
+  name: 'Hall of Fame',
+  place: 'Awards & recognition',
+  color: '#f5b700',
+  lead: 'Work that wins rooms, juries and, more importantly, customers.',
+  how: [
+    'Trial of the Century: Shorty Awards winner for Generative AI',
+    'Kyoorius 2026 First List for Film Craft and Use of Technology & AI',
+    'ET Brand Disruption Gold for the Razorpay Creative & Design Team',
+  ],
+  makes: ['Shorty Awards', 'Kyoorius', 'ET Brand Disruption'],
+  projects: ['trial', 't20', 'btb'],
+  quotes: ['Every trophy here started as a brief nobody thought could be fun.', 'The animal courtroom took home the Shorty for Generative AI.'],
+};
+
+export const AWARD_LIST = [
+  { show: 'Shorty Awards', year: '2026', title: 'Winner', category: 'Generative AI', project: 'trial', tier: 'gold' },
+  { show: 'Shorty Awards', year: '2026', title: 'Gold Honor', category: 'Financial Services', project: 'trial', tier: 'gold' },
+  { show: 'Shorty Awards', year: '2026', title: 'Finalist', category: 'Community Engagement', project: 'trial', tier: 'silver' },
+  { show: 'Kyoorius Creative Awards', year: '2026', title: 'First List', category: 'Film Craft', project: 'trial', tier: 'silver' },
+  { show: 'Kyoorius Creative Awards', year: '2026', title: 'First List', category: 'Use of Technology & AI', project: 'trial', tier: 'silver' },
+  { show: 'ET Brand Disruption Awards', year: '2026', title: 'Gold', category: 'Most Disruptive Creative & Design Team', project: null, tier: 'gold' },
+  { show: 'ET Brand Disruption Awards', year: '2026', title: 'Silver', category: 'Most Disruptive B2B Campaign', project: 'trial', tier: 'silver' },
+];
+
+// The AI stack used across the studio's tools and films (from the portfolio's toolkit and case studies).
+export const TOOLS = [
+  { name: 'Gemini & AI Studio', use: 'Tool interfaces and reasoning' },
+  { name: 'Nano Banana API', use: 'Image generation and editing inside the tools' },
+  { name: 'Midjourney', use: 'Concept art and campaign worlds' },
+  { name: 'ChatGPT', use: 'Scripts, prompts and pipelines' },
+  { name: 'Claude', use: 'Writing and building tools' },
+  { name: 'Replit', use: 'Shipping tools and web experiences' },
+  { name: 'RunwayML', use: 'AI video' },
+  { name: 'Kling', use: 'AI video' },
+  { name: 'Veo 2', use: 'AI video' },
+  { name: 'Higgsfield', use: 'Cinematic AI video' },
+  { name: 'ElevenLabs', use: 'Voice' },
+  { name: 'Suno AI', use: 'Music' },
+  { name: 'Topaz Labs', use: 'Upscaling' },
+  { name: 'Adobe Firefly', use: 'Generative fill and edits' },
+  { name: 'Stable Diffusion + ControlNet', use: 'Controlled image generation' },
+  { name: 'Ideogram', use: 'Type in images' },
+  { name: 'Blender & Spline', use: '3D' },
+  { name: 'Photoshop · After Effects · Illustrator', use: 'Finishing' },
+];
 
 // Films, shows and references. `influences` are documented in the case studies.
 // Add personal favourites to `films` / `shows` as { title, year, note } and they appear on the poster wall.
@@ -589,6 +734,26 @@ export const NPC_TALK = {
     roles: ['Studio designer', 'Studio producer', 'Visiting marketer'],
     thoughts: ['Coffee first, then ideas.', 'What would make this award-worthy?', 'Objective: ship it on Friday.', 'AI: what can we automate next?'],
     asks: ['Got a minute for a quick crit?', 'Can the studio take one more brief this sprint?', 'Want to grab a filter coffee and jam on ideas?'],
+  },
+  awards: {
+    roles: ['Awards curator', 'Visiting juror', 'Creative director'],
+    thoughts: ['Which entry goes in next year?', 'Craft and results. Juries want both.', 'Idea: a case film for every big campaign.'],
+    asks: ['Vibhor, can we write the awards entry for the IPL campaign together?', 'Would you judge the student design awards this year?'],
+  },
+  ai: {
+    roles: ['AI designer', 'Automation engineer', 'Prompt designer', 'Workshop lead'],
+    thoughts: [
+      'Next tool: a motion generator for social cut-downs?',
+      'Objective: every repeating task becomes a button.',
+      'AI: can the Founder tool keep faces consistent at 8K?',
+      'Workshop next week: AI for beginners.',
+      'What if Veo and the Cinematography Tool talked to each other?',
+    ],
+    asks: [
+      'Vibhor, can we turn the deck builder into an AI tool next?',
+      'Could you review the new pipeline before we ship it to marketing?',
+      'Want to co-host the next AI design workshop?',
+    ],
   },
   lab: {
     roles: ['Artist'],
