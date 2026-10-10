@@ -1,0 +1,29 @@
+{
+  "name": "brand-shire",
+  "version": "1.0.0",
+  "description": "A walkable 3D village portfolio: an organisation as a Shire, each team a community.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/onlyvibhor/shire-3d-test.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/onlyvibhor/shire-3d-test/issues"
+  },
+  "homepage": "https://github.com/onlyvibhor/shire-3d-test#readme",
+  "dependencies": {
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "vite": "^8.3.4"
+  },
+  "private": true,
+  "type": "module"
+}

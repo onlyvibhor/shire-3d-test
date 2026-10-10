@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>Brand Design Lead · Portfolio</title>
+    <meta name="description" content="A walkable village where every team in the organisation is a community, and brand design is what connects them." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  </head>
+  <body data-mode="intro">
+    <canvas id="scene"></canvas>
+    <div id="labels"></div>
+
+    <!-- Intro -->
+    <section id="intro">
+      <div class="intro__card">
+        <p class="eyebrow">A portfolio you can walk through</p>
+        <h1 data-owner-name>Your Name</h1>
+        <p class="intro__role" data-owner-role>Brand Design Lead</p>
+        <p class="intro__tagline" data-owner-tagline></p>
+        <p class="intro__body">
+          Every organisation is a village. Marketing, copy, design, social, brand and product each keep their own
+          hamlet, craft and rhythm. My job is the roads between them. Walk the village, meet each community, and see
+          where I come in.
+        </p>
+        <ul id="intro-legend" class="legend"></ul>
+        <div class="intro__actions">
+          <button id="btn-enter" class="btn btn--big">Enter the village</button>
+          <button id="btn-tour" class="btn btn--big btn--ghost">Take the guided tour</button>
+        </div>
+        <p class="intro__keys keys-desktop"><kbd>W A S D</kbd> walk · <kbd>Shift</kbd> run · drag to look · scroll to zoom · click the ground to walk there</p>
+        <p class="intro__keys keys-touch">Drag to look · tap the ground to walk · pinch to zoom</p>
+      </div>
+    </section>
+
+    <!-- HUD -->
+    <header id="hud">
+      <div class="hud__brand">
+        <b data-owner-name>Your Name</b>
+        <span data-owner-role>Brand Design Lead</span>
+      </div>
+      <nav class="hud__nav">
+        <button id="btn-overview" class="btn btn--hud" title="Overview (O)"><span>Overview</span><kbd>O</kbd></button>
+        <button id="btn-tour-hud" class="btn btn--hud" title="Guided tour (T)"><span>Tour</span><kbd>T</kbd></button>
+        <button id="btn-hire" class="btn btn--hud btn--gold" title="Hire me (H)"><span>Hire me</span><kbd>H</kbd></button>
+      </nav>
+    </header>
+
+    <div id="visited">
+      <span>Communities met <b id="visited-count">0/7</b></span>
+      <div id="visited-dots"></div>
+    </div>
+
+    <canvas id="minimap" width="180" height="180"></canvas>
+
+    <aside id="keys" class="keys-desktop">
+      <div><kbd>WASD</kbd> walk</div>
+      <div><kbd>Shift</kbd> run</div>
+      <div><kbd>Q</kbd><kbd>E</kbd> / drag look</div>
+      <div><kbd>0</kbd>–<kbd>6</kbd> fast travel</div>
+      <div><kbd>Scroll</kbd> zoom</div>
+    </aside>
+
+    <aside id="panel" aria-live="polite"></aside>
+    <div id="toast" role="status"></div>
+
+    <div id="tourbar">
+      <button id="tour-prev" class="btn btn--hud" aria-label="Previous stop">←</button>
+      <div class="tourbar__track"><i id="tour-progress"></i></div>
+      <button id="tour-next" class="btn btn--hud" aria-label="Next stop">→</button>
+      <button id="tour-exit" class="btn btn--hud">Explore from here</button>
+    </div>
+
+    <!-- Hire me -->
+    <div id="hire" role="dialog" aria-modal="true" aria-labelledby="hire-title">
+      <div class="hire__card">
+        <button class="panel__close" data-close aria-label="Close">×</button>
+        <p class="eyebrow">Hire me to</p>
+        <h2 id="hire-title">Make the whole village speak as one</h2>
+        <p class="lead" data-owner-tagline></p>
+        <ul id="hire-pillars" class="pillars"></ul>
+        <div id="hire-links" class="hire__links"></div>
+      </div>
+    </div>
+
+    <div id="loader"><span>Planting the Shire…</span></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
