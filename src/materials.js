@@ -13,11 +13,11 @@ export const BRUSHED = new THREE.MeshPhysicalMaterial({ color: '#dfe5ea', metaln
 export const CHROME = new THREE.MeshPhysicalMaterial({ color: '#f5f7fa', metalness: 1, roughness: 0.08 });
 export const CONCRETE = new THREE.MeshStandardMaterial({ color: '#e6e7e2', roughness: 0.9 });
 export const GLASS = new THREE.MeshPhysicalMaterial({
-  color: '#bfe6ff',
-  metalness: 0,
-  roughness: 0.05,
+  color: '#cfeaff',
+  metalness: 0.1,
+  roughness: 0.12,
   transparent: true,
-  opacity: 0.55,
+  opacity: 0.72,
 });
 export const GOLD = new THREE.MeshPhysicalMaterial({ color: '#ffcf4a', metalness: 1, roughness: 0.18, emissive: '#7a4a00', emissiveIntensity: 0.35 });
 export const WOOD = new THREE.MeshStandardMaterial({ color: '#8a6440', roughness: 0.8 });
@@ -39,11 +39,11 @@ export const solid = (color, extra = {}) => {
   return (cache[key] ||= new THREE.MeshStandardMaterial({ color, roughness: 0.7, ...extra }));
 };
 export const glow = (color, intensity = 2) => {
-  const m = solid(color, { emissive: color, emissiveIntensity: intensity });
+  const m = solid(color, { emissive: color, emissiveIntensity: intensity * 0.7 });
   if (!NIGHT_GLOWS.has(m)) nightGlow(m);
   return m;
 };
-export function lightPool(color = '#ffd99a', base = 0.55) {
+export function lightPool(color = '#ffd99a', base = 0.38) {
   const m = new THREE.MeshBasicMaterial({ color, map: poolTexture(), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
   m.userData.base = base;
   NIGHT_POOLS.add(m);

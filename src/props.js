@@ -125,7 +125,10 @@ export function makeDesk(screens = [], color = '#2f6bff') {
     g.add(mesh(new THREE.BoxGeometry(0.98, 0.58, 0.05), DARK, x, 1.55, -0.3));
     const s = new THREE.Mesh(new THREE.PlaneGeometry(0.92, 0.52), tex);
     s.position.set(x, 1.55, -0.27);
-    g.add(s);
+    const back = s.clone();
+    back.position.z = -0.33;
+    back.rotation.y = Math.PI;
+    g.add(s, back);
   });
   g.add(mesh(new THREE.BoxGeometry(0.5, 0.02, 0.18), DARK, 0, 0.96, 0.15));
   const mug = mesh(new THREE.CylinderGeometry(0.05, 0.045, 0.11, 10), solid(color), 0.75, 1.0, 0.15);
@@ -193,7 +196,10 @@ export function makeMonitorWall(textures, color, cols = 3) {
     const rr = Math.floor(i / cols);
     const s = new THREE.Mesh(new THREE.PlaneGeometry(W, H), tex);
     s.position.set(-total / 2 + W / 2 + c * (W + 0.08), 1.6 + (rows - 1 - rr) * (H + 0.06) + H / 2 - 0.2, 0.0);
-    g.add(s);
+    const back = s.clone();
+    back.position.z = -0.225;
+    back.rotation.y = Math.PI;
+    g.add(s, back);
   });
   for (const x of [-total / 2 + 0.3, total / 2 - 0.3]) g.add(mesh(new THREE.BoxGeometry(0.2, 1.6, 0.2), WHITE_METAL, x, 0.8, -0.12));
   const strip = new THREE.Mesh(new THREE.BoxGeometry(total + 0.4, 0.06, 0.06), glow(color, 2.5));
@@ -253,7 +259,10 @@ export function makeAdBoard(src, color, title) {
   g.add(mesh(new THREE.BoxGeometry(W + 0.5, H + 0.5, 0.35), WHITE_METAL, 0, 6.5 + H / 2, -0.2));
   const img = new THREE.Mesh(new THREE.PlaneGeometry(W, H), screenMat(src, W / H));
   img.position.set(0, 6.5 + H / 2, 0.0);
-  g.add(img);
+  const imgBack = img.clone();
+  imgBack.position.z = -0.38;
+  imgBack.rotation.y = Math.PI;
+  g.add(img, imgBack);
   const strip = new THREE.Mesh(new THREE.BoxGeometry(W + 0.5, 0.1, 0.1), glow(color, 2.5));
   strip.position.set(0, 6.5 + H + 0.32, -0.02);
   g.add(strip);
@@ -274,7 +283,10 @@ export function makeAdBoard(src, color, title) {
     })
   );
   tag.position.set(-W / 2 + 2.2, 6.5 - 0.1, 0.02);
-  g.add(tag);
-  img.userData.dynamic = tag.userData.dynamic = true;
-  return { g, img, tag };
+  const tagBack = tag.clone();
+  tagBack.position.set(W / 2 - 2.2, 6.5 - 0.1, -0.4);
+  tagBack.rotation.y = Math.PI;
+  g.add(tag, tagBack);
+  img.userData.dynamic = tag.userData.dynamic = imgBack.userData.dynamic = tagBack.userData.dynamic = true;
+  return { g, img, tag, imgBack, tagBack };
 }

@@ -7,12 +7,12 @@ import './style.css';
 import { OWNER, PILLARS, CENTER, HAMLETS, LAB, HOME, FUN, AIHUB, HALL, PROJECTS, AWARDS, ASSETS, NPC_TALK, CONTACT, FAVOURITES, TOOLS, AWARD_LIST } from './data.js';
 import {
   buildSky, makeSkyMaterial, buildClouds, buildTerrain, buildGrass, buildLavender, buildMountains, buildTrees, buildPollen,
-  heightAt, POND, PATHS, WORLD_RADIUS, buildOcean, SEA_LEVEL, coastR,
+  heightAt, groundAt, walkY, POND, PATHS, WORLD_RADIUS, buildOcean, SEA_LEVEL, coastR,
 } from './world.js';
 import { buildMonoliths, buildSkyRail, buildFloatingProps, buildStreetLamps, buildCoast } from './landmarks.js';
 import { buildInteriors } from './interiors.js';
 import { createDayNight } from './daynight.js';
-import { buildVillage } from './village.js';
+import { buildVillage, playerPos } from './village.js';
 import { makePerson, animate, hit } from './characters.js';
 import { createUI } from './ui.js';
 
@@ -199,7 +199,7 @@ function travelTo(id) {
     x = p.x - Math.cos(p.angle) * 8;
     z = p.z - Math.sin(p.angle) * 8;
   }
-  state.pos.set(x, heightAt(x, z), z);
+  state.pos.set(x, walkY(x, z), z);
   const dx = p.x - x;
   const dz = p.z - z;
   state.heading = Math.atan2(dx, dz);
@@ -476,7 +476,7 @@ function movePlayer(dt) {
       state.target = null;
       marker.visible = false;
     }
-    ground = jettyAt(state.pos.x, state.pos.z) ? coast.jetty.y : Math.max(heightAt(state.pos.x, state.pos.z), -2.3);
+    ground = jettyAt(state.pos.x, state.pos.z) ? coast.jetty.y : walkY(state.pos.x, state.pos.z);
   }
   state.vy -= 18 * dt;
   state.air += state.vy * dt;
@@ -490,7 +490,7 @@ function movePlayer(dt) {
   animate(player, state.air > 0.05 ? 'jump' : 'walk', elapsed, state.speed);
   halo.visible = state.air < 0.05;
   if (state.target) {
-    marker.position.set(state.target.x, (state.indoor ? state.indoor.origin.y : heightAt(state.target.x, state.target.z)) + 0.08, state.target.z);
+    marker.position.set(state.target.x, (state.indoor ? state.indoor.origin.y : walkY(state.target.x, state.target.z)) + 0.05, state.target.z);
     marker.scale.setScalar(1 + Math.sin(elapsed * 6) * 0.15);
   }
 }
@@ -508,10 +508,10 @@ function jettyAt(x, z) {
 
 const savedFog = scene.fog;
 const INDOOR = {
-  ai: { bg: '#060b16', hemi: ['#cfe9ff', '#1a2440', 1.0], sun: ['#e6f4ff', 1.6], exp: 1.0, bloom: [0.55, 0.75] },
-  home: { bg: '#f4e9db', hemi: ['#fff1de', '#8a6a4a', 1.35], sun: ['#ffe6c4', 2.2], exp: 1.0, bloom: [0.25, 0.9] },
-  fun: { bg: '#120a1c', hemi: ['#ffd9f0', '#2a1630', 0.85], sun: ['#ffd7a8', 1.3], exp: 1.05, bloom: [0.6, 0.72] },
-  awards: { bg: '#121119', hemi: ['#fff4dc', '#2a2620', 1.0], sun: ['#fff1cf', 2.4], exp: 1.0, bloom: [0.45, 0.8] },
+  ai: { bg: '#060b16', hemi: ['#cfe9ff', '#1a2440', 1.0], sun: ['#e6f4ff', 1.6], exp: 1.0, bloom: [0.3, 0.82] },
+  home: { bg: '#f4e9db', hemi: ['#fff1de', '#8a6a4a', 1.35], sun: ['#ffe6c4', 2.2], exp: 1.0, bloom: [0.12, 0.95] },
+  fun: { bg: '#120a1c', hemi: ['#ffd9f0', '#2a1630', 0.85], sun: ['#ffd7a8', 1.3], exp: 1.05, bloom: [0.32, 0.8] },
+  awards: { bg: '#121119', hemi: ['#fff4dc', '#2a2620', 1.0], sun: ['#fff1cf', 2.4], exp: 1.0, bloom: [0.22, 0.88] },
 };
 function applyIndoorLight(room) {
   const L = INDOOR[room.id];
@@ -571,7 +571,7 @@ function exitRoom() {
       state.heading = back.heading;
       state.yaw = back.yaw;
     }
-    state.pos.y = heightAt(state.pos.x, state.pos.z);
+    state.pos.y = walkY(state.pos.x, state.pos.z);
     setShadowRange(50);
     lastPlaceId = null;
     snapCamera = true;
@@ -626,7 +626,7 @@ function updateCamera(dt, t) {
       desiredPos.z = R.origin.z + THREE.MathUtils.clamp(desiredPos.z - R.origin.z, -R.d / 2 + 0.4, R.d / 2 - 0.4);
       desiredPos.y = THREE.MathUtils.clamp(desiredPos.y, R.origin.y + 0.6, R.origin.y + R.h - 0.5);
     } else {
-      const ground = heightAt(desiredPos.x, desiredPos.z) + 0.8;
+      const ground = groundAt(desiredPos.x, desiredPos.z) + 0.8;
       if (desiredPos.y < ground) desiredPos.y = ground;
     }
     k = 7;
@@ -743,6 +743,12 @@ function updateNpcs(t) {
         state.speed *= 0.3;
         if (type === 'fall') ui.toast(`<b>Oops!</b> You knocked over a ${n.role.toLowerCase()}. They’ll be fine.`, 2500);
       }
+    }
+    // people are solid: you can't walk through them
+    if (d < 0.72 && d > 1e-4 && !(n.p.react && n.p.react.type === 'fall') && Math.abs(npcPos.y - state.pos.y) < 1.5) {
+      const push = 0.72 - d;
+      state.pos.x -= (dx / d) * push;
+      state.pos.z -= (dz / d) * push;
     }
     // look at the player when close
     if (d < 7 && !n.p.react) {
@@ -978,6 +984,7 @@ function frame() {
   updateRail(t);
   updateProps(t);
   updatePollen(t);
+  playerPos.copy(state.pos);
   updateCamera(dt, t);
   updateProximity(t);
   updateLabels();
@@ -989,4 +996,4 @@ function frame() {
 requestAnimationFrame(frame);
 ui.ready();
 
-window.__shire = { state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, enterRoom, exitRoom };
+window.__shire = { state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, enterRoom, exitRoom, walkY, groundAt, THREE };

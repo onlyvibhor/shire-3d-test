@@ -252,6 +252,11 @@ function buildAIHub(origin) {
     screen.userData.action = { kind: 'project', slug };
     screen.userData.dynamic = true;
     st.add(screen);
+    const screenBack = screen.clone();
+    screenBack.position.z = -0.21;
+    screenBack.rotation.y = Math.PI;
+    screenBack.userData = { action: { kind: 'project', slug }, dynamic: true };
+    st.add(screenBack);
     room.clickables.push(screen);
     st.add(mesh(new THREE.BoxGeometry(0.2, 1.8, 0.2), BRUSHED, 0, 0.9, -0.1));
     st.add(mesh(new THREE.BoxGeometry(2.6, 0.08, 1), WHITE_METAL, 0, 1.05, 0.6));

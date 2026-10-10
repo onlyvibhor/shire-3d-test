@@ -94,6 +94,11 @@ function rawHeight(x, z) {
 }
 
 const CENTER_LEVEL = rawHeight(0, 0);
+// Small level pads for things built on the Party Tree hill (the café and the video wall).
+export const PADS = [
+  { x: 16.5, z: 0, r: 6 },
+  { x: Math.cos((120 * Math.PI) / 180) * 15.5, z: Math.sin((120 * Math.PI) / 180) * 15.5, r: 4.5 },
+].map((p) => ({ ...p, y: rawHeight(p.x, p.z) }));
 HAMLETS.forEach((h) => (h.y = rawHeight(h.x, h.z)));
 LAB.y = rawHeight(LAB.x, LAB.z);
 for (const z of ZONES) z.y = rawHeight(z.x, z.z);
@@ -101,12 +106,10 @@ for (const z of ZONES) z.y = rawHeight(z.x, z.z);
 export function heightAt(x, z) {
   let h = rawHeight(x, z);
   h = THREE.MathUtils.lerp(CENTER_LEVEL, h, smooth(9, 17, Math.hypot(x, z)));
+  for (const p of PADS) h = THREE.MathUtils.lerp(p.y, h, smooth(p.r, p.r + 5, Math.hypot(x - p.x, z - p.z)));
   for (const hm of HAMLETS) h = THREE.MathUtils.lerp(hm.y, h, smooth(16, 28, Math.hypot(x - hm.x, z - hm.z)));
   h = THREE.MathUtils.lerp(LAB.y, h, smooth(7, 12, Math.hypot(x - LAB.x, z - LAB.z)));
   for (const zn of ZONES) h = THREE.MathUtils.lerp(zn.y, h, smooth(14, 22, Math.hypot(x - zn.x, z - zn.z)));
-  // Roads are gently levelled so they read as built paths.
-  const pd = distToPath(x, z);
-  if (pd < 6) h -= (1 - smooth(ROAD_HALF, 6, pd)) * 0.12;
   const pdist = Math.hypot(x - POND.x, z - POND.z);
   h -= 6.5 * (1 - smooth(0, POND.r * 1.3, pdist));
   return h;
@@ -121,6 +124,47 @@ export function rng(seed = 7) {
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+}
+
+// ---------- The ground as rendered ----------
+// The terrain is a triangle mesh on a 2.5-unit grid, so its surface differs slightly from heightAt between
+// vertices. Characters and props use groundAt, which samples the same triangles the GPU draws.
+const GRID = { size: 640, n: 256, heights: null };
+export const SURFACE = 0.03; // roads and plazas sit this far above the grass
+
+export function groundAt(x, z) {
+  const H = GRID.heights;
+  if (!H) return heightAt(x, z);
+  const s = GRID.size / GRID.n;
+  const fx = (x + GRID.size / 2) / s;
+  const fz = (z + GRID.size / 2) / s;
+  const ix = Math.min(GRID.n - 1, Math.max(0, Math.floor(fx)));
+  const iz = Math.min(GRID.n - 1, Math.max(0, Math.floor(fz)));
+  const u = Math.min(1, Math.max(0, fx - ix));
+  const v = Math.min(1, Math.max(0, fz - iz));
+  const row = GRID.n + 1;
+  const h00 = H[iz * row + ix];
+  const h10 = H[iz * row + ix + 1];
+  const h01 = H[(iz + 1) * row + ix];
+  const h11 = H[(iz + 1) * row + ix + 1];
+  // PlaneGeometry splits each cell along the (x0,z1)-(x1,z0) diagonal
+  if (u + v <= 1) return h00 + u * (h10 - h00) + v * (h01 - h00);
+  return h11 + (1 - u) * (h01 - h11) + (1 - v) * (h10 - h11);
+}
+
+// Is this point on a paved surface (road or plaza)?
+export function onPaving(x, z) {
+  if (distToPath(x, z) < ROAD_HALF) return true;
+  if (Math.hypot(x, z) < 9.2) return true;
+  if (Math.hypot(x - LAB.x, z - LAB.z) < 6.6) return true;
+  for (const h of HAMLETS) if (Math.hypot(x - h.x, z - h.z) < 9.4) return true;
+  for (const zn of ZONES) if (Math.hypot(x - zn.x, z - zn.z) < 12.5) return true;
+  return false;
+}
+
+// Where feet should stand: the rendered ground, plus the paving thickness when on a road or plaza.
+export function walkY(x, z) {
+  return groundAt(x, z) + (onPaving(x, z) ? SURFACE : 0);
 }
 
 // Places where nothing should grow (plazas, roads, water).
@@ -239,6 +283,9 @@ export function buildClouds(scene) {
 export function buildTerrain(scene) {
   const size = 640;
   const geo = new THREE.PlaneGeometry(size, size, 256, 256);
+  const heights = new Float32Array(257 * 257);
+  const step = size / 256;
+  for (let iz = 0; iz <= 256; iz++) for (let ix = 0; ix <= 256; ix++) heights[iz * 257 + ix] = heightAt(ix * step - size / 2, iz * step - size / 2);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position;
   const colors = new Float32Array(pos.count * 3);
@@ -263,33 +310,38 @@ export function buildTerrain(scene) {
   }
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   geo.computeVertexNormals();
+  GRID.heights = heights;
   const terrain = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }));
   terrain.receiveShadow = true;
   terrain.name = 'terrain';
   scene.add(terrain);
 
   // Roads as real ribbons, so their edges stay crisp at any distance.
-  const roadMat = new THREE.MeshStandardMaterial({ color: '#d9dcd5', roughness: 0.9 });
+  const roadMat = new THREE.MeshStandardMaterial({ color: '#d9dcd5', roughness: 0.9, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   const ribbons = [];
   for (const [ax, az, bx, bz] of PATHS) {
     const len = Math.hypot(bx - ax, bz - az);
-    const steps = Math.ceil(len / 1.5);
+    const steps = Math.ceil(len / 1.25);
     const nx = -(bz - az) / len;
     const nz = (bx - ax) / len;
     const pos = [];
     const idx = [];
+    const across = [-1, -0.5, 0, 0.5, 1]; // several vertices across so the road follows cross-slopes
+    const W = across.length;
     for (let k = 0; k <= steps; k++) {
       const t = k / steps;
       const px = ax + (bx - ax) * t;
       const pz = az + (bz - az) * t;
-      for (const side of [-1, 1]) {
+      for (const side of across) {
         const x = px + nx * ROAD_HALF * side;
         const z = pz + nz * ROAD_HALF * side;
-        pos.push(x, Math.max(heightAt(x, z), heightAt(px, pz)) + 0.07, z);
+        pos.push(x, groundAt(x, z) + SURFACE, z);
       }
       if (k < steps) {
-        const i = k * 2;
-        idx.push(i, i + 1, i + 2, i + 1, i + 3, i + 2);
+        for (let j = 0; j < W - 1; j++) {
+          const i = k * W + j;
+          idx.push(i, i + 1, i + W, i + 1, i + W + 1, i + W);
+        }
       }
     }
     const g = new THREE.BufferGeometry();
@@ -301,7 +353,7 @@ export function buildTerrain(scene) {
   const plaza = (x, z, rad, y) => {
     const g = new THREE.CircleGeometry(rad, 48);
     g.rotateX(-Math.PI / 2);
-    g.translate(x, y + 0.09, z);
+    g.translate(x, y + SURFACE + 0.004, z);
     g.deleteAttribute('uv');
     ribbons.push(g);
   };
@@ -332,7 +384,7 @@ export function buildTerrain(scene) {
         if (Math.hypot(x, z) < 11 || HAMLETS.some((h) => Math.hypot(x - h.x, z - h.z) < 10)) continue;
         const g = new THREE.BoxGeometry(0.18, 0.14, 3.05);
         g.rotateY(Math.atan2(bx - ax, bz - az));
-        g.translate(x, heightAt(x, z) + 0.05, z);
+        g.translate(x, groundAt(x, z) + 0.05, z);
         curbGeo.push(g);
       }
     }
@@ -389,7 +441,7 @@ export function buildGrass(scene, count = 180000) {
     if (y < WATER_LEVEL + 0.3 || y < SEA_LEVEL + 2.2) continue;
     const h = 0.35 + r() * 0.5 + smooth(60, 150, d) * 0.5;
     q.setFromAxisAngle(up, r() * Math.PI);
-    m.compose(new THREE.Vector3(x, y - 0.05, z), q, new THREE.Vector3(1 + r() * 0.6, h, 1));
+    m.compose(new THREE.Vector3(x, groundAt(x, z) - 0.03, z), q, new THREE.Vector3(1 + r() * 0.6, h, 1));
     mesh.setMatrixAt(i, m);
     const v = 0.85 + r() * 0.3;
     mesh.setColorAt(i, col.setRGB(v * (0.9 + r() * 0.2), v, v * (0.85 + r() * 0.2)));
@@ -446,7 +498,7 @@ export function buildLavender(scene, count = 14000) {
     if (isClearing(x, z) || heightAt(x, z) < SEA_LEVEL + 2.4) continue;
     const s = 0.8 + r() * 0.7;
     q.setFromEuler(new THREE.Euler((r() - 0.5) * 0.3, r() * 6, (r() - 0.5) * 0.3));
-    m.compose(new THREE.Vector3(x, heightAt(x, z) - 0.05, z), q, new THREE.Vector3(s, s, s));
+    m.compose(new THREE.Vector3(x, groundAt(x, z) - 0.03, z), q, new THREE.Vector3(s, s, s));
     mesh.setMatrixAt(i, m);
     mesh.setColorAt(i, col.set(shades[Math.floor(r() * shades.length)]));
     i++;
@@ -500,19 +552,19 @@ export function buildTrees(scene, colliders) {
   const up = new THREE.Vector3(0, 1, 0);
   spots.forEach((s, i) => {
     q.setFromAxisAngle(up, s.rot);
-    m.compose(new THREE.Vector3(s.x, heightAt(s.x, s.z) - 0.1, s.z), q, new THREE.Vector3(s.s, s.s, s.s));
+    m.compose(new THREE.Vector3(s.x, groundAt(s.x, s.z) - 0.15, s.z), q, new THREE.Vector3(s.s, s.s, s.s));
     trunk.setMatrixAt(i, m);
     colliders.push({ x: s.x, z: s.z, r: 0.6 * s.s });
   });
   rounds.forEach((s, i) => {
     q.setFromAxisAngle(up, s.rot);
-    m.compose(new THREE.Vector3(s.x, heightAt(s.x, s.z) - 0.1, s.z), q, new THREE.Vector3(s.s, s.s, s.s));
+    m.compose(new THREE.Vector3(s.x, groundAt(s.x, s.z) - 0.15, s.z), q, new THREE.Vector3(s.s, s.s, s.s));
     roundMesh.setMatrixAt(i, m);
     roundMesh.setColorAt(i, col.set(greens[Math.floor(s.hue * 4)]));
   });
   poplars.forEach((s, i) => {
     q.setFromAxisAngle(up, s.rot);
-    m.compose(new THREE.Vector3(s.x, heightAt(s.x, s.z) - 0.1, s.z), q, new THREE.Vector3(s.s, s.s, s.s));
+    m.compose(new THREE.Vector3(s.x, groundAt(s.x, s.z) - 0.15, s.z), q, new THREE.Vector3(s.s, s.s, s.s));
     poplarMesh.setMatrixAt(i, m);
     poplarMesh.setColorAt(i, col.set(greens[1 + Math.floor(s.hue * 4)]));
   });

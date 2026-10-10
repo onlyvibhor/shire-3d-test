@@ -1,10 +1,14 @@
 import * as THREE from 'three';
 import { HAMLETS, PILLARS, CENTER, LAB, PROJECTS, AWARDS, HOME, FUN, FAVOURITES, OWNER, AIHUB, HALL } from './data.js';
-import { heightAt, rng, PATHS, ROAD_HALF, distToPath } from './world.js';
+import { groundAt, walkY, rng, PATHS, ROAD_HALF, distToPath, SURFACE } from './world.js';
 import { makeDome, makeDrone, makeScooter, makeDesk, makeMonitorWall, dashboardTexture, makeCafe, makeAdBoard, screenMat } from './props.js';
 import { makePerson, giveProp, animate } from './characters.js';
 import { makeArch } from './landmarks.js';
 import { WHITE_METAL, BRUSHED, CHROME, GLASS, GOLD, WOOD, DARK, MOUND, WINDOW_GLOW, CONCRETE, solid, glow, mesh, canvasTexture, deepMerge, mergeStatic } from './materials.js';
+
+// The player's position, shared so walking villagers can step aside.
+export const playerPos = new THREE.Vector3(1e6, 0, 1e6);
+const _wp = new THREE.Vector3();
 
 const loader = new THREE.TextureLoader();
 const texCache = {};
@@ -123,6 +127,15 @@ class Walker {
     const dx = tx - root.position.x;
     const dz = tz - root.position.z;
     const d = Math.hypot(dx, dz);
+    // wait politely if the player is standing right in the way
+    root.getWorldPosition(_wp);
+    const px = playerPos.x - _wp.x;
+    const pz = playerPos.z - _wp.z;
+    const pd = Math.hypot(px, pz);
+    if (pd < 1.3 && Math.abs(playerPos.y - _wp.y) < 1.5 && Math.sin(root.rotation.y + root.parent.rotation.y) * px + Math.cos(root.rotation.y + root.parent.rotation.y) * pz > 0.2) {
+      animate(this.p, this.action === 'ride' ? 'ride' : 'idle', t, 0);
+      return;
+    }
     const step = this.speed * dt;
     if (d <= step) {
       root.position.x = tx;
@@ -188,18 +201,29 @@ function makeBillboard(slug, color, ctx, size = 1) {
   const W = 4.6 * size;
   const H = 2.85 * size;
   const lift = 1.2 + size * 0.3;
-  for (const sx of [-1, 1]) g.add(mesh(new THREE.BoxGeometry(0.22, lift + H, 0.22), WHITE_METAL, sx * (W / 2 - 0.4), (lift + H) / 2, -0.12));
+  for (const sx of [-1, 1]) g.add(mesh(new THREE.BoxGeometry(0.22, lift, 0.16), WHITE_METAL, sx * (W / 2 - 0.4), lift / 2, 0));
   g.add(mesh(new THREE.BoxGeometry(W + 0.3, H + 0.3, 0.2), WHITE_METAL, 0, lift + H / 2, 0));
   const img = new THREE.Mesh(
     new THREE.PlaneGeometry(W, H),
     new THREE.MeshBasicMaterial({ map: coverTexture(p.images[0], W / H), toneMapped: false })
   );
   img.position.set(0, lift + H / 2, 0.105);
+  const imgBack = img.clone();
+  imgBack.position.z = -0.105;
+  imgBack.rotation.y = Math.PI;
+  imgBack.userData = { slug, dynamic: true };
+  g.add(imgBack);
+  ctx.clickables.push(imgBack);
   img.userData.slug = slug;
   img.userData.dynamic = true;
   g.add(img);
   const title = new THREE.Mesh(new THREE.PlaneGeometry(W + 0.3, (W + 0.3) / 8), new THREE.MeshBasicMaterial({ map: titleTexture(p.title, color), toneMapped: false }));
   title.position.set(0, lift - 0.33, 0.12);
+  const titleBack = title.clone();
+  titleBack.position.z = 0.11;
+  titleBack.rotation.y = Math.PI;
+  titleBack.userData = { slug, dynamic: true };
+  g.add(titleBack);
   title.userData.slug = slug;
   title.userData.dynamic = true;
   g.add(title);
@@ -263,7 +287,7 @@ function floaters(g, ctx, items, area, height = 7) {
 function buildHamlet(scene, h, i, ctx) {
   const r = rng(100 + i * 17);
   const g = new THREE.Group();
-  g.position.set(h.x, h.y, h.z);
+  g.position.set(h.x, h.y + SURFACE, h.z);
   g.rotation.y = Math.atan2(-Math.cos(h.angle), -Math.sin(h.angle)); // local +Z faces the centre
   scene.add(g);
   const U = ctx.updaters;
@@ -574,6 +598,10 @@ function buildHamlet(scene, h, i, ctx) {
         const screen = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.9), new THREE.MeshBasicMaterial({ map: coverTexture(`work/${img}.jpg`, 1.5 / 0.9), toneMapped: false }));
         screen.position.set(0, 1.75, -0.285);
         k.add(screen);
+        const screenBack = screen.clone();
+        screenBack.position.z = -0.355;
+        screenBack.rotation.y = Math.PI;
+        k.add(screenBack);
         g.add(k);
         collider(g, 1, x, z);
         const designer = makePerson({ accent: h.color, seed: r() });
@@ -624,7 +652,7 @@ function buildHamlet(scene, h, i, ctx) {
 
 function buildLab(scene, ctx) {
   const g = new THREE.Group();
-  g.position.set(LAB.x, LAB.y, LAB.z);
+  g.position.set(LAB.x, LAB.y + SURFACE, LAB.z);
   g.rotation.y = Math.atan2(-LAB.x, -LAB.z) + Math.PI; // faces the pond
   scene.add(g);
   // glass pavilion
@@ -671,7 +699,7 @@ function runeTexture(rune) {
 
 function buildCentre(scene, ctx) {
   const r = rng(1);
-  const y0 = heightAt(0, 0);
+  const y0 = groundAt(0, 0) + SURFACE;
   const g = new THREE.Group();
   g.position.y = y0;
   scene.add(g);
@@ -711,7 +739,7 @@ function buildCentre(scene, ctx) {
   const hx = Math.cos(ha) * 18;
   const hz = Math.sin(ha) * 18;
   const hall = makeHobbitHole(CENTER.color, 1.45, r);
-  hall.position.set(hx, heightAt(hx, hz) - y0 - 0.6, hz);
+  hall.position.set(hx, groundAt(hx, hz) - y0 - 0.6, hz);
   hall.rotation.y = Math.atan2(-hx, -hz);
   g.add(hall);
 
@@ -721,7 +749,7 @@ function buildCentre(scene, ctx) {
     const x = Math.cos(a) * 9.6;
     const z = Math.sin(a) * 9.6;
     const s = new THREE.Group();
-    s.position.set(x, heightAt(x, z) - y0 - 0.2, z);
+    s.position.set(x, groundAt(x, z) - y0 - 0.2, z);
     s.rotation.y = Math.atan2(x, z);
     s.add(mesh(new THREE.BoxGeometry(1.3, 3.4, 0.6), WHITE_METAL, 0, 1.7, 0));
     const runeMat = new THREE.MeshBasicMaterial({ color: '#ffc93c', alphaMap: runeTexture(p.rune), transparent: true, toneMapped: false });
@@ -768,7 +796,7 @@ function makeTrophy() {
   g.add(cup);
   const beam = new THREE.Mesh(
     new THREE.CylinderGeometry(0.6, 0.6, 60, 16, 1, true),
-    new THREE.MeshBasicMaterial({ color: '#ffd84a', transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })
+    new THREE.MeshBasicMaterial({ color: '#ffd84a', transparent: true, opacity: 0.11, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })
   );
   beam.position.y = 30;
   return { g, beam };
@@ -785,7 +813,7 @@ function buildTrophies(scene, ctx) {
     const [a, d] = spots[k];
     const x = Math.cos(a) * d;
     const z = Math.sin(a) * d;
-    const y = heightAt(x, z);
+    const y = groundAt(x, z);
     const base = mesh(new THREE.CylinderGeometry(1.1, 1.3, 1, 24), WHITE_METAL, x, y + 0.4, z);
     scene.add(base);
     const { g, beam } = makeTrophy();
@@ -837,7 +865,7 @@ function buildCouriers(scene, ctx) {
         action: 'carry',
         speed: 2.1,
         pause: 3,
-        heightFn: heightAt,
+        heightFn: walkY,
         offset: r() * 4,
       })
     );
@@ -845,10 +873,10 @@ function buildCouriers(scene, ctx) {
   const ring = ringRoute();
   for (let k = 0; k < 3; k++) {
     const p = makePerson({ accent: HAMLETS[k * 2].color, seed: r() });
-    const w = new Walker(scene, p, ring, { loop: true, speed: 2.4, pause: 0.4, heightFn: heightAt, idle: 'wave' });
+    const w = new Walker(scene, p, ring, { loop: true, speed: 2.4, pause: 0.4, heightFn: walkY, idle: 'wave' });
     w.idx = (k * 6 + 1) % ring.length;
     const [x, z] = ring[k * 6];
-    p.root.position.set(x, heightAt(x, z), z);
+    p.root.position.set(x, groundAt(x, z), z);
     ctx.updaters.push(w);
     ctx.npcs.push({ p, dept: 'hq' });
   }
@@ -912,7 +940,7 @@ function buildHome(scene, ctx) {
   const H = HOME;
   const r = rng(404);
   const g = new THREE.Group();
-  g.position.set(H.x, H.y, H.z);
+  g.position.set(H.x, H.y + SURFACE, H.z);
   g.rotation.y = Math.atan2(-H.x, -H.z);
   scene.add(g);
   const face = (x, z, tx = 0, tz = 0) => Math.atan2(tx - x, tz - z);
@@ -974,7 +1002,12 @@ function buildHome(scene, ctx) {
     g.add(new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 8), glow('#fff1c9', 2)).translateX(x).translateY(3.05).translateZ(9.5));
     collider(g, 0.6, x, 9.5);
   }
-  for (const sx of [-1, 1]) for (let k = 0; k < 6; k++) g.add(mesh(new THREE.BoxGeometry(0.9, 0.9, 0.6), PINK, sx * (4.4 + k * 1.15), 0.45, 9.5));
+  for (const sx of [-1, 1]) {
+    for (let k = 0; k < 6; k++) {
+      g.add(mesh(new THREE.BoxGeometry(0.9, 0.9, 0.6), PINK, sx * (4.4 + k * 1.15), 0.45, 9.5));
+      collider(g, 0.55, sx * (4.4 + k * 1.15), 9.5);
+    }
+  }
   const box = new THREE.Group();
   box.position.set(4.8, 0, 7.6);
   box.add(mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.2, 8), WHITE_METAL, 0, 0.6, 0));
@@ -995,6 +1028,8 @@ function buildHome(scene, ctx) {
   const flowers = ['#ff8fb1', '#ffd84a', '#b18cf0', '#ffffff'];
   for (const sx of [-1, 1]) {
     g.add(mesh(new THREE.BoxGeometry(3.4, 0.35, 1.4), CREAM, sx * 6.5, 0.18, 5.5));
+    collider(g, 0.8, sx * 5.6, 5.5);
+    collider(g, 0.8, sx * 7.4, 5.5);
     for (let k = 0; k < 10; k++) g.add(mesh(new THREE.IcosahedronGeometry(0.18, 0), solid(flowers[k % 4]), sx * 6.5 + (r() - 0.5) * 3, 0.5, 5.5 + (r() - 0.5) * 1.1));
   }
 
@@ -1098,7 +1133,7 @@ function signTexture(text, sub, color, dark = true) {
 function buildZoneDome(scene, ctx, place, { radius = 10, glass = false, extras } = {}) {
   const r = rng(place.id.length * 97);
   const g = new THREE.Group();
-  g.position.set(place.x, place.y, place.z);
+  g.position.set(place.x, place.y + SURFACE, place.z);
   g.rotation.y = Math.atan2(-place.x, -place.z);
   scene.add(g);
   const dome = makeDome(radius, place.color, { glass });
@@ -1209,7 +1244,7 @@ function buildCafeAndWall(scene, ctx) {
   const cx = 16.5;
   const cz = 0;
   const cafe = makeCafe('#7a4a2a');
-  cafe.position.set(cx, heightAt(cx, cz) - 0.05, cz);
+  cafe.position.set(cx, groundAt(cx, cz), cz);
   cafe.rotation.y = Math.atan2(-cx, -cz);
   scene.add(cafe);
   ctx.colliderList.push({ x: cx, z: cz, r: 1.9 });
@@ -1253,7 +1288,7 @@ function buildCafeAndWall(scene, ctx) {
   const wz = Math.sin(a) * 15.5;
   const shots = ['t20', 'trial', 'btb', 'magic-checkout', 'ring', 'ace'].map((slug) => screenMat(PROJECTS[slug].images[0], 2.4 / 1.35));
   const wall = makeMonitorWall(shots, CENTER.color, 3);
-  wall.position.set(wx, heightAt(wx, wz) - 0.1, wz);
+  wall.position.set(wx, groundAt(wx, wz), wz);
   wall.rotation.y = Math.atan2(-wx, -wz);
   scene.add(wall);
   ctx.colliderList.push({ x: wx, z: wz, r: 2.5 });
@@ -1271,8 +1306,10 @@ function buildAdBoards(scene, ctx) {
     const side = -1;
     const x = ca * d - sa * 8 * side;
     const z = sa * d + ca * 8 * side;
-    const { g, img: m, tag } = makeAdBoard(`work/${img}.jpg`, h.color, PROJECTS[slug].title);
-    g.position.set(x, heightAt(x, z) - 0.2, z);
+    const { g, img: m, tag, imgBack, tagBack } = makeAdBoard(`work/${img}.jpg`, h.color, PROJECTS[slug].title);
+    imgBack.userData.slug = tagBack.userData.slug = slug;
+    ctx.clickables.push(imgBack, tagBack);
+    g.position.set(x, groundAt(x, z) - 0.2, z);
     // face the road, angled towards traffic coming from the centre
     const tx = ca * 30;
     const tz = sa * 30;
@@ -1300,7 +1337,7 @@ function buildHillDomes(scene) {
     const x = Math.cos(a) * d;
     const z = Math.sin(a) * d;
     const dome = makeDome(rad, colors[k], { glass: k % 2 === 1 });
-    dome.position.set(x, heightAt(x, z) - 0.6, z);
+    dome.position.set(x, groundAt(x, z) - 0.6, z);
     dome.rotation.y = Math.atan2(-x, -z);
     scene.add(dome);
     deepMerge(dome);
@@ -1311,13 +1348,13 @@ function buildHillDomes(scene) {
 
 function buildDrones(scene, ctx) {
   const drones = [];
-  const hq = new THREE.Vector3(0, heightAt(0, 0) + 16, 0);
+  const hq = new THREE.Vector3(0, groundAt(0, 0) + 16, 0);
   // Delivery runs from HQ to every hamlet and the two inner zones
   const targets = [...HAMLETS, HOME, FUN, AIHUB, HALL];
   targets.forEach((h, k) => {
     const d = makeDrone(h.color, true);
     scene.add(d);
-    const dest = new THREE.Vector3(h.x * 0.92, (h.y ?? heightAt(h.x, h.z)) + 7, h.z * 0.92);
+    const dest = new THREE.Vector3(h.x * 0.92, (h.y ?? groundAt(h.x, h.z)) + 7, h.z * 0.92);
     drones.push({ d, kind: 'route', a: hq.clone().add(new THREE.Vector3(Math.cos(k) * 4, 0, Math.sin(k) * 4)), b: dest, off: k / targets.length, period: 26 + k * 2 });
   });
   // Film drones circling the Arena shoot
@@ -1364,10 +1401,10 @@ function buildScooters(scene, ctx) {
     const sc = makeScooter(h.color);
     sc.scale.setScalar(1 / p.root.scale.x);
     p.root.add(sc);
-    const w = new Walker(scene, p, ring, { loop: true, speed: 7, pause: 0.05, heightFn: heightAt, action: 'ride', idle: 'ride' });
+    const w = new Walker(scene, p, ring, { loop: true, speed: 7, pause: 0.05, heightFn: walkY, action: 'ride', idle: 'ride' });
     w.idx = (k * 6 + 3) % ring.length;
     const [x, z] = ring[(k * 6 + 2) % ring.length];
-    p.root.position.set(x, heightAt(x, z), z);
+    p.root.position.set(x, groundAt(x, z), z);
     ctx.updaters.push(w);
     ctx.npcs.push({ p, dept: h.id, rider: true });
   }

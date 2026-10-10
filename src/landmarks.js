@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { HAMLETS } from './data.js';
-import { heightAt, rng, distToPath, ROAD_HALF, POND, PATHS, ZONES, coastR, SEA_LEVEL } from './world.js';
+import { groundAt, walkY, rng, distToPath, ROAD_HALF, POND, PATHS, ZONES, coastR, SEA_LEVEL, SURFACE } from './world.js';
 import { WHITE_METAL, BRUSHED, CHROME, CONCRETE, GLASS, DARK as DARK_RAIL, mesh, canvasTexture, glow, mergeStatic, lightPool, solid } from './materials.js';
 
 // White-metal monoliths, fluted columns and arches lining the roads.
@@ -20,7 +20,7 @@ export function buildMonoliths(world, colliders) {
       const off = ROAD_HALF + 2.2 + r() * 3;
       const x = ca * d - sa * off * side;
       const z = sa * d + ca * off * side;
-      const y = heightAt(x, z);
+      const y = groundAt(x, z);
       if (distToPath(x, z) < ROAD_HALF + 1.6 || ZONES.some((zn) => Math.hypot(x - zn.x, z - zn.z) < 16)) continue;
       if (r() < 0.6) {
         const w = 1.2 + r() * 1.4;
@@ -53,7 +53,7 @@ export function buildMonoliths(world, colliders) {
     if (distToPath(x, z) < 8 || HAMLETS.some((h) => Math.hypot(x - h.x, z - h.z) < 26) || ZONES.some((zn) => Math.hypot(x - zn.x, z - zn.z) < 22)) continue;
     const hgt = 10 + r() * 16;
     const w = 2 + r() * 3;
-    const s = mesh(slabGeo, WHITE_METAL, x, heightAt(x, z) + hgt / 2 - 1, z);
+    const s = mesh(slabGeo, WHITE_METAL, x, groundAt(x, z) + hgt / 2 - 1, z);
     s.scale.set(w, hgt, 1.2 + r());
     s.rotation.y = r() * Math.PI;
     scene.add(s);
@@ -118,7 +118,7 @@ export function buildSkyRail(scene, colliders) {
     pts.push(new THREE.Vector3(x, 0, z));
   }
   // smooth height a fixed distance above a smoothed ground line
-  const ys = pts.map((p) => heightAt(p.x, p.z));
+  const ys = pts.map((p) => groundAt(p.x, p.z));
   pts.forEach((p, i) => {
     let s = 0;
     for (let k = -3; k <= 3; k++) s = Math.max(s, ys[(i + k + N) % N]);
@@ -136,7 +136,7 @@ export function buildSkyRail(scene, colliders) {
   for (let i = 0; i < 64; i++) {
     const p = curve.getPointAt(i / 64);
     if (distToPath(p.x, p.z) < ROAD_HALF + 1.5) continue;
-    const g = heightAt(p.x, p.z);
+    const g = groundAt(p.x, p.z);
     const hgt = p.y - g;
     const pil = mesh(pillarGeo, BRUSHED, p.x, g + hgt / 2 - 0.4, p.z);
     pil.scale.y = hgt;
@@ -256,7 +256,7 @@ export function buildFloatingProps(scene) {
   for (const it of items) {
     const x = Math.cos(it.a) * it.d;
     const z = Math.sin(it.a) * it.d;
-    it.base = new THREE.Vector3(x, heightAt(x, z) + it.h, z);
+    it.base = new THREE.Vector3(x, groundAt(x, z) + it.h, z);
     it.obj.position.copy(it.base);
     scene.add(it.obj);
   }
@@ -273,7 +273,7 @@ export function buildFloatingProps(scene) {
 export function buildPondEdge(scene) {
   const ring = mesh(new THREE.TorusGeometry(POND.r * 1.38, 0.35, 8, 48), CONCRETE);
   ring.rotation.x = Math.PI / 2;
-  ring.position.set(POND.x, heightAt(POND.x + POND.r * 1.38, POND.z) - 0.1, POND.z);
+  ring.position.set(POND.x, groundAt(POND.x + POND.r * 1.38, POND.z) - 0.1, POND.z);
   scene.add(ring);
 }
 
@@ -283,7 +283,7 @@ export function buildStreetLamps(world, colliders) {
   const pools = new THREE.Group();
   world.add(group, pools);
   const head = glow('#fff1c9', 1.6);
-  const poolMat = lightPool('#ffd99a', 0.55);
+  const poolMat = lightPool('#ffd99a', 0.38);
   const poolGeo = new THREE.PlaneGeometry(7, 7);
   poolGeo.rotateX(-Math.PI / 2);
   for (const [ax, az, bx, bz] of PATHS) {
@@ -296,7 +296,7 @@ export function buildStreetLamps(world, colliders) {
       const x = ax + (bx - ax) * t + nx * (ROAD_HALF + 0.7) * side;
       const z = az + (bz - az) * t + nz * (ROAD_HALF + 0.7) * side;
       if (Math.hypot(x, z) < 12 || HAMLETS.some((h) => Math.hypot(x - h.x, z - h.z) < 16) || ZONES.some((zn) => Math.hypot(x - zn.x, z - zn.z) < 14)) continue;
-      const y = heightAt(x, z);
+      const y = groundAt(x, z);
       const lamp = new THREE.Group();
       lamp.position.set(x, y, z);
       lamp.rotation.y = Math.atan2(-nx * side, -nz * side);
@@ -309,7 +309,7 @@ export function buildStreetLamps(world, colliders) {
       const pool = new THREE.Mesh(poolGeo, poolMat);
       const px = x - nx * side * 1.1;
       const pz = z - nz * side * 1.1;
-      pool.position.set(px, heightAt(px, pz) + 0.12, pz);
+      pool.position.set(px, groundAt(px, pz) + 0.12, pz);
       pools.add(pool);
       colliders.push({ x, z, r: 0.25 });
     }
@@ -389,7 +389,7 @@ export function buildCoast(scene, colliders) {
   const lr = coastR(la) - 6;
   const lx = Math.cos(la) * lr;
   const lz = Math.sin(la) * lr;
-  const ly = Math.max(heightAt(lx, lz), SEA_LEVEL + 0.5);
+  const ly = Math.max(groundAt(lx, lz), SEA_LEVEL + 0.5);
   const lh = new THREE.Group();
   lh.position.set(lx, ly, lz);
   for (let k = 0; k < 5; k++) {
@@ -421,7 +421,7 @@ export function buildCoast(scene, colliders) {
       boat.rotation.z = Math.sin(t * 0.9) * 0.05;
       boat.rotation.x = Math.sin(t * 0.7) * 0.03;
       beamPivot.rotation.y = t * 0.6;
-      beam.material.opacity = 0.03 + night * 0.16;
+      beam.material.opacity = 0.02 + night * 0.1;
     },
   };
 }
