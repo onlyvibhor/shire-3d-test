@@ -3,7 +3,7 @@ import { sfx, audioSettings, setLevel, toggleMute, onAudioChange, startAudio } f
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-export function createUI({ owner, pillars, places, projects, awards, contact, favourites, tools = [], awardList = [], onEnter, onTour, onOverview, onTravel, onTourStep, onExitTour, onTime, onWalk }) {
+export function createUI({ owner, pillars, places, projects, awards, contact, favourites, tools = [], awardList = [], onEnter, onTour, onOverview, onTravel, onTourStep, onExitTour, onTime, onWalk, onRide }) {
   const visited = new Set();
   const viewed = new Set();
   const trophies = new Set();
@@ -199,7 +199,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
       ${p.makes ? `<div class="chips">${p.makes.map((m) => `<span class="chip">${esc(m)}</span>`).join('')}</div>` : ''}
       ${work ? `<div class="card-head"><b>Work shipped together</b><span>${p.projects.length} ${p.projects.length === 1 ? 'project' : 'projects'}</span></div><div class="works">${work}</div>` : ''}
       ${p.id === 'fun' ? funExtra() : ''}
-      ${p.id === 'home' ? `<div class="numbers">${owner.numbers.map((n) => `<div><b>${esc(n.value)}</b><span>${esc(n.label)}</span></div>`).join('')}</div><button class="btn btn--wide" data-contact>✉️ Write to Vibhor</button>` : ''}
+      ${p.id === 'home' ? `<div class="numbers">${owner.numbers.map((n) => `<div><b>${esc(n.value)}</b><span>${esc(n.label)}</span></div>`).join('')}</div><button class="btn btn--wide" data-contact>✉️ Write to Vibhor</button><button class="btn btn--wide btn--ghost" data-ride>🚲 Ride my bicycle</button>` : ''}
       ${p.id === 'hq' ? `<div class="numbers">${owner.numbers.map((n) => `<div><b>${esc(n.value)}</b><span>${esc(n.label)}</span></div>`).join('')}</div>` : ''}
       ${
         tour
@@ -213,6 +213,10 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     panel.querySelector('[data-next]')?.addEventListener('click', (e) => onTravel(e.currentTarget.dataset.next));
     panel.querySelector('[data-hire]')?.addEventListener('click', () => toggleHire(true));
     panel.querySelector('[data-contact]')?.addEventListener('click', () => toggleHire(true, true));
+    panel.querySelector('[data-ride]')?.addEventListener('click', () => {
+      hidePlace();
+      onRide?.();
+    });
     panel.querySelectorAll('[data-project]').forEach((b) => b.addEventListener('click', () => openProject(b.dataset.project)));
     panel.scrollTop = 0;
     panel.classList.add('is-open');

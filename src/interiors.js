@@ -688,6 +688,8 @@ function buildHomeInterior(origin) {
   g.add(wd);
   addCollider(room, 8, 6.6, 1.1);
   addThing(room, 8, 5.2, { kind: 'contact', label: 'Write to Vibhor', verb: 'Use the typewriter' });
+  // the bicycle waits just outside the front door
+  addThing(room, 3.2, 7.6, { kind: 'ride-out', label: 'Your bicycle is parked outside', verb: 'Go for a ride' });
 
   // Photo wall: on set and on stage
   OWNER.gallery.slice(0, 3).forEach((gph, k) => {

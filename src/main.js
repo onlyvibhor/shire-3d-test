@@ -17,6 +17,7 @@ import { createDayNight } from './daynight.js';
 import { buildVillage, playerPos } from './village.js';
 import { makePerson, animate, hit } from './characters.js';
 import { createUI } from './ui.js';
+import { createRide } from './ride.js';
 
 // ---------- Renderer, scene, light ----------
 
@@ -155,6 +156,17 @@ const state = {
 };
 state.pos.y = heightAt(state.pos.x, state.pos.z);
 
+
+// ---------- The bicycle: parked outside Home, ridden anywhere outdoors ----------
+const ride = (() => {
+  const rot = Math.atan2(-HOME.x, -HOME.z); // Home's front faces the centre
+  const lx = 3.6;
+  const lz = 3.2;
+  const home = { x: HOME.x + lx * Math.cos(rot) + lz * Math.sin(rot), z: HOME.z - lx * Math.sin(rot) + lz * Math.cos(rot), heading: rot };
+  return createRide({ scene: outdoor, player, state, colliders, npcs: village.npcs, groundAt, walkY, heightAt, SEA_LEVEL, jettyAt: (x, z) => jettyAt(x, z), onFerry: (x, z) => coast.onFerry(x, z), ui: { toast: (...a) => ui.toast(...a) }, home });
+})();
+village.interactables.push(ride.interact);
+
 // ---------- Places ----------
 
 const PLACES = [
@@ -194,6 +206,7 @@ function leaveRoomNow() {
 function travelTo(id) {
   const p = PLACES.find((q) => q.id === id);
   if (!p) return;
+  if (ride.active) ride.dismount();
   leaveRoomNow();
   let x, z;
   if (p.id === 'hq') {
@@ -235,6 +248,10 @@ const ui = createUI({
   onEnter: () => setMode('walk'),
   onTour: () => setMode('tour'),
   onWalk: () => setMode('walk'),
+  onRide: () => {
+    if (state.indoor) act({ kind: 'ride-out' });
+    else ride.bring();
+  },
   onOverview: () => setMode(state.mode === 'overview' ? 'walk' : 'overview'),
   onTravel: (id) => travelTo(id),
   onTourStep: (d) => tourStep(d),
@@ -247,6 +264,7 @@ const ui = createUI({
 
 function setMode(mode, { snap = false } = {}) {
   const prev = state.mode;
+  if (mode !== 'walk' && ride.active) ride.dismount();
   if (mode === 'overview' || mode === 'tour') leaveRoomNow();
   state.mode = mode;
   ui.setMode(mode);
@@ -281,6 +299,7 @@ for (const ev of ['pointerdown', 'keydown', 'touchstart']) window.addEventListen
   addFilm({ url: 'audio/ring-game.m4a', room: 'fun', pos: at(rooms.fun, -13.8, 7.1), radius: 8, gain: 0.8 });
   addFilm({ url: 'audio/power.m4a', room: 'fun', pos: at(rooms.fun, 13, -4), radius: 7, gain: 2.2 });
 }
+const rideSpeedEl = document.getElementById('ride-speed');
 const audioState = { pos: new THREE.Vector3(), yaw: 0, room: null, night: 0, speed: 0, running: false, surface: 'grass', coastDist: 100, crowd: 0, woods: 0, droneDist: 999, mode: 'intro', air: 0 };
 const camDir = new THREE.Vector3();
 function feedAudio(dt) {
@@ -294,6 +313,8 @@ function feedAudio(dt) {
   A.night = dayNight.state.night;
   A.speed = state.speed;
   A.running = state.speed > 6;
+  A.riding = ride.active;
+  A.pedaling = ride.active && keys.has('w');
   A.air = state.air;
   A.mode = state.mode;
   const r = Math.hypot(x, z);
@@ -336,9 +357,14 @@ window.addEventListener('keydown', (e) => {
     ui.setTimeMode(dayNight.cycle());
     sfx('time');
   }
+  else if (ride.active && (k === 'x' || k === 'e')) {
+    // on the bike, E still works for things right beside you when you've stopped
+    if (k === 'e' && nearThing && nearThing.kind !== 'ride' && Math.abs(ride.speed) < 1.5) act(nearThing);
+    else ride.dismount();
+  }
   else if ((k === 'e' || k === 'enter') && nearThing) act(nearThing);
   else if (k === 'f' && state.mode === 'walk') waveAtNeighbours();
-  else if (k === ' ' && state.mode === 'walk' && state.air === 0) {
+  else if (k === ' ' && state.mode === 'walk' && state.air === 0 && !ride.active) {
     state.vy = 6.5;
     sfx('jump');
   }
@@ -449,9 +475,15 @@ window.addEventListener('resize', () => {
 const PLAYER_R = 0.45;
 const dir = new THREE.Vector2();
 function movePlayer(dt) {
+  ride.update(elapsed, dt, ui.modalOpen() || state.mode !== 'walk' ? new Set() : keys);
+  if (ride.active) {
+    animate(player, 'cycle', elapsed, state.speed);
+    halo.visible = false;
+    return;
+  }
   let ix = 0;
   let iz = 0;
-  const playing = state.mode === 'walk' || state.mode === 'overview';
+  const playing = (state.mode === 'walk' || state.mode === 'overview') && elapsed > ride.stunned;
   if (playing && !ui.modalOpen()) {
     if (keys.has('w') || keys.has('arrowup')) iz += 1;
     if (keys.has('s') || keys.has('arrowdown')) iz -= 1;
@@ -599,6 +631,7 @@ function applyIndoorLight(room) {
 }
 
 function enterRoom(id) {
+  if (ride.active) ride.dismount();
   sfx('enter');
   const room = rooms[id];
   if (!room || state.indoor) return;
@@ -700,10 +733,13 @@ function updateCamera(dt, t) {
     if (state.speed > 0.5 && !drag) {
       let diff = state.heading + Math.PI - state.yaw;
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-      state.yaw += diff * Math.min(1, dt * 0.9);
+      // on the bike the camera chases harder, so corners stay readable
+      state.yaw += diff * Math.min(1, dt * (ride.active ? 2.6 : 0.9));
     }
-    desiredLook.set(state.pos.x, state.pos.y + camPreset.lookY, state.pos.z);
-    orbitPoint(desiredPos, desiredLook, state.yaw, state.pitch, state.dist);
+    desiredLook.set(state.pos.x, state.pos.y + camPreset.lookY - (ride.active ? 0.2 : 0), state.pos.z);
+    // riding pulls the camera back a little as you pick up speed
+    const rideBack = ride.active ? 1.2 + Math.min(3, state.speed * 0.25) : 0;
+    orbitPoint(desiredPos, desiredLook, state.yaw, state.pitch, state.dist + rideBack);
     // over-the-shoulder offset, GTA style
     desiredPos.x += Math.cos(state.yaw) * camPreset.shoulder;
     desiredPos.z -= Math.sin(state.yaw) * camPreset.shoulder;
@@ -734,7 +770,7 @@ function updateCamera(dt, t) {
   camLook.lerp(desiredLook, a);
   camera.position.copy(camPos);
   camera.lookAt(camLook);
-  const fov = state.mode === 'walk' ? camPreset.fov : 55;
+  const fov = state.mode === 'walk' ? camPreset.fov + (ride.active ? Math.min(12, state.speed * 0.9) : 0) : 55;
   if (Math.abs(camera.fov - fov) > 0.05) {
     camera.fov = THREE.MathUtils.lerp(camera.fov, fov, 1 - Math.exp(-dt * 5));
     camera.updateProjectionMatrix();
@@ -919,6 +955,12 @@ function act(a) {
   if (!a) return;
   if (a.kind !== 'enter' && a.kind !== 'exit' && a.kind !== 'project') sfx('interact');
   if (a.label === 'The cat') sfx('purr');
+  if (a.kind === 'ride') return ride.mount();
+  if (a.kind === 'ride-out') {
+    exitRoom();
+    setTimeout(() => ride.bring(), 700);
+    return;
+  }
   if (/coffee|chai/i.test(a.label || '')) sfx('sip');
   if (a.kind === 'project') ui.openProject(a.slug);
   else if (a.kind === 'contact') ui.toggleHire(true, true);
@@ -1111,6 +1153,7 @@ function frame() {
   playerPos.copy(state.pos);
   updateCamera(dt, t);
   feedAudio(dt);
+  if (ride.active) rideSpeedEl.textContent = `${Math.round(Math.abs(ride.speed) * 3.6)}`;
   updateProximity(t);
   updateLabels();
   drawMinimap();
@@ -1124,4 +1167,4 @@ await finishLoading({ renderer, scene, camera, render: () => composer.render() }
 hideLoader();
 ui.ready();
 
-window.__shire = { audioDebug, state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };
+window.__shire = { ride, audioDebug, state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };

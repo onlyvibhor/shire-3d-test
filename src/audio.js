@@ -300,6 +300,18 @@ const SFX = {
     const t = now();
     for (let k = 0; k < 6; k++) burst({ kind: 'brown', t: t + k * 0.11, a: 0.03, d: 0.08, v: 0.22, f: 120, q: 1.5, dest: o });
   },
+  crash: (o) => {
+    const t = now();
+    tone({ f: 90, f2: 40, t, d: 0.3, v: 0.45, dest: o });
+    burst({ kind: 'brown', t, d: 0.35, v: 0.5, f: 260, type: 'lowpass', dest: o });
+    // the bike clattering: a few metallic rings and scrapes
+    [0.04, 0.12, 0.22, 0.31].forEach((dt, k) => {
+      tone({ type: 'square', f: 1400 + k * 330, t: t + dt, d: 0.12, v: 0.03, dest: o, filter: { type: 'bandpass', f: 2500, q: 6 } });
+      burst({ kind: 'white', t: t + dt, d: 0.08, v: 0.08, f: 3500, q: 2, dest: o });
+    });
+    burst({ kind: 'pink', t: t + 0.1, a: 0.02, d: 0.6, v: 0.12, f: 1800, f2: 700, q: 0.8, dest: o });
+  },
+  tick: (o) => burst({ kind: 'white', d: 0.012, v: 0.05, f: 6000, q: 3, dest: o }),
   splash: (o) => burst({ kind: 'white', a: 0.01, d: 0.5, v: 0.2, f: 1800, f2: 600, q: 0.5, dest: o }),
 };
 
@@ -340,6 +352,7 @@ function buildAmbience() {
   amb.crowd = ambLayer('pink', 'bandpass', 900, 1.1);
   amb.leaves = ambLayer('white', 'highpass', 3800, 0.4);
   amb.room = ambLayer('brown', 'lowpass', 180, 0.5);
+  amb.tyre = ambLayer('pink', 'bandpass', 500, 0.9);
   amb.buzz = (() => {
     const o = ctx.createOscillator();
     o.type = 'sawtooth';
@@ -600,7 +613,7 @@ export function updateAudio(s, dt) {
   music.set(s.mode === 'intro' ? 'intro' : s.room ? s.room : s.night > 0.55 ? 'night' : 'day');
   // ambience levels
   const height = Math.max(0, Math.min(1, (s.pos.y - 4) / 14));
-  setLevelSmooth(amb.wind.g, outside ? 0.05 + height * 0.12 + Math.max(0, 1 - s.coastDist / 40) * 0.06 : 0);
+  setLevelSmooth(amb.wind.g, outside ? 0.05 + height * 0.12 + Math.max(0, 1 - s.coastDist / 40) * 0.06 + (s.riding ? Math.min(0.12, s.speed * 0.01) : 0) : 0);
   amb.wind.fl.frequency.setTargetAtTime(380 + Math.sin(t * 0.13) * 140 + Math.sin(t * 0.41) * 60, t, 0.5);
   const sea = outside ? Math.max(0, 1 - Math.max(0, s.coastDist) / 55) : 0;
   setLevelSmooth(amb.sea.g, sea * (0.22 + Math.max(0, Math.sin(t * 0.35)) * 0.18));
@@ -614,8 +627,19 @@ export function updateAudio(s, dt) {
     chirp(Math.random() * 1.6 - 0.8, day * (0.5 + s.woods * 0.5));
     env.birdsAt = t + 0.6 + Math.random() * (3.5 - s.woods * 2);
   }
+  // the bike: tyres on the road, and the freewheel ticking when you coast
+  const rideV = s.riding ? s.speed : 0;
+  setLevelSmooth(amb.tyre.g, rideV > 0.3 && s.air < 0.05 ? Math.min(0.09, rideV * 0.009) : 0, 0.15);
+  amb.tyre.fl.frequency.setTargetAtTime(300 + rideV * 70, t, 0.2);
+  if (s.riding && rideV > 1.5 && !s.pedaling) {
+    env.tick = (env.tick || 0) + dt * rideV * 3.2;
+    if (env.tick >= 1) {
+      env.tick -= 1;
+      sfx('tick', { gap: 0 });
+    }
+  }
   // footsteps
-  if (s.speed > 0.6 && s.air < 0.05 && s.mode === 'walk') {
+  if (!s.riding && s.speed > 0.6 && s.air < 0.05 && s.mode === 'walk') {
     stepPhase += (s.speed * dt) / (s.running ? 1.35 : 0.78);
     if (stepPhase >= 1) {
       stepPhase -= 1;
