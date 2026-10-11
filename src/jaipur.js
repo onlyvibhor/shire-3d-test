@@ -187,6 +187,7 @@ export function makeChhatri(s = 1, color = LIME) {
 // A Rajput gateway (pol): a thick slab with a cusped arch, painted panels, niches and chhatris.
 export function makePol({ w = 9, h = 8, a = 2.2, spring = 3.4, depth = 1.6, color = OCHRE, accent = '#3d5f9e', chhatris = true, panels = true } = {}) {
   const g = new THREE.Group();
+  g.name = 'gate';
   // a little warm self-light keeps sandstone from going olive under the green bounce light
   const wallMat = solid(color, { roughness: 0.85, emissive: color, emissiveIntensity: 0.2 });
   g.add(archSlab(w, h, a, spring, depth, wallMat));
@@ -212,6 +213,7 @@ export function makePol({ w = 9, h = 8, a = 2.2, spring = 3.4, depth = 1.6, colo
       for (const sx of [-1, 1]) {
         for (const z of [depth / 2 + 0.02, -depth / 2 - 0.02]) {
           const p = new THREE.Mesh(new THREE.PlaneGeometry(pw, pw * 1.5), new THREE.MeshStandardMaterial({ map: floralTexture(), roughness: 0.8 }));
+          p.userData.decor = true;
           p.position.set(sx * (a + 0.5 + (w / 2 - a - 0.5) / 2), spring * 0.55, z);
           if (z < 0) p.rotation.y = Math.PI;
           g.add(p);
@@ -322,6 +324,7 @@ export function makeSignboard({ name = 'signboard', color = '#d9a441', W = 3.3, 
   for (const [tex, z, ry] of [[frontTex, 0.076, 0], [backTex, -0.076, Math.PI]]) {
     // a touch of self-light keeps the painted panel cream, not grey, when it's in shade
     const m = new THREE.Mesh(new THREE.PlaneGeometry(PW, PH), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85, emissive: '#ffffff', emissiveMap: tex, emissiveIntensity: 0.32 }));
+    m.userData.back = z < 0; // the back only carries the place's name
     m.position.set(0, y0 + H / 2, z);
     m.rotation.y = ry;
     m.userData.dynamic = true;
@@ -1194,6 +1197,7 @@ function buildKites(scene, ctx) {
     ctx.npcs.push({ p, dept: f.dept, lines: ['Kai po che! 🪁', 'Watch the manjha, it’s sharp.', 'Sankranti on the rooftops is the best day in Jaipur.'] });
     const [c1, c2] = pairs[f.seed % pairs.length];
     const kite = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 1.9), new THREE.MeshBasicMaterial({ map: kiteTexture(c1, c2), side: THREE.DoubleSide, transparent: true, alphaTest: 0.5 }));
+    kite.userData.decor = true;
     const tail = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 1.6), new THREE.MeshBasicMaterial({ color: c2, side: THREE.DoubleSide }));
     tail.position.y = -1.7;
     kite.add(tail);

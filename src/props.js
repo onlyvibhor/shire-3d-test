@@ -379,6 +379,7 @@ export function makeCafe(color = '#7a4a2a') {
 // ---------- Roadside ad billboard ----------
 export function makeAdBoard(src, color, title) {
   const g = new THREE.Group();
+  g.name = 'adboard';
   const W = 10;
   const H = 5.6;
   for (const x of [-3, 3]) g.add(mesh(new THREE.CylinderGeometry(0.22, 0.28, 6.5, 10), WHITE_METAL, x, 3.25, -0.3));

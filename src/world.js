@@ -692,6 +692,20 @@ export function buildTrees(scene, colliders) {
     im.receiveShadow = true;
     scene.add(im);
   }
+  // every tree, so ones standing in front of a sign can be left out (see declutter.js)
+  const items = spots.map((s, i) => ({ x: s.x, z: s.z, r: (s.kind === 'round' ? 2.4 : 1.2) * s.s, top: groundAt(s.x, s.z) + (s.kind === 'round' ? 6.4 : 8.2) * s.s, bottom: groundAt(s.x, s.z) + 2.2 * s.s, spot: s, i }));
+  const zero = new THREE.Matrix4().makeScale(0, 0, 0);
+  const hide = (item) => {
+    trunk.setMatrixAt(item.i, zero);
+    const list = item.spot.kind === 'round' ? rounds : poplars;
+    const mesh = item.spot.kind === 'round' ? roundMesh : poplarMesh;
+    mesh.setMatrixAt(list.indexOf(item.spot), zero);
+    trunk.instanceMatrix.needsUpdate = mesh.instanceMatrix.needsUpdate = true;
+    const k = colliders.indexOf(item.collider);
+    if (k >= 0) colliders.splice(k, 1);
+  };
+  spots.forEach((s, i) => (items[i].collider = colliders[colliders.length - spots.length + i]));
+  return { items, hide };
 }
 
 // Distant blue mountains for depth.

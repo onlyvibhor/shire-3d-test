@@ -21,6 +21,8 @@ import { createUI } from './ui.js';
 import { createRide } from './ride.js';
 import { buildStory } from './story.js';
 import { buildGallery } from './gallery.js';
+import { declutter } from './declutter.js';
+import galleryLayout from './content/gallery-layout.json';
 import { createQuest } from './quest.js';
 import { isTouch, stick, stickKeys, initTouch, goLandscape } from './touch.js';
 
@@ -93,26 +95,34 @@ await step('Setting the type', 0.02);
 await loadFonts(); // signs and labels are painted with these fonts, so they must be here first
 await step('Raising the island', 0.05);
 const outdoor = new THREE.Group();
+outdoor.name = 'outdoor';
 scene.add(outdoor);
-const sky = buildSky(outdoor);
-const updateClouds = buildClouds(outdoor);
-const { terrain } = buildTerrain(outdoor);
-const ocean = buildOcean(outdoor);
+// name whatever a builder adds to the island after the builder
+function named(name, fn) {
+  const before = new Set(outdoor.children);
+  const out = fn();
+  for (const o of outdoor.children) if (!before.has(o) && !o.name) o.name = name;
+  return out;
+}
+const sky = named('sky', () => buildSky(outdoor));
+const updateClouds = named('clouds', () => buildClouds(outdoor));
+const { terrain } = named('terrain', () => buildTerrain(outdoor));
+const ocean = named('ocean', () => buildOcean(outdoor));
 await step('Planting grass and flowers', 0.18);
 const grassWind = buildGrass(outdoor, LITE ? 60000 : 180000);
 const lavWind = buildLavender(outdoor, LITE ? 6000 : 14000);
 const flowerWind = buildFlowers(outdoor, LITE ? 4000 : 10000);
 await step('Growing the woods', 0.3);
-buildMountains(outdoor);
+named('mountains', () => buildMountains(outdoor));
 const colliders = [];
-buildTrees(outdoor, colliders);
-buildMonoliths(outdoor, colliders);
-const updateRail = buildSkyRail(outdoor, colliders);
-const lampSpots = buildStreetLamps(outdoor, colliders);
+const trees = named('trees', () => buildTrees(outdoor, colliders));
+const monoliths = named('monoliths', () => buildMonoliths(outdoor, colliders));
+const updateRail = named('skyrail', () => buildSkyRail(outdoor, colliders));
+const lampSpots = named('lamps', () => buildStreetLamps(outdoor, colliders));
 await step('Building the piers', 0.38);
-const coast = buildCoast(outdoor, colliders);
-const updateProps = buildFloatingProps(outdoor);
-const updatePollen = buildPollen(outdoor);
+const coast = named('coast', () => buildCoast(outdoor, colliders));
+const updateProps = named('floating-props', () => buildFloatingProps(outdoor));
+const updatePollen = named('pollen', () => buildPollen(outdoor));
 await step('Building the hamlets', 0.45);
 const village = buildVillage(outdoor);
 const dayNight = createDayNight({ scene, root: outdoor, sun, hemi, sky, renderer, bloom, ocean: ocean });
@@ -120,8 +130,6 @@ await step('Furnishing the rooms', 0.78);
 const rooms = buildInteriors(scene);
 for (const room of Object.values(rooms)) room.interactables.push({ kind: 'exit', label: 'Back to the island', verb: 'Exit', x: room.origin.x + room.exit.x, z: room.origin.z + room.exit.z });
 colliders.push(...village.colliders);
-// screens, towers and lamp banners full of the work, placed where they don't get in the way
-const gallery = buildGallery(outdoor, { colliders, lamps: lampSpots, clickables: village.clickables });
 
 // ---------- Player: Vibhor ----------
 
@@ -244,6 +252,15 @@ function travelTo(id) {
 
 // the brief board and the campaign threads over the island
 const story = buildStory(outdoor, { colliders, interactables: village.interactables, clickables: village.clickables, groundAt, places: PLACES });
+story.board.name = 'brief-board';
+// no tree or monolith may stand in front of a sign: once before the gallery is placed (so it has
+// room) and once after (for the gallery's own screens)
+const clutter = { trees, monoliths: { ...monoliths, colliders } };
+declutter(outdoor, clutter, { merge: false });
+// screens, towers and lamp banners full of the work, in a layout solved so nothing hides anything
+// else (re-solve with ?solve after moving things on the island)
+const gallery = buildGallery(outdoor, { colliders, lamps: lampSpots, clickables: village.clickables, layout: galleryLayout, solve: new URLSearchParams(location.search).has('solve') });
+declutter(outdoor, clutter);
 
 // ---------- UI ----------
 
@@ -1241,4 +1258,4 @@ await finishLoading({ renderer, scene, camera, render: () => composer.render() }
 hideLoader();
 ui.ready();
 
-window.__shire = { gallery, quest, story, ride, audioDebug, state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };
+window.__shire = { colliders, gallery, quest, story, ride, audioDebug, state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };

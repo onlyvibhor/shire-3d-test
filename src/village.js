@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { HAMLETS, PILLARS, CENTER, LAB, PROJECTS, AWARDS, HOME, FUN, FAVOURITES, OWNER, AIHUB, HALL, BELIEFS } from './data.js';
-import { groundAt, walkY, rng, PATHS, ROAD_HALF, distToPath, SURFACE } from './world.js';
+import { groundAt, walkY, rng, PATHS, ROAD_HALF, distToPath, SURFACE, BAZAAR } from './world.js';
 import { makeDome, makeDrone, makeScooter, makeDesk, makeMonitorWall, dashboardTexture, makeCafe, makeAdBoard, screenMat } from './props.js';
 import { makePerson, giveProp, animate } from './characters.js';
 import { makeArch } from './landmarks.js';
@@ -176,9 +176,10 @@ function titleTexture(text, color) {
   return projectPlateTexture({ title: text }, color, 8);
 }
 
-function makeBillboard(slug, color, ctx, size = 1) {
+function makeBillboard(slug, color, ctx, size = 1, { plainBack = false } = {}) {
   const p = PROJECTS[slug];
   const g = new THREE.Group();
+  g.name = `billboard:${slug}`;
   const W = 4.6 * size;
   const H = 2.85 * size;
   const lift = 1.2 + size * 0.3;
@@ -189,7 +190,8 @@ function makeBillboard(slug, color, ctx, size = 1) {
     new THREE.MeshBasicMaterial({ map: coverTexture(p.images[0], W / H), toneMapped: false })
   );
   img.position.set(0, lift + H / 2, 0.105);
-  const imgBack = img.clone();
+  // hamlet billboards face the plaza; their backs face the hamlet's buildings, so they stay plain
+  const imgBack = plainBack ? new THREE.Mesh(img.geometry, new THREE.MeshStandardMaterial({ color: new THREE.Color(color).lerp(new THREE.Color('#ffffff'), 0.55), roughness: 0.7 })) : img.clone();
   imgBack.position.z = -0.105;
   imgBack.rotation.y = Math.PI;
   imgBack.userData = { slug, dynamic: true };
@@ -202,8 +204,8 @@ function makeBillboard(slug, color, ctx, size = 1) {
   const plateH = (W + 0.3) / 4.6;
   const title = new THREE.Mesh(new THREE.PlaneGeometry(W + 0.3, plateH), new THREE.MeshBasicMaterial({ map: projectPlateTexture(p, color, 4.6), toneMapped: false }));
   title.position.set(0, lift - 0.04 - plateH / 2, 0.12);
-  const titleBack = title.clone();
-  titleBack.position.z = 0.11;
+  const titleBack = plainBack ? new THREE.Mesh(title.geometry, imgBack.material) : title.clone();
+  titleBack.position.z = plainBack ? -0.11 : 0.11;
   titleBack.rotation.y = Math.PI;
   titleBack.userData = { slug, dynamic: true };
   g.add(titleBack);
@@ -241,6 +243,10 @@ function wallHeaderTexture(text, sub, color) {
 }
 
 function makeCampaignWall(slugs, color, ctx, header) {
+  return named('campaign-wall', makeCampaignWallInner(slugs, color, ctx, header));
+}
+const named = (name, o) => ((o.name = name), o);
+function makeCampaignWallInner(slugs, color, ctx, header) {
   const g = new THREE.Group();
   const cols = 3;
   const PW = 2.2;
@@ -257,14 +263,17 @@ function makeCampaignWall(slugs, color, ctx, header) {
   strip.position.set(0, base + H + 0.06, 0.08);
   g.add(strip);
   const cells = [{ header: true }, ...slugs.map((slug) => ({ slug }))];
+  // the back faces away from the plaza, into the hamlet's buildings, so it stays a plain panel
+  // in the department's colour (nothing on it to be covered); only the front carries the work
+  const backMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).lerp(new THREE.Color('#ffffff'), 0.55), roughness: 0.7 });
   const both = (m, y, x, z) => {
     m.position.set(x, y, z);
-    const back = m.clone();
-    back.position.z = -z;
+    const back = new THREE.Mesh(m.geometry, backMat);
+    back.position.set(x, y, -z);
     back.rotation.y = Math.PI;
-    back.userData = { ...m.userData };
+    back.userData = { dynamic: true };
     g.add(m, back);
-    return back;
+    return m;
   };
   cells.forEach((c, k) => {
     const col = k % cols;
@@ -361,19 +370,21 @@ function buildHamlet(scene, h, i, ctx) {
   [-55, 0, 55].forEach((deg, k) => {
     const t = THREE.MathUtils.degToRad(deg);
     const hole = makeHobbitHole(k === 1 ? h.color : ['#2f6b3a', '#c9a23a', '#a8432f', '#3d5f9e'][Math.floor(r() * 4)], 0.95, r);
-    hole.position.set(Math.sin(t) * 17, -0.25, -Math.cos(t) * 17);
+    const hr = k === 1 ? 19.5 : 17; // the middle one sits back, behind the plaza's centrepiece
+    hole.position.set(Math.sin(t) * hr, -0.25, -Math.cos(t) * hr);
     hole.rotation.y = -t;
     g.add(hole);
   });
 
-  // what I believe about working with this team, on a Jaipur signboard by the gate
+  // what I believe about working with this team, on a Jaipur signboard just outside the gateway
+  // arch, turned towards people walking in from the centre (inside the arch its posts cut across it)
   const sideSign = i % 2 ? 1 : -1;
   const belief = makeBeliefSign(h, BELIEFS[h.id]);
-  belief.position.set(sideSign * 5.8, 0, 11.4);
-  belief.rotation.y = -sideSign * 0.32;
+  const bRot = -sideSign * 0.5;
+  belief.position.set(sideSign * 6.4, 0, 19.5);
+  belief.rotation.y = bRot;
   g.add(belief);
-  collider(g, 0.35, sideSign * 5.8 - 1.7, 11.4);
-  collider(g, 0.35, sideSign * 5.8 + 1.7, 11.4);
+  for (const d of [-1.71, 1.71]) collider(g, 0.35, sideSign * 6.4 + Math.cos(bRot) * d, 19.5 - Math.sin(bRot) * d);
 
   // Gateway arch on the road from the centre
   const arch = makeArch(h.color, h.name);
@@ -400,7 +411,7 @@ function buildHamlet(scene, h, i, ctx) {
     const t = THREE.MathUtils.degToRad(slots[k]);
     const x = Math.sin(t) * 11;
     const z = -Math.cos(t) * 11;
-    const b = makeBillboard(slug, h.color, ctx, 1.2);
+    const b = makeBillboard(slug, h.color, ctx, 1.2, { plainBack: true });
     b.position.set(x, 0, z);
     b.rotation.y = face(x, z);
     g.add(b);
@@ -469,7 +480,9 @@ function buildHamlet(scene, h, i, ctx) {
     case 'launch': {
       // Globe sculpture: international payments, everywhere.
       const globe = new THREE.Group();
-      globe.position.set(0, 4.2, -3.5);
+      // centrepieces stand at the back of the plaza, between and behind the two rear billboards,
+      // so they frame the work instead of standing in front of it
+      globe.position.set(0, 4.2, -12);
       globe.add(mesh(new THREE.SphereGeometry(1.5, 32, 20), glow(h.color, 0.6)));
       for (let k = 0; k < 4; k++) {
         const ring = mesh(new THREE.TorusGeometry(2.1, 0.07, 8, 64), CHROME);
@@ -480,8 +493,8 @@ function buildHamlet(scene, h, i, ctx) {
       eq.rotation.x = Math.PI / 2;
       globe.add(eq);
       g.add(globe);
-      g.add(mesh(new THREE.CylinderGeometry(0.9, 1.3, 2.2, 24), WHITE_METAL, 0, 1.1, -3.5));
-      collider(g, 1.6, 0, -3.5);
+      g.add(mesh(new THREE.CylinderGeometry(0.9, 1.3, 2.2, 24), WHITE_METAL, 0, 1.1, -12));
+      collider(g, 1.6, 0, -12);
       const deskX = 5;
       g.add(mesh(new THREE.BoxGeometry(1.6, 0.08, 0.8), WHITE_METAL, deskX, 1.05, 2));
       g.add(mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.05, 8), BRUSHED, deskX, 0.52, 2));
@@ -490,7 +503,7 @@ function buildHamlet(scene, h, i, ctx) {
       g.add(lap);
       collider(g, 0.9, deskX, 2);
       person('type', deskX, 1.35, 0);
-      person('present', -1.8, -1.2, face(-1.8, -1.2, 0, 4));
+      person('present', -1.8, -1.2, face(-1.8, -1.2, 0, 6));
       person('talk', -3.5, 2.5, face(-3.5, 2.5, -1.8, -1.2));
       person('talk', -1.2, 3.4, face(-1.2, 3.4, -1.8, -1.2));
       // Hot air balloons: launches going up
@@ -520,7 +533,7 @@ function buildHamlet(scene, h, i, ctx) {
     case 'isles': {
       // Floating islands with mini storefronts, like the Magic Checkout page.
       const isles = [];
-      for (const [x, y, z, s] of [[-6, 4.5, 1, 1], [6, 5.5, -1, 1.1], [0, 8, -5, 1.3]]) {
+      for (const [x, y, z, s] of [[-8, 7, -11.5, 1], [8, 7.5, -11.5, 1.1], [0, 9.5, -13, 1.3]]) {
         const isle = new THREE.Group();
         const top = mesh(new THREE.CylinderGeometry(1.8 * s, 1.8 * s, 0.4, 24), solid('#69b443'));
         const rock = mesh(new THREE.ConeGeometry(1.8 * s, 2.4 * s, 10), solid('#cfc8bb', { flatShading: true }), 0, -1.4 * s, 0);
@@ -570,7 +583,7 @@ function buildHamlet(scene, h, i, ctx) {
     }
     case 'beacon': {
       const tower = new THREE.Group();
-      tower.position.set(0, 0, -4);
+      tower.position.set(0, 0, -12);
       tower.add(mesh(new THREE.CylinderGeometry(0.9, 1.7, 11, 24), WHITE_METAL, 0, 5.5, 0));
       const halo = new THREE.Mesh(new THREE.TorusGeometry(1.8, 0.12, 10, 48), glow(h.color, 3));
       halo.position.y = 11.6;
@@ -583,7 +596,7 @@ function buildHamlet(scene, h, i, ctx) {
       light.position.y = 12;
       tower.add(light);
       g.add(tower);
-      collider(g, 2, 0, -4);
+      collider(g, 2, 0, -12);
       // Ring light and creators filming reels
       const rl = new THREE.Group();
       rl.position.set(4.2, 0, 2.2);
@@ -595,7 +608,7 @@ function buildHamlet(scene, h, i, ctx) {
       g.add(rl);
       const creator = person('phone', 2.6, 4.4, face(2.6, 4.4, 4.2, 2.2), { longHair: true });
       giveProp(creator, 'phone');
-      const c2 = person('phone', -3, 1.5, face(-3, 1.5, 0, -4));
+      const c2 = person('phone', -3, 1.5, face(-3, 1.5, 0, -12));
       giveProp(c2, 'phone');
       person('wave', -1.5, 4, Math.PI * 0.1);
       person('cheer', 1.6, -0.6, face(1.6, -0.6, -3, 1.5));
@@ -619,19 +632,20 @@ function buildHamlet(scene, h, i, ctx) {
     }
     case 'court': {
       // The animal courtroom of Trial of the Century.
-      g.add(mesh(new THREE.BoxGeometry(5, 0.5, 3), WHITE_METAL, 0, 0.25, -5.5));
-      g.add(mesh(new THREE.BoxGeometry(4.4, 1.4, 0.6), WHITE_METAL, 0, 1.2, -4.4));
-      g.add(mesh(new THREE.BoxGeometry(4.5, 0.1, 0.9), WOOD, 0, 1.95, -4.5));
+      g.add(mesh(new THREE.BoxGeometry(5, 0.5, 3), WHITE_METAL, 0, 0.25, -12));
+      g.add(mesh(new THREE.BoxGeometry(4.4, 1.4, 0.6), WHITE_METAL, 0, 1.2, -10.9));
+      g.add(mesh(new THREE.BoxGeometry(4.5, 0.1, 0.9), WOOD, 0, 1.95, -11));
       const crest = new THREE.Mesh(new THREE.CircleGeometry(0.7, 32), glow(h.color, 1.5));
-      crest.position.set(0, 1.2, -4.08);
+      crest.position.set(0, 1.2, -10.58);
       g.add(crest);
-      collider(g, 2.6, 0, -5);
-      const judge = person('gavel', 0, -5.4, 0, { y: 0.5, top: '#1b1f2a', beard: true });
+      collider(g, 2.6, 0, -11.5);
+      const judge = person('gavel', 0, -11.9, 0, { y: 0.5, top: '#1b1f2a', beard: true });
       giveProp(judge, 'gavel');
+      // counsel at their lecterns, low and to either side so the billboards behind stay clear
       for (const sx of [-1, 1]) {
-        g.add(mesh(new THREE.BoxGeometry(1, 1.1, 0.8), WHITE_METAL, sx * 3, 0.55, 0));
-        collider(g, 0.7, sx * 3, 0);
-        person('talk', sx * 3, 0.9, Math.PI);
+        g.add(mesh(new THREE.BoxGeometry(1, 1.1, 0.8), WHITE_METAL, sx * 2.2, 0.55, -6.5));
+        collider(g, 0.7, sx * 2.2, -6.5);
+        person('talk', sx * 2.2, -5.6, Math.PI);
       }
       for (const sx of [-1, 1]) {
         const x = sx * 6.3;
@@ -683,7 +697,7 @@ function buildHamlet(scene, h, i, ctx) {
       }
       // Colour wheel sculpture
       const wheel = new THREE.Group();
-      wheel.position.set(0, 4, -6);
+      wheel.position.set(0, 4, -12);
       for (let k = 0; k < 16; k++) {
         const seg = new THREE.Mesh(
           new THREE.CircleGeometry(2, 6, (k / 16) * Math.PI * 2, (Math.PI * 2) / 16),
@@ -693,8 +707,8 @@ function buildHamlet(scene, h, i, ctx) {
       }
       wheel.add(mesh(new THREE.TorusGeometry(2.05, 0.12, 10, 48), CHROME));
       g.add(wheel);
-      g.add(mesh(new THREE.CylinderGeometry(0.15, 0.3, 4, 12), WHITE_METAL, 0, 2, -6.2));
-      collider(g, 0.6, 0, -6.2);
+      g.add(mesh(new THREE.CylinderGeometry(0.15, 0.3, 4, 12), WHITE_METAL, 0, 2, -12.2));
+      collider(g, 0.6, 0, -12.2);
       // Cinema camera on a tripod, aimed at a product
       g.add(mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.9, 24), WHITE_METAL, 1.5, 0.45, -2.5));
       g.add(mesh(new THREE.BoxGeometry(0.5, 0.3, 0.5), solid(h.color), 1.5, 1.05, -2.5));
@@ -750,12 +764,13 @@ function buildLab(scene, ctx) {
   g.add(artist.root);
   ctx.updaters.push({ update: (t) => animate(artist, 'present', t) });
   ctx.npcs.push({ p: artist, dept: 'lab', lines: LAB.quotes, name: 'The artist' });
+  // the lab's sign stands by the path in (which arrives behind the pavilion), clear of the billboards
   const labSign = makeBeliefSign(LAB, BELIEFS.lab);
-  labSign.position.set(5.6, 0, 3.2);
-  labSign.rotation.y = -0.5;
+  const lRot = -2.3;
+  labSign.position.set(-10.2, 0, -4.6);
+  labSign.rotation.y = lRot;
   g.add(labSign);
-  collider(g, 0.35, 4.3, 4.2);
-  collider(g, 0.35, 6.9, 2.2);
+  for (const d of [-1.71, 1.71]) collider(g, 0.35, -10.2 + Math.cos(lRot) * d, -4.6 - Math.sin(lRot) * d);
   deepMerge(g);
 }
 
@@ -965,14 +980,15 @@ function buildCentre(scene, ctx) {
   });
   // under the jamun tree, by the road you arrive on
   {
-    const a = THREE.MathUtils.degToRad(104);
-    const x = Math.cos(a) * 13.2;
-    const z = Math.sin(a) * 13.2;
+    const a = THREE.MathUtils.degToRad(102.4);
+    const x = Math.cos(a) * 21;
+    const z = Math.sin(a) * 21;
     const hqSign = makeBeliefSign(CENTER, BELIEFS.hq);
+    const rot = Math.atan2(0 - x, 30 - z);
     hqSign.position.set(x, groundAt(x, z) - y0, z);
-    hqSign.rotation.y = Math.atan2(x, z) + 0.25;
+    hqSign.rotation.y = rot;
     g.add(hqSign);
-    collider(g, 1.2, x, z);
+    for (const d of [-1.71, 1.71]) collider(g, 0.35, x + Math.cos(rot) * d, z - Math.sin(rot) * d);
   }
   deepMerge(g);
   ctx.updaters.push({
@@ -1351,12 +1367,18 @@ function buildZoneDome(scene, ctx, place, { radius = 10, glass = false, extras }
   g.add(dome);
   collider(g, radius + 0.2, 0, -2);
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(7, 1.75), new THREE.MeshBasicMaterial({ map: signPlateTexture(place.name, place.place, place.color), toneMapped: false }));
-  sign.position.set(0, radius * 0.72, -2 + radius * 0.98);
-  sign.rotation.x = -0.25;
-  sign.userData.dynamic = true;
-  g.add(sign);
+  sign.name = 'dome-sign';
   // glowing archway and a path of lights to the door
   const doorZ = -2 + radius * 1.15;
+  // the name crowns the gatehouse, above the parapet and between its chhatris, so the gate never hides it
+  const gateH = radius * 0.82 - 0.3;
+  sign.position.set(0, gateH + 0.35 + 0.45 + 1.75 / 2 + 0.25, doorZ + 0.35 + 0.12);
+  sign.userData.dynamic = true;
+  g.add(sign);
+  const signBack = new THREE.Mesh(new THREE.BoxGeometry(7.3, 2.05, 0.2), solid('#f6efe0', { roughness: 0.8 }));
+  signBack.position.set(0, sign.position.y, doorZ + 0.35);
+  g.add(signBack);
+  for (const sx of [-1, 1]) g.add(mesh(new THREE.BoxGeometry(0.22, 0.6, 0.22), solid('#f6efe0'), sx * 3.2, gateH + 0.35 + 0.45 + 0.1, doorZ + 0.35));
   // a Rajput gatehouse in front of the door, painted panels and all
   const pol = makePol({ w: radius * 1.05, h: radius * 0.82, a: radius * 0.24, spring: radius * 0.3, depth: 1.1, color: place === HOME ? JAIPUR_PINK : OCHRE, accent: place.color });
   pol.position.set(0, -0.3, doorZ + 0.35);
@@ -1383,12 +1405,28 @@ function buildZoneDome(scene, ctx, place, { radius = 10, glass = false, extras }
   ctx.updaters.push({ update: (t) => animate(p, 'talk', t) });
   ctx.npcs.push({ p, dept: place.id, lines: place.quotes, name: `${place.name} host` });
   if (BELIEFS[place.id]) {
+    // at the end of the branch path that brings people here from the spoke road, a step to its
+    // side and turned to face them: the first thing you read on the way in, clear of the gate
+    const a = place.angle - Math.PI / 6;
+    const th = g.rotation.y;
+    const dx = Math.cos(a) * 32 - place.x;
+    const dz = Math.sin(a) * 32 - place.z;
+    const L = Math.hypot(dx, dz);
+    const ux = dx / L;
+    const uz = dz / L;
+    const wx = ux * 15.5 + uz * 3.6;
+    const wz = uz * 15.5 - ux * 3.6;
+    // into the dome group's own frame
+    const sx = wx * Math.cos(th) - wz * Math.sin(th);
+    const sz = wx * Math.sin(th) + wz * Math.cos(th);
+    const lux = ux * Math.cos(th) - uz * Math.sin(th);
+    const luz = ux * Math.sin(th) + uz * Math.cos(th);
+    const rot = Math.atan2(lux, luz);
     const sign = makeBeliefSign(place, BELIEFS[place.id]);
-    sign.position.set(-4.6, 0, doorZ + 5.2);
-    sign.rotation.y = 0.35;
+    sign.position.set(sx, 0, sz);
+    sign.rotation.y = rot;
     g.add(sign);
-    collider(g, 0.35, -6.2, doorZ + 5.0);
-    collider(g, 0.35, -3.0, doorZ + 5.4);
+    for (const d of [-1.71, 1.71]) collider(g, 0.35, sx + Math.cos(rot) * d, sz - Math.sin(rot) * d);
   }
   extras?.(g, doorZ, r);
   deepMerge(g);
@@ -1522,10 +1560,14 @@ function buildAdBoards(scene, ctx) {
     const [slug, img] = ads[i];
     const ca = Math.cos(h.angle);
     const sa = Math.sin(h.angle);
-    const d = 46;
-    const side = -1;
-    const x = ca * d - sa * 8 * side;
-    const z = sa * d + ca * 8 * side;
+    // on the side of the spoke away from the domes (they sit at +30° from each spoke), far enough
+    // out that the next ring of buildings is behind the viewer, not behind the board
+    const d = 52;
+    // whichever side of the road is further from the domes and the bazaar
+    const spot = (sd) => [ca * d - sa * 9 * sd, sa * d + ca * 9 * sd];
+    const clearance = ([px, pz]) => Math.min(...[HOME, FUN, AIHUB, HALL].map((zn) => Math.hypot(px - zn.x, pz - zn.z)), ...[0, 0.5, 1].map((t) => Math.hypot(px - (BAZAAR.ax + (BAZAAR.bx - BAZAAR.ax) * t), pz - (BAZAAR.az + (BAZAAR.bz - BAZAAR.az) * t))));
+    const side = clearance(spot(1)) >= clearance(spot(-1)) ? 1 : -1;
+    const [x, z] = spot(side);
     const { g, img: m, tag, imgBack, tagBack } = makeAdBoard(`work/${img}.jpg`, h.color, PROJECTS[slug].title);
     imgBack.userData.slug = tagBack.userData.slug = slug;
     ctx.clickables.push(imgBack, tagBack);
@@ -1669,25 +1711,32 @@ function buildSmoke(scene) {
 
 export function buildVillage(scene) {
   const ctx = { updaters: [], stones: [], npcs: [], clickables: [], sprites: [], trophies: [], colliderList: [] };
-  HAMLETS.forEach((h, i) => buildHamlet(scene, h, i, ctx));
-  buildLab(scene, ctx);
-  buildCentre(scene, ctx);
-  buildTrophies(scene, ctx);
-  buildCouriers(scene, ctx);
-  buildHome(scene, ctx);
-  buildPlayhouse(scene, ctx);
-  buildAIHubDome(scene, ctx);
-  buildHallDome(scene, ctx);
-  buildCafeAndWall(scene, ctx);
-  buildAdBoards(scene, ctx);
-  buildHillDomes(scene);
-  buildDrones(scene, ctx);
-  buildScooters(scene, ctx);
+  // every top-level object gets the name of the builder that made it (for layout and visibility checks)
+  const tag = (name, fn) => {
+    const before = new Set(scene.children);
+    const out = fn();
+    for (const o of scene.children) if (!before.has(o) && !o.name) o.name = name;
+    return out;
+  };
+  HAMLETS.forEach((h, i) => tag(`hamlet:${h.id}`, () => buildHamlet(scene, h, i, ctx)));
+  tag('lab', () => buildLab(scene, ctx));
+  tag('centre', () => buildCentre(scene, ctx));
+  tag('trophies', () => buildTrophies(scene, ctx));
+  tag('couriers', () => buildCouriers(scene, ctx));
+  tag('home', () => buildHome(scene, ctx));
+  tag('playhouse', () => buildPlayhouse(scene, ctx));
+  tag('aihub', () => buildAIHubDome(scene, ctx));
+  tag('hall', () => buildHallDome(scene, ctx));
+  tag('cafe-wall', () => buildCafeAndWall(scene, ctx));
+  tag('adboard', () => buildAdBoards(scene, ctx));
+  tag('hill-domes', () => buildHillDomes(scene));
+  tag('drones', () => buildDrones(scene, ctx));
+  tag('scooters', () => buildScooters(scene, ctx));
   ctx.Walker = Walker;
-  buildJaipur(scene, ctx);
-  buildTraffic(scene, ctx);
-  const creatures = buildCreatures(scene, ctx);
-  const smoke = buildSmoke(scene);
+  tag('jaipur', () => buildJaipur(scene, ctx));
+  tag('traffic', () => buildTraffic(scene, ctx));
+  const creatures = tag('creatures', () => buildCreatures(scene, ctx));
+  const smoke = tag('smoke', () => buildSmoke(scene));
 
   scene.updateMatrixWorld(true);
   const colliders = [];

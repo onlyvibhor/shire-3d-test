@@ -284,6 +284,7 @@ const BUILD = { better, award, scale, automate, innovate };
 export function makePillar(p, anim) {
   const st = PILLAR_STYLE[p.id] || PILLAR_STYLE.better;
   const g = new THREE.Group();
+  g.name = 'pillar';
   g.add(plinth(st.color));
   g.add((BUILD[p.id] || better)(st.color, anim));
   const pl = plaque(p, st.color);

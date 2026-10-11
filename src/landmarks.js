@@ -11,6 +11,8 @@ export function buildMonoliths(world, colliders) {
   const r = rng(17);
   const scene = new THREE.Group();
   world.add(scene);
+  // every monolith, so ones standing in front of a sign can be left out (see declutter.js)
+  const items = [];
   const slabGeo = new THREE.BoxGeometry(1, 1, 1);
   const fluted = new THREE.CylinderGeometry(1, 1, 1, 22, 1);
   HAMLETS.forEach((h) => {
@@ -32,7 +34,9 @@ export function buildMonoliths(world, colliders) {
         s.scale.set(w, hgt, 0.7 + r() * 0.6);
         s.rotation.y = h.angle + (r() - 0.5) * 0.5;
         scene.add(s);
-        colliders.push({ x, z, r: w * 0.7 });
+        const c = { x, z, r: w * 0.7 };
+        colliders.push(c);
+        items.push({ x, z, r: w / 2 + 0.2, top: y + hgt - 0.3, meshes: [s], collider: c });
       } else {
         const hgt = 3 + r() * 6;
         const rad = 0.7 + r() * 0.5;
@@ -43,7 +47,9 @@ export function buildMonoliths(world, colliders) {
         const cap = mesh(slabGeo, WHITE_METAL, x, y + hgt, z);
         cap.scale.set(rad * 2.4, 0.35, rad * 2.4);
         scene.add(cap);
-        colliders.push({ x, z, r: rad + 0.2 });
+        const col = { x, z, r: rad + 0.2 };
+        colliders.push(col);
+        items.push({ x, z, r: rad * 1.2, top: y + hgt + 0.2, meshes: [c, cap], collider: col });
       }
     }
   });
@@ -60,9 +66,12 @@ export function buildMonoliths(world, colliders) {
     s.scale.set(w, hgt, 1.2 + r());
     s.rotation.y = r() * Math.PI;
     scene.add(s);
-    colliders.push({ x, z, r: w * 0.7 });
+    const c = { x, z, r: w * 0.7 };
+    colliders.push(c);
+    items.push({ x, z, r: w / 2 + 0.3, top: groundAt(x, z) + hgt - 1, meshes: [s], collider: c });
   }
-  mergeStatic(scene);
+  // merged once the island is built and anything standing in front of a sign has been taken out
+  return { group: scene, items, merge: () => mergeStatic(scene) };
 }
 
 // An arch gate in white metal. Faces +Z. Width ~9, height 9, opening ~5.8.
@@ -300,6 +309,8 @@ export function buildStreetLamps(world, colliders) {
       const x = ax + (bx - ax) * t + nx * (ROAD_HALF + 0.7) * side;
       const z = az + (bz - az) * t + nz * (ROAD_HALF + 0.7) * side;
       if (Math.hypot(x, z) < 12 || HAMLETS.some((h) => Math.hypot(x - h.x, z - h.z) < 16) || ZONES.some((zn) => Math.hypot(x - zn.x, z - zn.z) < 14)) continue;
+      // keep the approach to each dome clear: its belief sign stands beside the last stretch of path
+      if (ZONES.some((zn) => Math.hypot(x - zn.x, z - zn.z) < 25)) continue;
       const y = groundAt(x, z);
       const lamp = new THREE.Group();
       lamp.position.set(x, y, z);
