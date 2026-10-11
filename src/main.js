@@ -20,6 +20,7 @@ import { makePerson, animate, hit } from './characters.js';
 import { createUI } from './ui.js';
 import { createRide } from './ride.js';
 import { buildStory } from './story.js';
+import { buildGallery } from './gallery.js';
 import { createQuest } from './quest.js';
 import { isTouch, stick, stickKeys, initTouch, goLandscape } from './touch.js';
 
@@ -107,7 +108,7 @@ const colliders = [];
 buildTrees(outdoor, colliders);
 buildMonoliths(outdoor, colliders);
 const updateRail = buildSkyRail(outdoor, colliders);
-buildStreetLamps(outdoor, colliders);
+const lampSpots = buildStreetLamps(outdoor, colliders);
 await step('Building the piers', 0.38);
 const coast = buildCoast(outdoor, colliders);
 const updateProps = buildFloatingProps(outdoor);
@@ -119,6 +120,8 @@ await step('Furnishing the rooms', 0.78);
 const rooms = buildInteriors(scene);
 for (const room of Object.values(rooms)) room.interactables.push({ kind: 'exit', label: 'Back to the island', verb: 'Exit', x: room.origin.x + room.exit.x, z: room.origin.z + room.exit.z });
 colliders.push(...village.colliders);
+// screens, towers and lamp banners full of the work, placed where they don't get in the way
+const gallery = buildGallery(outdoor, { colliders, lamps: lampSpots, clickables: village.clickables });
 
 // ---------- Player: Vibhor ----------
 
@@ -1219,6 +1222,7 @@ function frame() {
   updateProps(t);
   updatePollen(t);
   story.update(t, quest.activeId());
+  gallery.update(t, dt, camera, !state.indoor);
   quest.update(t, dt, { pos: state.pos, indoorId: state.indoor?.id || null, mode: state.mode, blocked: ui.modalOpen() });
   playerPos.copy(state.pos);
   updateCamera(dt, t);
@@ -1237,4 +1241,4 @@ await finishLoading({ renderer, scene, camera, render: () => composer.render() }
 hideLoader();
 ui.ready();
 
-window.__shire = { quest, story, ride, audioDebug, state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };
+window.__shire = { gallery, quest, story, ride, audioDebug, state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };

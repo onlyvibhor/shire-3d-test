@@ -282,6 +282,7 @@ export function buildPondEdge(scene) {
 
 // Street lamps along every road; their heads glow and pool light on the road at night.
 export function buildStreetLamps(world, colliders) {
+  const spots = [];
   const group = new THREE.Group();
   const pools = new THREE.Group();
   world.add(group, pools);
@@ -315,6 +316,7 @@ export function buildStreetLamps(world, colliders) {
       pool.position.set(px, groundAt(px, pz) + 0.12, pz);
       pools.add(pool);
       colliders.push({ x, z, r: 0.25 });
+      spots.push({ x, y, z, rot: lamp.rotation.y });
     }
   }
   for (const lamp of group.children) {
@@ -333,6 +335,7 @@ export function buildStreetLamps(world, colliders) {
   world.add(flat);
   mergeStatic(flat);
   mergeStatic(pools);
+  return spots;
 }
 
 // ---------- Coast: a jetty with a bobbing sailboat, and a lighthouse ----------

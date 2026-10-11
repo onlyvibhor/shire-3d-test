@@ -1,0 +1,530 @@
+{
+ "land": [
+  {
+   "slug": "t20",
+   "src": "assets/img/bb/L-t20-1.jpg"
+  },
+  {
+   "slug": "t20",
+   "src": "assets/img/bb/L-t20-2.jpg"
+  },
+  {
+   "slug": "t20",
+   "src": "assets/img/bb/L-t20-3.jpg"
+  },
+  {
+   "slug": "t20",
+   "src": "assets/img/bb/L-t20-4.jpg"
+  },
+  {
+   "slug": "t20",
+   "src": "assets/img/bb/L-t20-5.jpg"
+  },
+  {
+   "slug": "t20",
+   "src": "assets/img/bb/L-t20-6.jpg"
+  },
+  {
+   "slug": "t20",
+   "src": "assets/img/bb/L-t20-7.jpg"
+  },
+  {
+   "slug": "t20",
+   "src": "assets/img/bb/L-t20-8.jpg"
+  },
+  {
+   "slug": "btb",
+   "src": "assets/img/bb/L-btb-1.jpg"
+  },
+  {
+   "slug": "btb",
+   "src": "assets/img/bb/L-btb-2.jpg"
+  },
+  {
+   "slug": "btb",
+   "src": "assets/img/bb/L-btb-3.jpg"
+  },
+  {
+   "slug": "btb",
+   "src": "assets/img/bb/L-btb-4.jpg"
+  },
+  {
+   "slug": "btb",
+   "src": "assets/img/bb/L-btb-5.jpg"
+  },
+  {
+   "slug": "btb",
+   "src": "assets/img/bb/L-btb-6.jpg"
+  },
+  {
+   "slug": "btb",
+   "src": "assets/img/bb/L-btb-7.jpg"
+  },
+  {
+   "slug": "btb",
+   "src": "assets/img/bb/L-btb-8.jpg"
+  },
+  {
+   "slug": "ace",
+   "src": "assets/img/bb/L-ace-1.jpg"
+  },
+  {
+   "slug": "ace",
+   "src": "assets/img/bb/L-ace-2.jpg"
+  },
+  {
+   "slug": "ace",
+   "src": "assets/img/bb/L-ace-3.jpg"
+  },
+  {
+   "slug": "ring",
+   "src": "assets/img/bb/L-ring-1.jpg"
+  },
+  {
+   "slug": "ring",
+   "src": "assets/img/bb/L-ring-2.jpg"
+  },
+  {
+   "slug": "ring",
+   "src": "assets/img/bb/L-ring-3.jpg"
+  },
+  {
+   "slug": "ring",
+   "src": "assets/img/bb/L-ring-4.jpg"
+  },
+  {
+   "slug": "ring",
+   "src": "assets/img/bb/L-ring-5.jpg"
+  },
+  {
+   "slug": "ring",
+   "src": "assets/img/bb/L-ring-6.jpg"
+  },
+  {
+   "slug": "ring",
+   "src": "assets/img/bb/L-ring-7.jpg"
+  },
+  {
+   "slug": "ring",
+   "src": "assets/img/bb/L-ring-8.jpg"
+  },
+  {
+   "slug": "ring",
+   "src": "assets/img/bb/L-ring-9.jpg"
+  },
+  {
+   "slug": "ring",
+   "src": "assets/img/bb/L-ring-10.jpg"
+  },
+  {
+   "slug": "ring",
+   "src": "assets/img/bb/L-ring-11.jpg"
+  },
+  {
+   "slug": "ring",
+   "src": "assets/img/bb/L-ring-12.jpg"
+  },
+  {
+   "slug": "trial",
+   "src": "assets/img/bb/L-trial-1.jpg"
+  },
+  {
+   "slug": "trial",
+   "src": "assets/img/bb/L-trial-2.jpg"
+  },
+  {
+   "slug": "trial",
+   "src": "assets/img/bb/L-trial-3.jpg"
+  },
+  {
+   "slug": "trial",
+   "src": "assets/img/bb/L-trial-4.jpg"
+  },
+  {
+   "slug": "trial",
+   "src": "assets/img/bb/L-trial-5.jpg"
+  },
+  {
+   "slug": "trial",
+   "src": "assets/img/bb/L-trial-6.jpg"
+  },
+  {
+   "slug": "trial",
+   "src": "assets/img/bb/L-trial-7.jpg"
+  },
+  {
+   "slug": "magic-checkout",
+   "src": "assets/img/bb/L-magic-checkout-1.jpg"
+  },
+  {
+   "slug": "magic-checkout",
+   "src": "assets/img/bb/L-magic-checkout-2.jpg"
+  },
+  {
+   "slug": "magic-checkout",
+   "src": "assets/img/bb/L-magic-checkout-3.jpg"
+  },
+  {
+   "slug": "magic-checkout",
+   "src": "assets/img/bb/L-magic-checkout-4.jpg"
+  },
+  {
+   "slug": "magic-checkout",
+   "src": "assets/img/bb/L-magic-checkout-5.jpg"
+  },
+  {
+   "slug": "magic-checkout",
+   "src": "assets/img/bb/L-magic-checkout-6.jpg"
+  },
+  {
+   "slug": "magic-checkout",
+   "src": "assets/img/bb/L-magic-checkout-7.jpg"
+  },
+  {
+   "slug": "conv",
+   "src": "assets/img/bb/L-conv-1.jpg"
+  },
+  {
+   "slug": "conv",
+   "src": "assets/img/bb/L-conv-2.jpg"
+  },
+  {
+   "slug": "conv",
+   "src": "assets/img/bb/L-conv-3.jpg"
+  },
+  {
+   "slug": "conv",
+   "src": "assets/img/bb/L-conv-4.jpg"
+  },
+  {
+   "slug": "conv",
+   "src": "assets/img/bb/L-conv-5.jpg"
+  },
+  {
+   "slug": "money",
+   "src": "assets/img/bb/L-money-1.jpg"
+  },
+  {
+   "slug": "money",
+   "src": "assets/img/bb/L-money-2.jpg"
+  },
+  {
+   "slug": "passport",
+   "src": "assets/img/bb/L-passport-1.jpg"
+  },
+  {
+   "slug": "passport",
+   "src": "assets/img/bb/L-passport-2.jpg"
+  },
+  {
+   "slug": "whatsapp",
+   "src": "assets/img/bb/L-whatsapp-1.jpg"
+  },
+  {
+   "slug": "whatsapp",
+   "src": "assets/img/bb/L-whatsapp-2.jpg"
+  },
+  {
+   "slug": "intl",
+   "src": "assets/img/bb/L-intl-1.jpg"
+  },
+  {
+   "slug": "toolkit",
+   "src": "assets/img/bb/L-toolkit-1.jpg"
+  },
+  {
+   "slug": "toolkit",
+   "src": "assets/img/bb/L-toolkit-2.jpg"
+  },
+  {
+   "slug": "toolkit",
+   "src": "assets/img/bb/L-toolkit-3.jpg"
+  },
+  {
+   "slug": "toolkit",
+   "src": "assets/img/bb/L-toolkit-4.jpg"
+  },
+  {
+   "slug": "toolkit",
+   "src": "assets/img/bb/L-toolkit-5.jpg"
+  },
+  {
+   "slug": "toolkit",
+   "src": "assets/img/bb/L-toolkit-6.jpg"
+  },
+  {
+   "slug": "social-gen",
+   "src": "assets/img/bb/L-social-gen-1.jpg"
+  },
+  {
+   "slug": "social-gen",
+   "src": "assets/img/bb/L-social-gen-2.jpg"
+  },
+  {
+   "slug": "social-gen",
+   "src": "assets/img/bb/L-social-gen-3.jpg"
+  },
+  {
+   "slug": "ai-works",
+   "src": "assets/img/bb/L-ai-works-1.jpg"
+  },
+  {
+   "slug": "ai-works",
+   "src": "assets/img/bb/L-ai-works-2.jpg"
+  },
+  {
+   "slug": "ai-works",
+   "src": "assets/img/bb/L-ai-works-3.jpg"
+  },
+  {
+   "slug": "ai-works",
+   "src": "assets/img/bb/L-ai-works-4.jpg"
+  },
+  {
+   "slug": "ai-works",
+   "src": "assets/img/bb/L-ai-works-5.jpg"
+  },
+  {
+   "slug": "ai-works",
+   "src": "assets/img/bb/L-ai-works-6.jpg"
+  },
+  {
+   "slug": "ai-works",
+   "src": "assets/img/bb/L-ai-works-7.jpg"
+  },
+  {
+   "slug": "ai-works",
+   "src": "assets/img/bb/L-ai-works-8.jpg"
+  },
+  {
+   "slug": "ai-works",
+   "src": "assets/img/bb/L-ai-works-9.jpg"
+  },
+  {
+   "slug": "ai-works",
+   "src": "assets/img/bb/L-ai-works-10.jpg"
+  },
+  {
+   "slug": "ai-works",
+   "src": "assets/img/bb/L-ai-works-11.jpg"
+  },
+  {
+   "slug": "ai-works",
+   "src": "assets/img/bb/L-ai-works-12.jpg"
+  },
+  {
+   "slug": "love-story",
+   "src": "assets/img/bb/L-love-story-1.jpg"
+  },
+  {
+   "slug": "love-story",
+   "src": "assets/img/bb/L-love-story-2.jpg"
+  },
+  {
+   "slug": "love-story",
+   "src": "assets/img/bb/L-love-story-3.jpg"
+  },
+  {
+   "slug": "winter-foods",
+   "src": "assets/img/bb/L-winter-foods-1.jpg"
+  },
+  {
+   "slug": "diwali-2020",
+   "src": "assets/img/bb/L-diwali-2020-1.jpg"
+  },
+  {
+   "slug": "afsaane",
+   "src": "assets/img/bb/L-afsaane-1.jpg"
+  },
+  {
+   "slug": "unskippable",
+   "src": "assets/img/bb/L-unskippable-1.jpg"
+  },
+  {
+   "slug": "grofery",
+   "src": "assets/img/bb/L-grofery-1.jpg"
+  },
+  {
+   "slug": "grofers",
+   "src": "assets/img/bb/L-grofers-1.jpg"
+  },
+  {
+   "slug": "mentor",
+   "src": "assets/img/bb/L-mentor-1.jpg"
+  }
+ ],
+ "port": [
+  {
+   "slug": "grofers",
+   "src": "assets/img/bb/P-grofers-1.jpg"
+  },
+  {
+   "slug": "grofers",
+   "src": "assets/img/bb/P-grofers-2.jpg"
+  },
+  {
+   "slug": "grofers",
+   "src": "assets/img/bb/P-grofers-3.jpg"
+  },
+  {
+   "slug": "grofers",
+   "src": "assets/img/bb/P-grofers-4.jpg"
+  },
+  {
+   "slug": "grofers",
+   "src": "assets/img/bb/P-grofers-5.jpg"
+  },
+  {
+   "slug": "grofers",
+   "src": "assets/img/bb/P-grofers-6.jpg"
+  },
+  {
+   "slug": "btb",
+   "src": "assets/img/bb/P-btb-1.jpg"
+  },
+  {
+   "slug": "absolut",
+   "src": "assets/img/bb/P-absolut-1.jpg"
+  },
+  {
+   "slug": "absolut",
+   "src": "assets/img/bb/P-absolut-2.jpg"
+  },
+  {
+   "slug": "absolut",
+   "src": "assets/img/bb/P-absolut-3.jpg"
+  },
+  {
+   "slug": "absolut",
+   "src": "assets/img/bb/P-absolut-4.jpg"
+  },
+  {
+   "slug": "absolut",
+   "src": "assets/img/bb/P-absolut-5.jpg"
+  },
+  {
+   "slug": "absolut",
+   "src": "assets/img/bb/P-absolut-6.jpg"
+  },
+  {
+   "slug": "absolut",
+   "src": "assets/img/bb/P-absolut-7.jpg"
+  },
+  {
+   "slug": "absolut",
+   "src": "assets/img/bb/P-absolut-8.jpg"
+  },
+  {
+   "slug": "birds",
+   "src": "assets/img/bb/P-birds-1.jpg"
+  },
+  {
+   "slug": "birds",
+   "src": "assets/img/bb/P-birds-2.jpg"
+  },
+  {
+   "slug": "birds",
+   "src": "assets/img/bb/P-birds-3.jpg"
+  },
+  {
+   "slug": "birds",
+   "src": "assets/img/bb/P-birds-4.jpg"
+  },
+  {
+   "slug": "birds",
+   "src": "assets/img/bb/P-birds-5.jpg"
+  },
+  {
+   "slug": "birds",
+   "src": "assets/img/bb/P-birds-6.jpg"
+  },
+  {
+   "slug": "birds",
+   "src": "assets/img/bb/P-birds-7.jpg"
+  },
+  {
+   "slug": "birds",
+   "src": "assets/img/bb/P-birds-8.jpg"
+  },
+  {
+   "slug": "eyes",
+   "src": "assets/img/bb/P-eyes-1.jpg"
+  },
+  {
+   "slug": "eyes",
+   "src": "assets/img/bb/P-eyes-2.jpg"
+  },
+  {
+   "slug": "eyes",
+   "src": "assets/img/bb/P-eyes-3.jpg"
+  },
+  {
+   "slug": "eyes",
+   "src": "assets/img/bb/P-eyes-4.jpg"
+  },
+  {
+   "slug": "eyes",
+   "src": "assets/img/bb/P-eyes-5.jpg"
+  },
+  {
+   "slug": "eyes",
+   "src": "assets/img/bb/P-eyes-6.jpg"
+  },
+  {
+   "slug": "eyes",
+   "src": "assets/img/bb/P-eyes-7.jpg"
+  },
+  {
+   "slug": "eyes",
+   "src": "assets/img/bb/P-eyes-8.jpg"
+  },
+  {
+   "slug": "habitats",
+   "src": "assets/img/bb/P-habitats-1.jpg"
+  },
+  {
+   "slug": "habitats",
+   "src": "assets/img/bb/P-habitats-2.jpg"
+  },
+  {
+   "slug": "habitats",
+   "src": "assets/img/bb/P-habitats-3.jpg"
+  },
+  {
+   "slug": "habitats",
+   "src": "assets/img/bb/P-habitats-4.jpg"
+  },
+  {
+   "slug": "habitats",
+   "src": "assets/img/bb/P-habitats-5.jpg"
+  },
+  {
+   "slug": "habitats",
+   "src": "assets/img/bb/P-habitats-6.jpg"
+  },
+  {
+   "slug": "habitats",
+   "src": "assets/img/bb/P-habitats-7.jpg"
+  },
+  {
+   "slug": "habitats",
+   "src": "assets/img/bb/P-habitats-8.jpg"
+  },
+  {
+   "slug": "ai-works",
+   "src": "assets/img/bb/P-ai-works-1.jpg"
+  },
+  {
+   "slug": "mentor",
+   "src": "assets/img/bb/P-mentor-1.jpg"
+  },
+  {
+   "slug": "whatsapp",
+   "src": "assets/img/bb/P-whatsapp-1.jpg"
+  },
+  {
+   "slug": "magic-checkout",
+   "src": "assets/img/bb/P-magic-checkout-1.jpg"
+  }
+ ]
+}
