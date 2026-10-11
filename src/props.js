@@ -67,50 +67,175 @@ export function makeDome(radius, color, { glass = false } = {}) {
 }
 
 // ---------- Drone ----------
+// A delivery quadcopter: a sleek shell, four X arms with motors and two-blade props, landing legs and a camera.
 export function makeDrone(color = '#2f6bff', parcel = false) {
   const g = new THREE.Group();
-  g.add(mesh(new THREE.BoxGeometry(0.6, 0.18, 0.6), WHITE_METAL));
-  g.add(mesh(new THREE.SphereGeometry(0.22, 12, 8), DARK, 0, -0.08, 0.2));
+  const shell = new THREE.MeshPhysicalMaterial({ color: '#eef2f6', metalness: 0.3, roughness: 0.3, clearcoat: 1 });
+  const grey = solid('#3a4049', { roughness: 0.5, metalness: 0.3 });
+  const blade = solid('#20242b', { roughness: 0.5 });
+  // body: a rounded top shell over a darker belly, with a coloured stripe
+  const top = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), shell);
+  top.scale.set(0.2, 0.1, 0.3);
+  top.position.y = 0.02;
+  g.add(top);
+  const belly = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), grey);
+  belly.scale.set(0.2, 0.07, 0.3);
+  belly.position.y = 0.02;
+  g.add(belly);
+  const stripe = mesh(new THREE.TorusGeometry(1, 0.05, 6, 32), solid(color), 0, 0.025, 0);
+  stripe.rotation.x = Math.PI / 2;
+  stripe.scale.set(0.205, 0.305, 0.25);
+  g.add(stripe);
   const rotors = [];
-  for (const [x, z] of [[0.55, 0.55], [-0.55, 0.55], [0.55, -0.55], [-0.55, -0.55]]) {
-    const arm = mesh(new THREE.BoxGeometry(0.08, 0.06, 0.8), BRUSHED, x / 2, 0.02, z / 2);
+  for (const [x, z] of [[0.36, 0.32], [-0.36, 0.32], [0.36, -0.32], [-0.36, -0.32]]) {
+    const len = Math.hypot(x, z);
+    const arm = mesh(new THREE.BoxGeometry(0.045, 0.035, len), grey, x / 2, 0.02, z / 2);
     arm.rotation.y = Math.atan2(x, z);
     g.add(arm);
-    g.add(mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.12, 8), DARK, x, 0.08, z));
-    const rotor = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.015, 16), new THREE.MeshBasicMaterial({ color: '#d8dee6', transparent: true, opacity: 0.35, depthWrite: false }));
-    rotor.position.set(x, 0.16, z);
-    g.add(rotor);
-    rotors.push(rotor);
+    g.add(mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.07, 14), grey, x, 0.05, z));
+    g.add(mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.03, 8), solid('#c9ced6', { metalness: 0.8, roughness: 0.3 }), x, 0.1, z));
+    const prop = new THREE.Group();
+    prop.position.set(x, 0.11, z);
+    for (const sgn of [-1, 1]) {
+      const b = mesh(new THREE.BoxGeometry(0.035, 0.006, 0.17), blade, 0, 0, sgn * 0.09, false);
+      b.rotation.z = sgn * 0.18; // a little pitch on each blade
+      prop.add(b);
+    }
+    g.add(prop);
+    rotors.push(prop);
+    // landing leg under each arm
+    const leg = mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.16, 6), grey, x * 0.75, -0.06, z * 0.75, false);
+    g.add(leg);
   }
-  const led = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), glow(color, 3));
-  led.position.set(0, 0.0, 0.32);
-  g.add(led);
+  // gimbal camera at the front, nav lights
+  g.add(mesh(new THREE.SphereGeometry(0.045, 12, 10), grey, 0, -0.04, 0.24));
+  g.add(mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.02, 10), solid('#0b0d10', { roughness: 0.1, metalness: 0.6 }), 0, -0.04, 0.285, false).rotateX(Math.PI / 2));
+  g.add(mesh(new THREE.SphereGeometry(0.018, 8, 6), glow('#e5484d', 1.2), -0.36, 0.04, 0.36, false));
+  g.add(mesh(new THREE.SphereGeometry(0.018, 8, 6), glow('#22c55e', 1.2), 0.36, 0.04, 0.36, false));
+  g.add(mesh(new THREE.SphereGeometry(0.022, 8, 6), glow(color, 1.4), 0, 0.12, -0.2, false));
   if (parcel) {
-    g.add(mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.5, 4), DARK, 0, -0.35, 0));
-    g.add(mesh(new THREE.BoxGeometry(0.42, 0.32, 0.42), solid('#e9d5a6'), 0, -0.72, 0));
+    g.add(mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.42, 4), grey, 0, -0.27, 0, false));
+    const box = new THREE.Group();
+    box.position.y = -0.62;
+    box.add(mesh(new THREE.BoxGeometry(0.36, 0.28, 0.36), solid('#d9b98a', { roughness: 0.9 }), 0, 0, 0));
+    box.add(mesh(new THREE.BoxGeometry(0.365, 0.285, 0.06), solid(color), 0, 0, 0, false));
+    g.add(box);
   }
+  g.scale.setScalar(1.6);
   g.userData.rotors = rotors;
   return g;
 }
 
 // ---------- Delivery scooter (rider sits on it) ----------
+// A step-through Indian scooter: leg shield, floorboard, cushioned seat, small wheels, and a delivery box on the back.
 export function makeScooter(color) {
   const g = new THREE.Group();
-  g.add(mesh(new THREE.BoxGeometry(0.38, 0.22, 1.4), WHITE_METAL, 0, 0.42, 0));
-  g.add(mesh(new THREE.BoxGeometry(0.34, 0.5, 0.35), WHITE_METAL, 0, 0.6, 0.55));
-  const bar = mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.7, 6), CHROME, 0, 1.0, 0.62);
-  bar.rotation.z = Math.PI / 2;
-  g.add(bar);
-  g.add(mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.55, 6), CHROME, 0, 0.78, 0.66));
-  for (const z of [-0.55, 0.62]) {
-    const wheel = mesh(new THREE.TorusGeometry(0.2, 0.08, 8, 16), DARK, 0, 0.24, z);
-    wheel.rotation.y = Math.PI / 2;
-    g.add(wheel);
+  const body = new THREE.MeshPhysicalMaterial({ color, metalness: 0.2, roughness: 0.35, clearcoat: 1, clearcoatRoughness: 0.2 });
+  const trim = solid('#1d2129', { roughness: 0.6 });
+  const tyre = solid('#16181d', { roughness: 0.9 });
+  const steel = solid('#c9ced6', { metalness: 0.85, roughness: 0.25 });
+  const R = 0.25;
+  const wheel = (z) => {
+    const w = new THREE.Group();
+    w.position.set(0, R, z);
+    w.add(new THREE.Mesh(new THREE.TorusGeometry(R - 0.055, 0.055, 10, 24), tyre).rotateY(Math.PI / 2));
+    w.add(mesh(new THREE.CylinderGeometry(R - 0.09, R - 0.09, 0.07, 18), steel, 0, 0, 0, false).rotateZ(Math.PI / 2));
+    w.add(mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.1, 10), trim, 0, 0, 0, false).rotateZ(Math.PI / 2));
+    g.add(w);
+    return w;
+  };
+  const wheels = [wheel(-0.6), wheel(0.64)];
+  // rear body: the rounded cowl over the engine
+  const cowl = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), body);
+  cowl.scale.set(0.21, 0.2, 0.46);
+  cowl.position.set(0, 0.56, -0.38);
+  cowl.castShadow = true;
+  g.add(cowl);
+  g.add(mesh(new THREE.BoxGeometry(0.3, 0.16, 0.5), body, 0, 0.44, -0.34));
+  // engine and exhaust on the right
+  g.add(mesh(new THREE.BoxGeometry(0.16, 0.18, 0.36), trim, 0.06, 0.3, -0.48));
+  const pipe = mesh(new THREE.CylinderGeometry(0.035, 0.04, 0.5, 10), steel, 0.17, 0.27, -0.62);
+  pipe.rotation.x = Math.PI / 2 - 0.15;
+  g.add(pipe);
+  // floorboard and the curved leg shield
+  g.add(mesh(new THREE.BoxGeometry(0.34, 0.06, 0.52), trim, 0, 0.3, 0.12));
+  const shield = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.24, 0.66, 20, 1, true, -Math.PI / 2 - 0.9, 1.8), body);
+  shield.material.side = THREE.DoubleSide;
+  shield.position.set(0, 0.62, 0.36);
+  shield.rotation.x = -0.18;
+  shield.castShadow = true;
+  g.add(shield);
+  // front nose and mudguard over the front wheel
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), body);
+  nose.scale.set(0.17, 0.3, 0.12);
+  nose.position.set(0, 0.62, 0.56);
+  g.add(nose);
+  const guard = new THREE.Mesh(new THREE.TorusGeometry(R + 0.02, 0.06, 6, 18, Math.PI * 0.6), body);
+  guard.rotation.set(0, Math.PI / 2, 0);
+  guard.rotation.x = -0.35;
+  guard.position.set(0, R, 0.64);
+  g.add(guard);
+  // fork, steering column, handlebar cover with headlight, grips and mirrors
+  for (const x of [-0.07, 0.07]) {
+    const f = mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.5, 8), steel, x, 0.5, 0.6);
+    f.rotation.x = 0.28;
+    g.add(f);
   }
-  g.add(mesh(new THREE.BoxGeometry(0.6, 0.5, 0.55), solid(color), 0, 0.85, -0.55));
-  const light = new THREE.Mesh(new THREE.CircleGeometry(0.07, 10), glow('#fff6d8', 2.5));
-  light.position.set(0, 0.75, 0.735);
-  g.add(light);
+  const col = mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.42, 8), trim, 0, 0.86, 0.47);
+  col.rotation.x = 0.28;
+  g.add(col);
+  const head = new THREE.Group();
+  head.position.set(0, 1.04, 0.41);
+  g.add(head);
+  const cover = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), body);
+  cover.scale.set(0.2, 0.08, 0.12);
+  head.add(cover);
+  head.add(mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.03, 16), glow('#fff2c6', 0.8), 0, 0, 0.12).rotateX(Math.PI / 2));
+  const bar = mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.6, 8), steel, 0, -0.01, -0.03);
+  bar.rotation.z = Math.PI / 2;
+  head.add(bar);
+  for (const sx of [-1, 1]) {
+    const grip = mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.11, 8), trim, sx * 0.31, -0.01, -0.03);
+    grip.rotation.z = Math.PI / 2;
+    head.add(grip);
+    const stalk = mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.22, 4), steel, sx * 0.17, 0.1, -0.02, false);
+    stalk.rotation.z = -sx * 0.4;
+    head.add(stalk);
+    head.add(mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.012, 12), trim, sx * 0.22, 0.2, -0.02, false).rotateX(Math.PI / 2));
+  }
+  // seat with a grab rail
+  const seat = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.42, 6, 12), solid('#24262b', { roughness: 0.7 }));
+  seat.rotation.x = Math.PI / 2;
+  seat.scale.set(1, 1, 0.5);
+  seat.position.set(0, 0.78, -0.32);
+  g.add(seat);
+  g.add(mesh(new THREE.TorusGeometry(0.12, 0.012, 6, 14, Math.PI), steel, 0, 0.8, -0.66, false).rotateX(-Math.PI / 2));
+  // tail light and number plate
+  g.add(mesh(new THREE.BoxGeometry(0.16, 0.05, 0.03), glow('#e5484d', 0.8), 0, 0.6, -0.85, false));
+  g.add(mesh(new THREE.BoxGeometry(0.18, 0.1, 0.01), solid('#f2c94c'), 0, 0.48, -0.86, false));
+  // the delivery box on a rack: brand colour with a white band
+  g.add(mesh(new THREE.BoxGeometry(0.3, 0.03, 0.32), steel, 0, 0.84, -0.68));
+  const box = new THREE.Group();
+  box.position.set(0, 1.08, -0.72);
+  box.add(mesh(new THREE.BoxGeometry(0.46, 0.44, 0.44), solid(color, { roughness: 0.6 }), 0, 0, 0));
+  box.add(mesh(new THREE.BoxGeometry(0.465, 0.07, 0.445), solid('#ffffff'), 0, 0.06, 0, false));
+  box.add(mesh(new THREE.BoxGeometry(0.47, 0.03, 0.45), trim, 0, 0.21, 0, false));
+  g.add(box);
+  g.userData.spin = (d) => {
+    for (const w of wheels) w.rotation.x += d / R;
+  };
+  g.userData.mount = {
+    seatY: 0.86,
+    seatZ: -0.3,
+    gripY: 1.03,
+    gripZ: 0.38,
+    lean: 0.08,
+    // feet flat on the floorboard
+    foot: (side) => [0.36, 0.14 + (side > 0 ? 0.02 : 0)],
+  };
+  g.traverse((o) => {
+    if (o.isMesh) o.castShadow = true;
+  });
   return g;
 }
 

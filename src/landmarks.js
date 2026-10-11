@@ -405,7 +405,7 @@ function makePier(scene, colliders, pier, deck) {
   return { ...pier, a, x0: g.position.x, z0: g.position.z, dx: Math.cos(a), dz: Math.sin(a), len: len + 0.6, half: 1.5, y: PIER_TOP + 0.1 }; // walkable a step past the end, onto a docked ferry
 }
 
-function makeFerry() {
+export function makeFerry() {
   const boat = new THREE.Group();
   const navy = solid('#14234a', { roughness: 0.5 });
   const white = WHITE_METAL;

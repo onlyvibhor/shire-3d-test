@@ -12,12 +12,15 @@ export const WHITE_METAL = new THREE.MeshPhysicalMaterial({
 export const BRUSHED = new THREE.MeshPhysicalMaterial({ color: '#dfe5ea', metalness: 0.7, roughness: 0.38 });
 export const CHROME = new THREE.MeshPhysicalMaterial({ color: '#f5f7fa', metalness: 1, roughness: 0.08 });
 export const CONCRETE = new THREE.MeshStandardMaterial({ color: '#e6e7e2', roughness: 0.9 });
+// Tinted, mirror-like glass. Opaque on purpose: see-through glass sorts badly against people and props,
+// so it reads as glass through its reflections instead.
 export const GLASS = new THREE.MeshPhysicalMaterial({
-  color: '#cfeaff',
-  metalness: 0.1,
-  roughness: 0.12,
-  transparent: true,
-  opacity: 0.72,
+  color: '#bfe2f7',
+  metalness: 0.35,
+  roughness: 0.06,
+  clearcoat: 1,
+  clearcoatRoughness: 0.05,
+  envMapIntensity: 1.4,
 });
 export const GOLD = new THREE.MeshPhysicalMaterial({ color: '#ffcf4a', metalness: 1, roughness: 0.18, emissive: '#7a4a00', emissiveIntensity: 0.35 });
 export const WOOD = new THREE.MeshStandardMaterial({ color: '#8a6440', roughness: 0.8 });

@@ -408,11 +408,57 @@ function applyReaction(p, t) {
   tilt.quaternion.setFromAxisAngle(_axis, theta);
 }
 
+// Two-bone reach in the side plane: the angles that put the end of a limb at (dy, dz) from its root joint.
+// bend = +1 bends the middle joint like a knee (forward), -1 like an elbow.
+const LEG = [0.44, 0.45];
+const ARM = [0.3, 0.29];
+function reach([L1, L2], dy, dz, bend) {
+  let D = Math.hypot(dy, dz);
+  D = Math.min(Math.max(D, Math.abs(L1 - L2) + 1e-3), L1 + L2 - 1e-3);
+  const phi = Math.atan2(-dz, -dy);
+  const a = Math.acos(THREE.MathUtils.clamp((L1 * L1 + D * D - L2 * L2) / (2 * L1 * D), -1, 1));
+  const g = Math.acos(THREE.MathUtils.clamp((L1 * L1 + L2 * L2 - D * D) / (2 * L1 * L2), -1, 1));
+  return bend > 0 ? [phi - a, Math.PI - g] : [phi + a, -(Math.PI - g)];
+}
+
+// Seated on a vehicle: hips on the saddle, hands on the grips, feet on the pedals or the floorboard.
+// The vehicle hangs under the person's root at 1/scale, so its points are divided by the root's scale.
+function mountPose(p, ph) {
+  const { hips, chest, head, armL, armR, legL, legR } = p.parts;
+  const m = p.mount;
+  const k = 1 / p.root.scale.x;
+  hips.position.y = (m.seatY + 0.11) * k;
+  hips.position.z = m.seatZ * k;
+  const lean = m.lean;
+  chest.rotation.x = lean;
+  head.rotation.x = -lean * 0.8;
+  // feet
+  for (const [leg, side] of [[legL, -1], [legR, 1]]) {
+    const [fy, fz] = m.foot(side, p.crank ?? ph * 4);
+    const [h, kn] = reach(LEG, fy * k - (hips.position.y - 0.03), fz * k - hips.position.z, 1);
+    leg.hip.rotation.set(h, 0, side * -0.06);
+    leg.knee.rotation.x = kn;
+  }
+  // hands: target in the chest's (leaning) frame
+  const sy = hips.position.y + Math.cos(lean) * 0.5;
+  const sz = hips.position.z + Math.sin(lean) * 0.5;
+  const dy = m.gripY * k - sy;
+  const dz = m.gripZ * k - sz;
+  const ry = dy * Math.cos(-lean) - dz * Math.sin(-lean);
+  const rz = dy * Math.sin(-lean) + dz * Math.cos(-lean);
+  for (const [arm, side] of [[armL, -1], [armR, 1]]) {
+    const [sh, el] = reach(ARM, ry, rz, -1);
+    arm.shoulder.rotation.set(sh, 0, side * -0.08);
+    arm.elbow.rotation.x = el;
+  }
+}
+
 function pose(p, action, t, speed = 0) {
   const { hips, chest, head, armL, armR, legL, legR } = p.parts;
   const ph = t + p.phase;
   // neutral
   hips.position.y = 0.95;
+  hips.position.z = 0;
   hips.rotation.set(0, 0, 0);
   chest.rotation.set(0, 0, 0);
   head.rotation.set(0, 0, 0);
@@ -565,6 +611,13 @@ function pose(p, action, t, speed = 0) {
       legL.knee.rotation.x = legR.knee.rotation.x = (1 - j) * 0.3;
       break;
     }
+    case 'cycle':
+    case 'scoot':
+      if (p.mount) {
+        mountPose(p, ph);
+        break;
+      }
+    // falls through: no vehicle, so sit as if riding
     case 'ride':
       hips.position.y = 0.78;
       legL.hip.rotation.set(-1.35, 0, -0.12);

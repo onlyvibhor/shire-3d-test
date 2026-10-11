@@ -734,55 +734,134 @@ function buildBazaar(scene, ctx) {
 
 // ---------- Bicycles ----------
 
+// A classic Indian roadster: diamond frame, upright bars, mudguards, carrier basket, cranks that turn.
 export function makeBicycle(color = '#1f2937') {
   const g = new THREE.Group();
-  const frame = solid(color, { metalness: 0.4, roughness: 0.4 });
-  const tyre = solid('#16181d', { roughness: 0.8 });
-  const steel = solid('#c9ced6', { metalness: 0.8, roughness: 0.3 });
+  const frame = solid(color, { metalness: 0.5, roughness: 0.35 });
+  const tyre = solid('#17191e', { roughness: 0.85 });
+  const steel = solid('#c9ced6', { metalness: 0.85, roughness: 0.25 });
+  const black = solid('#22252b', { roughness: 0.6 });
   const R = 0.34;
+  const P = {
+    rear: [0, R, -0.53],
+    front: [0, R, 0.53],
+    bb: [0, 0.29, -0.05],
+    seatTop: [0, 0.8, -0.24],
+    headTop: [0, 0.84, 0.4],
+    headBot: [0, 0.64, 0.45],
+  };
+  const tube = (a, b, r = 0.018, mat = frame, dx = 0) => {
+    const va = new THREE.Vector3(a[0] + dx, a[1], a[2]);
+    const vb = new THREE.Vector3(b[0] + dx, b[1], b[2]);
+    const m = mesh(new THREE.CylinderGeometry(r, r, va.distanceTo(vb), 8), mat, 0, 0, 0, false);
+    m.position.copy(va).add(vb).multiplyScalar(0.5);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
+    g.add(m);
+  };
+  // wheels: tyre, rim, hub, spokes
   const wheels = [];
-  for (const z of [-0.52, 0.52]) {
+  for (const z of [P.rear[2], P.front[2]]) {
     const w = new THREE.Group();
     w.position.set(0, R, z);
-    w.add(new THREE.Mesh(new THREE.TorusGeometry(R, 0.03, 6, 24), tyre).rotateY(Math.PI / 2));
-    for (let k = 0; k < 8; k++) {
-      const sp = mesh(new THREE.CylinderGeometry(0.005, 0.005, R * 2, 3), steel, 0, 0, 0, false);
-      sp.rotation.x = (k / 8) * Math.PI;
+    w.add(new THREE.Mesh(new THREE.TorusGeometry(R - 0.02, 0.022, 8, 36), tyre).rotateY(Math.PI / 2));
+    w.add(new THREE.Mesh(new THREE.TorusGeometry(R - 0.045, 0.01, 6, 36), steel).rotateY(Math.PI / 2));
+    w.add(mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.1, 10), steel, 0, 0, 0, false).rotateZ(Math.PI / 2));
+    for (let k = 0; k < 18; k++) {
+      const sp = mesh(new THREE.CylinderGeometry(0.003, 0.003, R * 2 - 0.09, 3), steel, 0, 0, 0, false);
+      sp.rotation.x = (k / 18) * Math.PI;
+      sp.rotation.z = (k % 2 ? 1 : -1) * 0.05;
       w.add(sp);
     }
     g.add(w);
     wheels.push(w);
   }
-  const tube = (a, b, r = 0.022) => {
-    const va = new THREE.Vector3(...a);
-    const vb = new THREE.Vector3(...b);
-    const m = mesh(new THREE.CylinderGeometry(r, r, va.distanceTo(vb), 6), frame, 0, 0, 0, false);
-    m.position.copy(va).add(vb).multiplyScalar(0.5);
-    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
-    g.add(m);
-  };
-  const bb = [0, 0.32, -0.02];
-  const seat = [0, 0.82, -0.2];
-  const head = [0, 0.86, 0.42];
-  tube([0, R, -0.52], bb);
-  tube([0, R, -0.52], seat);
-  tube(bb, seat, 0.026);
-  tube(bb, head, 0.026);
-  tube(seat, head, 0.024);
-  tube(head, [0, R, 0.52]);
-  g.add(mesh(new THREE.BoxGeometry(0.14, 0.05, 0.26), DARK, 0, 0.88, -0.24, false));
-  const bar = mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.56, 6), steel, 0, 0.96, 0.4, false);
-  bar.rotation.z = Math.PI / 2;
-  g.add(bar);
-  // the front basket, every Jaipur cycle has one
-  g.add(mesh(new THREE.BoxGeometry(0.34, 0.2, 0.26), solid('#b98a4a', { roughness: 1 }), 0, 0.82, 0.62, false));
+  // mudguards
+  for (const z of [P.rear[2], P.front[2]]) {
+    const guard = new THREE.Mesh(new THREE.TorusGeometry(R + 0.03, 0.03, 4, 24, Math.PI * 0.55), black);
+    guard.scale.set(1, 1, 0.9);
+    guard.rotation.set(0, Math.PI / 2, 0);
+    guard.position.set(0, R, z);
+    guard.rotation.x = z < 0 ? 0.25 : -0.05;
+    g.add(guard);
+  }
+  // the diamond frame
+  for (const dx of [-0.055, 0.055]) {
+    tube(P.bb, P.rear, 0.012, frame, dx);
+    tube(P.seatTop, P.rear, 0.012, frame, dx);
+  }
+  tube(P.bb, P.seatTop, 0.02);
+  tube(P.seatTop, P.headTop, 0.019);
+  tube(P.bb, P.headBot, 0.022);
+  tube(P.headBot, P.headTop, 0.026);
+  for (const dx of [-0.045, 0.045]) tube(P.headBot, P.front, 0.012, frame, dx);
+  // seat post, sprung saddle
+  tube(P.seatTop, [0, 0.88, -0.27], 0.012, steel);
+  const saddle = new THREE.Group();
+  saddle.position.set(0, 0.9, -0.28);
+  saddle.add(mesh(new THREE.BoxGeometry(0.17, 0.05, 0.13), solid('#3b2a1e', { roughness: 0.5 }), 0, 0, -0.03));
+  saddle.add(mesh(new THREE.BoxGeometry(0.07, 0.04, 0.14), solid('#3b2a1e', { roughness: 0.5 }), 0, 0, 0.1));
+  for (const x of [-0.06, 0.06]) saddle.add(mesh(new THREE.TorusGeometry(0.018, 0.005, 4, 8), steel, x, -0.04, -0.07, false));
+  g.add(saddle);
+  // stem and swept-back roadster bars with black grips
+  tube(P.headTop, [0, 0.98, 0.41], 0.014, steel);
+  tube([-0.2, 0.98, 0.41], [0.2, 0.98, 0.41], 0.012, steel);
+  for (const sx of [-1, 1]) {
+    tube([sx * 0.2, 0.98, 0.41], [sx * 0.29, 0.985, 0.33], 0.012, steel);
+    const grip = mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.1, 8), black, sx * 0.31, 0.985, 0.32, false);
+    grip.rotation.z = Math.PI / 2;
+    g.add(grip);
+  }
+  g.add(mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.03, 10), steel, 0.12, 0.99, 0.41, false));
+  // front carrier with a cane basket
+  tube(P.headBot, [0, 0.8, 0.62], 0.008, steel);
+  const basket = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.2, 0.26), solid('#b98a4a', { roughness: 1 }));
+  basket.position.set(0, 0.86, 0.66);
+  g.add(basket);
+  // rear carrier rack
+  tube([-0.07, 0.62, -0.62], [-0.07, 0.62, -0.32], 0.008, steel);
+  tube([0.07, 0.62, -0.62], [0.07, 0.62, -0.32], 0.008, steel);
+  for (const dx of [-0.07, 0.07]) tube([dx, 0.62, -0.6], [dx, R, -0.53], 0.007, steel);
+  // chainring, chain and the turning cranks with pedals
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.095, 0.012, 6, 24), steel);
+  ring.rotation.y = Math.PI / 2;
+  ring.position.set(0.075, P.bb[1], P.bb[2]);
+  g.add(ring);
+  for (const dy of [0.095, -0.095]) tube([0.075, P.bb[1] + dy, P.bb[2]], [0.075, R + dy * 0.45, P.rear[2]], 0.006, black);
+  g.add(mesh(new THREE.BoxGeometry(0.02, 0.14, 0.42), black, 0.085, P.bb[1] + 0.02, -0.29, false));
   const crank = new THREE.Group();
-  crank.position.set(0, 0.32, -0.02);
-  for (const s of [-1, 1]) crank.add(mesh(new THREE.BoxGeometry(0.03, 0.16, 0.03), steel, s * 0.09, s * 0.08, 0, false));
+  crank.position.set(0, P.bb[1], P.bb[2]);
+  const pedals = [];
+  for (const side of [-1, 1]) {
+    const arm = mesh(new THREE.BoxGeometry(0.02, 0.17, 0.03), steel, side * 0.095, side * 0.085, 0, false);
+    crank.add(arm);
+    const pedal = new THREE.Group();
+    pedal.position.set(side * 0.14, side * 0.17, 0);
+    pedal.add(mesh(new THREE.BoxGeometry(0.09, 0.022, 0.06), black, 0, 0, 0, false));
+    crank.add(pedal);
+    pedals.push(pedal);
+  }
   g.add(crank);
+  // kickstand, folded up
+  tube([-0.06, P.bb[1] - 0.02, -0.12], [-0.08, 0.12, -0.4], 0.008, steel);
+  g.traverse((o) => {
+    if (o.isMesh) o.castShadow = true;
+  });
+  let crankAngle = 0;
   g.userData.spin = (d) => {
     for (const w of wheels) w.rotation.x += d / R;
-    crank.rotation.x += d / (R * 1.6);
+    crankAngle += d / (R * 2.4);
+    crank.rotation.x = crankAngle;
+    for (const pd of pedals) pd.rotation.x = -crankAngle; // pedals stay level
+  };
+  g.userData.crank = () => crankAngle;
+  // where a rider's hips, hands and feet go
+  g.userData.mount = {
+    seatY: 0.92,
+    seatZ: -0.3,
+    gripY: 0.985,
+    gripZ: 0.32,
+    lean: 0.32,
+    foot: (side, c) => [P.bb[1] + side * 0.17 * Math.cos(c) + 0.035, P.bb[2] + side * 0.17 * Math.sin(c)],
   };
   return g;
 }
@@ -813,9 +892,10 @@ function buildBicycles(scene, ctx) {
     const p = makePerson({ seed: r(), accent: colours[k] });
     const bike = makeBicycle(colours[(k + 2) % colours.length]);
     bike.scale.setScalar(1 / p.root.scale.x);
-    bike.position.y = -0.04;
+    bike.position.y = 0;
     p.root.add(bike);
-    const w = new ctx.Walker(scene, p, ring, { loop: true, speed: 3.4, pause: 0.01, heightFn: walkY, action: 'ride', idle: 'ride' });
+    p.mount = bike.userData.mount;
+    const w = new ctx.Walker(scene, p, ring, { loop: true, speed: 3.4, pause: 0.01, heightFn: walkY, action: 'cycle', idle: 'cycle' });
     w.idx = (k * 6 + 1) % ring.length;
     const [x, z] = ring[(k * 6) % ring.length];
     p.root.position.set(x, walkY(x, z), z);
@@ -823,6 +903,7 @@ function buildBicycles(scene, ctx) {
     ctx.updaters.push(w, {
       update: () => {
         bike.userData.spin(p.root.position.distanceTo(last));
+        p.crank = bike.userData.crank();
         last.copy(p.root.position);
       },
     });

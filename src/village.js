@@ -136,7 +136,7 @@ export class Walker {
     const pz = playerPos.z - _wp.z;
     const pd = Math.hypot(px, pz);
     if (pd < 1.3 && Math.abs(playerPos.y - _wp.y) < 1.5 && Math.sin(root.rotation.y + root.parent.rotation.y) * px + Math.cos(root.rotation.y + root.parent.rotation.y) * pz > 0.2) {
-      animate(this.p, this.action === 'ride' ? 'ride' : 'idle', t, 0);
+      animate(this.p, this.action === 'walk' || this.action === 'carry' ? 'idle' : this.action, t, 0);
       return;
     }
     const step = this.speed * dt;
@@ -1482,11 +1482,18 @@ function buildScooters(scene, ctx) {
     const sc = makeScooter(h.color);
     sc.scale.setScalar(1 / p.root.scale.x);
     p.root.add(sc);
-    const w = new Walker(scene, p, ring, { loop: true, speed: 7, pause: 0.05, heightFn: walkY, action: 'ride', idle: 'ride' });
+    p.mount = sc.userData.mount;
+    const w = new Walker(scene, p, ring, { loop: true, speed: 7, pause: 0.05, heightFn: walkY, action: 'scoot', idle: 'scoot' });
     w.idx = (k * 6 + 3) % ring.length;
     const [x, z] = ring[(k * 6 + 2) % ring.length];
     p.root.position.set(x, groundAt(x, z), z);
-    ctx.updaters.push(w);
+    const last = new THREE.Vector3().copy(p.root.position);
+    ctx.updaters.push(w, {
+      update: () => {
+        sc.userData.spin(p.root.position.distanceTo(last));
+        last.copy(p.root.position);
+      },
+    });
     ctx.npcs.push({ p, dept: h.id, rider: true });
   }
 }

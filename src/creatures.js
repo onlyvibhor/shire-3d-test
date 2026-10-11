@@ -106,87 +106,147 @@ function buildSmoker(scene, ctx) {
 
 // ---------- The T-rex ----------
 
-function makeRex() {
+// Mottled olive skin with darker stripes across the back
+function rexSkin() {
+  const map = canvasTexture(256, 256, (c, w, h) => {
+    c.fillStyle = '#5c6533';
+    c.fillRect(0, 0, w, h);
+    let seed = 7;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    for (let k = 0; k < 1400; k++) {
+      c.fillStyle = rnd() < 0.6 ? `rgba(40,44,20,${0.12 + rnd() * 0.2})` : `rgba(140,135,80,${0.08 + rnd() * 0.14})`;
+      c.beginPath();
+      c.ellipse(rnd() * w, rnd() * h, 1 + rnd() * 5, 1 + rnd() * 3, rnd() * 3, 0, Math.PI * 2);
+      c.fill();
+    }
+  });
+  map.wrapS = map.wrapT = THREE.RepeatWrapping;
+  return new THREE.MeshStandardMaterial({ map, roughness: 0.8 });
+}
+
+export function makeRex() {
   const root = new THREE.Group();
-  const skin = solid('#7d6b3b', { roughness: 0.85, flatShading: true });
-  const dark = solid('#4a3d22', { roughness: 0.9, flatShading: true });
-  const belly = solid('#cdbb8a', { roughness: 0.9, flatShading: true });
-  const bone = solid('#f4efe2', { roughness: 0.5 });
+  const skin = rexSkin();
+  const belly = solid('#c2b386', { roughness: 0.85 });
+  const dark = solid('#4b4626', { roughness: 0.9 });
+  const bone = solid('#f1ead6', { roughness: 0.45 });
+  const blob = (parent, mat, [sx, sy, sz], [x, y, z], rx = 0, seg = 18) => {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(1, seg, Math.round(seg * 0.7)), mat);
+    m.scale.set(sx, sy, sz);
+    m.position.set(x, y, z);
+    m.rotation.x = rx;
+    parent.add(m);
+    return m;
+  };
+  // the body pivots at the hips; the torso leans forward and down to the chest
   const body = new THREE.Group();
   body.position.y = 3.0;
   root.add(body);
-  const torso = mesh(new THREE.SphereGeometry(1, 14, 10), skin, 0, 0, 0.2);
-  torso.scale.set(1.25, 1.35, 2.6);
-  const tummy = mesh(new THREE.SphereGeometry(1, 12, 8), belly, 0, -0.35, 0.5);
-  tummy.scale.set(1.08, 1.05, 2.1);
-  body.add(torso, tummy);
-  for (let k = 0; k < 6; k++) body.add(mesh(new THREE.ConeGeometry(0.16, 0.4, 4), dark, 0, 1.3 - Math.abs(k - 2) * 0.05, 1.6 - k * 0.7));
-  // neck and head
-  const neck = mesh(new THREE.CylinderGeometry(0.62, 0.85, 1.6, 10), skin, 0, 0.9, 2.3);
-  neck.rotation.x = 0.85;
+  blob(body, skin, [1.05, 1.15, 1.9], [0, 0.05, 0.6], -0.12, 24);
+  blob(body, belly, [0.9, 0.9, 1.6], [0, -0.3, 0.85], -0.15, 20);
+  blob(body, skin, [1.0, 1.05, 1.1], [0, 0.15, -0.6], 0.1, 20); // hips
+  // neck: an S-curve of two segments up to the head
+  blob(body, skin, [0.62, 0.7, 0.8], [0, 0.65, 2.2], -0.6);
+  blob(body, belly, [0.5, 0.5, 0.7], [0, 0.42, 2.25], -0.6);
+  blob(body, skin, [0.5, 0.55, 0.6], [0, 1.15, 2.75], -0.2);
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.72, 1.3, 18, 1, true), skin);
+  neck.position.set(0, 0.85, 2.45);
+  neck.rotation.x = 0.75;
   body.add(neck);
-  const head = new THREE.Group();
-  head.position.set(0, 1.45, 3.05);
-  body.add(head);
-  head.add(mesh(new THREE.BoxGeometry(1.15, 1.0, 1.4), skin, 0, 0.1, 0.1));
-  head.add(mesh(new THREE.BoxGeometry(1.0, 0.6, 1.5), skin, 0, 0.05, 1.3));
-  head.add(mesh(new THREE.BoxGeometry(1.2, 0.18, 0.5), dark, 0, 0.62, 0.2));
-  for (const sx of [-1, 1]) {
-    head.add(mesh(new THREE.SphereGeometry(0.13, 10, 8), solid('#f2c94c'), sx * 0.58, 0.32, 0.35));
-    head.add(mesh(new THREE.SphereGeometry(0.07, 8, 6), solid('#111'), sx * 0.64, 0.33, 0.38));
-    head.add(mesh(new THREE.SphereGeometry(0.05, 6, 4), dark, sx * 0.25, 0.32, 2.02));
+  // dorsal ridge
+  for (let k = 0; k < 9; k++) {
+    const z = 2.2 - k * 0.45;
+    body.add(mesh(new THREE.ConeGeometry(0.07, 0.22, 4), dark, 0, 1.05 + Math.sin(k * 0.5) * 0.1 - (k > 5 ? (k - 5) * 0.1 : 0), z));
   }
-  for (let k = 0; k < 7; k++) for (const sx of [-1, 1]) head.add(mesh(new THREE.ConeGeometry(0.06, 0.2, 4), bone, sx * 0.44, -0.3, 0.75 + k * 0.17).rotateX(Math.PI));
+  // the head: deep skull, long snout, heavy lower jaw
+  const head = new THREE.Group();
+  head.position.set(0, 1.35, 3.05);
+  body.add(head);
+  blob(head, skin, [0.5, 0.52, 0.62], [0, 0.1, 0.1]);
+  blob(head, skin, [0.4, 0.36, 0.78], [0, 0.04, 0.82]);
+  blob(head, skin, [0.36, 0.2, 0.3], [0, -0.04, 1.5]);
+  for (const sx of [-1, 1]) {
+    blob(head, dark, [0.12, 0.07, 0.24], [sx * 0.32, 0.42, 0.25]); // brow ridge
+    blob(head, solid('#e8b923', { roughness: 0.3 }), [0.075, 0.075, 0.075], [sx * 0.42, 0.3, 0.32], 0, 12);
+    blob(head, solid('#111111', { roughness: 0.2 }), [0.035, 0.06, 0.035], [sx * 0.48, 0.3, 0.34], 0, 10);
+    blob(head, dark, [0.04, 0.03, 0.05], [sx * 0.14, 0.18, 1.62], 0, 8); // nostril
+  }
+  // upper teeth along the snout
+  for (let k = 0; k < 9; k++) for (const sx of [-1, 1]) {
+    const tt = mesh(new THREE.ConeGeometry(0.035, 0.14, 5), bone, sx * (0.34 - k * 0.012), -0.22, 0.45 + k * 0.12);
+    tt.rotation.x = Math.PI;
+    head.add(tt);
+  }
   const jaw = new THREE.Group();
-  jaw.position.set(0, -0.3, 0.2);
+  jaw.position.set(0, -0.2, 0.15);
   head.add(jaw);
-  jaw.add(mesh(new THREE.BoxGeometry(0.9, 0.3, 1.7), belly, 0, -0.18, 0.85));
-  jaw.add(mesh(new THREE.BoxGeometry(0.7, 0.05, 1.5), solid('#a33a3a'), 0, -0.02, 0.85));
-  for (let k = 0; k < 6; k++) for (const sx of [-1, 1]) jaw.add(mesh(new THREE.ConeGeometry(0.05, 0.16, 4), bone, sx * 0.38, 0.05, 0.4 + k * 0.2));
-  // little arms
+  blob(jaw, skin, [0.38, 0.17, 0.85], [0, -0.1, 0.7]);
+  blob(jaw, belly, [0.33, 0.12, 0.8], [0, -0.16, 0.7]);
+  blob(jaw, solid('#8f3b3b', { roughness: 0.6 }), [0.28, 0.04, 0.7], [0, 0.02, 0.72]); // tongue
+  for (let k = 0; k < 8; k++) for (const sx of [-1, 1]) jaw.add(mesh(new THREE.ConeGeometry(0.03, 0.12, 5), bone, sx * (0.3 - k * 0.012), 0.08, 0.25 + k * 0.13));
+  // tiny arms with two claws
   const arms = [];
   for (const sx of [-1, 1]) {
     const arm = new THREE.Group();
-    arm.position.set(sx * 0.9, -0.1, 1.9);
-    arm.add(mesh(new THREE.CapsuleGeometry(0.12, 0.45, 4, 8), skin, 0, -0.25, 0.1).rotateX(0.9));
-    for (const cx of [-0.05, 0.05]) arm.add(mesh(new THREE.ConeGeometry(0.035, 0.14, 4), bone, cx, -0.45, 0.35).rotateX(1.6));
+    arm.position.set(sx * 0.62, -0.05, 1.85);
+    blob(arm, skin, [0.11, 0.24, 0.11], [0, -0.18, 0.04], 0.5, 10);
+    const fore = new THREE.Group();
+    fore.position.set(0, -0.38, 0.14);
+    arm.add(fore);
+    blob(fore, skin, [0.08, 0.18, 0.08], [0, -0.1, 0.08], 1.1, 10);
+    for (const cx of [-0.03, 0.03]) {
+      const cl = mesh(new THREE.ConeGeometry(0.02, 0.1, 5), bone, cx, -0.14, 0.22);
+      cl.rotation.x = 1.9;
+      fore.add(cl);
+    }
     body.add(arm);
     arms.push(arm);
   }
-  // tail: a chain of segments that sways
+  // tail: tapering segments that sway
   const tail = [];
   let parent = body;
-  let z = -2.2;
-  [[0.95, 0.62, 2.2], [0.62, 0.36, 2.1], [0.36, 0.1, 2.0]].forEach(([r0, r1, len], k) => {
+  let z = -1.3;
+  // each segment is a tapered tube with a ball at its root, so the joints blend as the tail sways
+  const radii = [0.82, 0.62, 0.44, 0.29, 0.16, 0.04];
+  radii.slice(0, -1).forEach((r0, k) => {
+    const r1 = radii[k + 1];
+    const len = 1.45;
     const seg = new THREE.Group();
-    seg.position.set(0, k ? 0 : 0.15, z);
-    const m = mesh(new THREE.CylinderGeometry(r1, r0, len, 10), k ? skin : skin, 0, 0, -len / 2);
-    m.rotation.x = Math.PI / 2;
-    seg.add(m);
-    seg.add(mesh(new THREE.ConeGeometry(0.1, 0.3, 4), dark, 0, r0 * 0.9, -len * 0.4));
+    seg.position.set(0, k ? 0 : 0.2, z);
+    const tube = new THREE.Mesh(new THREE.CylinderGeometry(r1, r0, len, 18, 1, true), skin);
+    tube.rotation.x = -Math.PI / 2;
+    tube.position.z = -len / 2;
+    tube.scale.set(1, 1, 1.12); // a touch taller than wide
+    seg.add(tube);
+    blob(seg, skin, [r0, r0 * 1.12, r0], [0, 0, 0], 0, 16);
+    if (k < 4) seg.add(mesh(new THREE.ConeGeometry(0.05, 0.16, 4), dark, 0, r0 * 1.05, -len * 0.4));
     parent.add(seg);
     tail.push(seg);
     parent = seg;
     z = -len;
   });
-  // legs
+  blob(parent, skin, [0.05, 0.05, 0.12], [0, 0, -1.45], 0, 8);
+  // legs: big thigh, shin, a raised metatarsus and three forward toes (they walk on their toes)
   const legs = [];
   for (const sx of [-1, 1]) {
     const hip = new THREE.Group();
-    hip.position.set(sx * 0.95, -0.1, -0.2);
+    hip.position.set(sx * 0.78, -0.05, -0.55);
     body.add(hip);
-    const thigh = mesh(new THREE.CapsuleGeometry(0.55, 1.1, 4, 10), skin, 0, -0.7, 0.15);
-    thigh.rotation.x = -0.25;
-    hip.add(thigh);
+    blob(hip, skin, [0.55, 1.0, 0.78], [sx * 0.04, -0.5, 0.1], -0.2);
     const knee = new THREE.Group();
-    knee.position.set(0, -1.45, 0.35);
+    knee.position.set(0, -1.25, 0.32);
     hip.add(knee);
-    knee.add(mesh(new THREE.CapsuleGeometry(0.3, 0.9, 4, 8), skin, 0, -0.55, -0.2).rotateX(0.35));
+    blob(knee, skin, [0.3, 0.66, 0.36], [0, -0.45, -0.18], 0.35);
     const foot = new THREE.Group();
-    foot.position.set(0, -1.25, -0.35);
+    foot.position.set(0, -0.95, -0.42);
     knee.add(foot);
-    foot.add(mesh(new THREE.BoxGeometry(0.75, 0.28, 1.1), dark, 0, -0.1, 0.35));
-    for (const cx of [-0.25, 0, 0.25]) foot.add(mesh(new THREE.ConeGeometry(0.07, 0.25, 4), bone, cx, -0.12, 0.98).rotateX(Math.PI / 2));
+    blob(foot, skin, [0.19, 0.44, 0.21], [0, -0.32, 0.08], -0.3, 12);
+    for (const tx of [-0.13, 0, 0.13]) {
+      blob(foot, dark, [0.075, 0.07, 0.24], [tx, -0.72, 0.38 + (tx === 0 ? 0.06 : 0)], 0, 10);
+      const claw = mesh(new THREE.ConeGeometry(0.04, 0.14, 5), bone, tx, -0.74, 0.66 + (tx === 0 ? 0.06 : 0));
+      claw.rotation.x = Math.PI / 2;
+      foot.add(claw);
+    }
     legs.push({ hip, knee, foot });
   }
   root.traverse((o) => {
@@ -210,7 +270,7 @@ function poseRex(rex, t, speed, mood) {
   body.rotation.x = mood === 'chase' ? 0.12 : 0.02;
   tail.forEach((s, k) => {
     s.rotation.y = Math.sin(t * 1.6 - k * 0.7) * (0.15 + k * 0.08);
-    s.rotation.x = -0.05 + k * 0.04;
+    s.rotation.x = k === 0 ? 0.06 : -0.04; // held out level, a slight droop toward the tip
   });
   arms.forEach((a, k) => (a.rotation.x = Math.sin(t * 3 + k) * 0.25));
   let open = 0.08 + Math.max(0, Math.sin(t * 0.9)) * 0.1;
