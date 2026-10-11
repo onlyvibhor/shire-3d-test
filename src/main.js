@@ -814,6 +814,8 @@ function act(a) {
   else if (a.kind === 'enter') enterRoom(a.room);
   else if (a.kind === 'exit') exitRoom();
   else if (a.kind === 'toast') ui.toast(a.text, 5000);
+  else if (a.kind === 'kick') a.kick(state.heading);
+  else if (a.kind === 'link') window.open(a.url, '_blank', 'noopener');
   else if (a.kind === 'hire') ui.toggleHire(true);
   else if (a.kind === 'place') ui.showPlace(PLACES.find((p) => p.id === a.id));
   else if (a.kind === 'screen') ui.openProject(a.screen.userData.action.slug);

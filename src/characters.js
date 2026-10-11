@@ -281,6 +281,17 @@ export function giveProp(person, kind, color = '#1c1f26') {
   if (kind === 'phone') {
     m = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.14, 0.012), new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.4 }));
     m.position.set(0, -0.33, 0.04);
+  } else if (kind === 'controller') {
+    m = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.45 });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.035, 0.075), mat);
+    const gripL = new THREE.Mesh(new THREE.CapsuleGeometry(0.025, 0.05, 3, 8), mat);
+    const gripR = gripL.clone();
+    gripL.position.set(-0.07, -0.01, -0.035);
+    gripR.position.set(0.07, -0.01, -0.035);
+    gripL.rotation.x = gripR.rotation.x = Math.PI / 2;
+    m.add(body, gripL, gripR);
+    m.position.set(0.11, -0.34, 0.05);
   } else if (kind === 'camera') {
     m = new THREE.Group();
     const body = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.18, 0.36), new THREE.MeshStandardMaterial({ color: '#202329', roughness: 0.4 }));
@@ -576,6 +587,30 @@ function pose(p, action, t, speed = 0) {
       armL.elbow.rotation.x = armR.elbow.rotation.x = -0.9;
       chest.rotation.x = -0.12;
       head.rotation.y = Math.sin(ph * 0.3) * 0.15;
+      break;
+    case 'game': {
+      // sitting, controller in both hands, leaning into the boss fight
+      const lean = Math.max(0, Math.sin(ph * 0.45)) * 0.18;
+      hips.position.y = 0.5;
+      legL.hip.rotation.set(-1.3, 0, -0.12);
+      legR.hip.rotation.set(-1.3, 0, 0.12);
+      legL.knee.rotation.x = legR.knee.rotation.x = 1.25;
+      chest.rotation.x = -0.05 + lean;
+      head.rotation.x = 0.12 - lean * 0.5;
+      armL.shoulder.rotation.set(-0.75 - lean, 0, 0.32);
+      armR.shoulder.rotation.set(-0.75 - lean, 0, -0.32);
+      armL.elbow.rotation.x = -1.0 + Math.sin(ph * 11) * 0.04;
+      armR.elbow.rotation.x = -1.0 + Math.sin(ph * 13 + 1) * 0.05;
+      break;
+    }
+    case 'kite':
+      // both hands up, tugging the string (Sankranti on the rooftops)
+      head.rotation.x = -0.45;
+      chest.rotation.x = -0.08;
+      armL.shoulder.rotation.set(-2.0 + Math.sin(ph * 2.2) * 0.12, 0, 0.18);
+      armR.shoulder.rotation.set(-1.6 + Math.sin(ph * 2.2 + 0.6) * 0.18, 0, -0.18);
+      armL.elbow.rotation.x = -0.25;
+      armR.elbow.rotation.x = -0.45 + Math.max(0, Math.sin(ph * 2.2)) * 0.3;
       break;
     case 'jump':
       legL.hip.rotation.x = -0.6;

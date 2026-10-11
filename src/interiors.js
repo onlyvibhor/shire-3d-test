@@ -4,6 +4,7 @@ import { makePerson, animate, giveProp } from './characters.js';
 import { screenMat, makeDesk, dashboardTexture } from './props.js';
 import { WHITE_METAL, BRUSHED, CHROME, GLASS, GOLD, WOOD, DARK, solid, glow, mesh, canvasTexture, deepMerge } from './materials.js';
 import { rng } from './world.js';
+import { playerPos } from './village.js';
 
 // Indoor sets live far from the island; entering one hides the outdoors and relights the scene.
 
@@ -703,6 +704,395 @@ function buildHomeInterior(origin) {
     for (let k = 0; k < 5; k++) g.add(mesh(new THREE.IcosahedronGeometry(0.35, 1), solid('#4f9a33', { flatShading: true }), x + (r() - 0.5) * 0.5, 0.9 + r() * 0.8, z + (r() - 0.5) * 0.5));
     addCollider(room, x, z, 0.5);
   }
+  // Game night: Nikita on the sofa, deep in Hallownest
+  const gameCanvas = document.createElement('canvas');
+  gameCanvas.width = 512;
+  gameCanvas.height = 288;
+  const gameTex = new THREE.CanvasTexture(gameCanvas);
+  gameTex.colorSpace = THREE.SRGBColorSpace;
+  const tv = new THREE.Group();
+  tv.position.set(-6, 0, 3.6);
+  tv.rotation.y = Math.PI;
+  tv.add(mesh(new THREE.BoxGeometry(2.6, 0.5, 0.55), WOOD, 0, 0.25, 0));
+  tv.add(mesh(new THREE.BoxGeometry(2.7, 1.58, 0.08), DARK, 0, 1.45, 0));
+  const tvScreen = new THREE.Mesh(new THREE.PlaneGeometry(2.56, 1.44), new THREE.MeshBasicMaterial({ map: gameTex, toneMapped: false }));
+  tvScreen.position.set(0, 1.45, 0.045);
+  tvScreen.userData.dynamic = true;
+  tv.add(tvScreen);
+  tv.add(mesh(new THREE.BoxGeometry(0.42, 0.1, 0.3), solid('#f4f4f4'), 0.8, 0.55, 0));
+  g.add(tv);
+  addCollider(room, -6, 3.6, 1.35);
+  const nikita = makePerson({ seed: 0.31, fem: true, style: 'dress', hairStyle: 'long', top: '#3d5f9e', accent: '#3d5f9e', noBag: true });
+  giveProp(nikita, 'controller', '#ececf0');
+  addNpc(room, nikita, -4.9, -2.35, 0, 'game', 'home', {
+    y: 0.17,
+    name: 'Nikita',
+    lines: [
+      'Hi! I’m Nikita: product designer, from Jodhpur, and Vibhor’s wife.',
+      'Shh, boss fight. Silksong does not pause for small talk.',
+      'Hollow Knight first, now Silksong. One more bench, then I’m done. Probably.',
+      'Jodhpur is the blue city, Jaipur the pink one. This house is a bit of both.',
+      'As a product designer, I have notes on this game’s map UI. Good notes.',
+    ],
+  });
+  addThing(room, -4.1, -0.9, {
+    kind: 'toast',
+    label: 'Nikita’s game night',
+    verb: 'Say hi',
+    text: '<b>🎮 Nikita</b>, product designer from Jodhpur, is deep in Hallownest. Hollow Knight first, now Silksong.',
+  });
+  // a little, hand-drawn take on a bug-kingdom platformer, alternating with a red-cloaked sequel
+  const drawGame = (t) => {
+    const c = gameCanvas.getContext('2d');
+    const W = 512;
+    const H = 288;
+    const sequel = Math.floor(t / 18) % 2 === 1;
+    const sky = c.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, sequel ? '#2a1214' : '#0b1a2e');
+    sky.addColorStop(1, sequel ? '#6b3a22' : '#1d3b52');
+    c.fillStyle = sky;
+    c.fillRect(0, 0, W, H);
+    const scroll = (t * 30) % W;
+    // far silhouettes
+    c.fillStyle = sequel ? 'rgba(20,6,8,0.6)' : 'rgba(6,14,26,0.65)';
+    for (let k = -1; k < 7; k++) {
+      const x = k * 90 - (scroll * 0.4) % 90;
+      c.beginPath();
+      c.moveTo(x, 0);
+      c.lineTo(x + 30, 70 + (k % 3) * 25);
+      c.lineTo(x + 60, 0);
+      c.fill();
+      c.fillRect(x + 20, H - 110 - (k % 2) * 30, 22, 120);
+    }
+    // glowing motes
+    for (let k = 0; k < 18; k++) {
+      const x = (k * 71 - scroll * 0.7 + W * 4) % W;
+      const y = (k * 43 + Math.sin(t + k) * 12) % (H - 60);
+      c.fillStyle = sequel ? 'rgba(255,190,110,0.8)' : 'rgba(170,230,255,0.8)';
+      c.beginPath();
+      c.arc(x, y, 1.6 + (k % 3), 0, Math.PI * 2);
+      c.fill();
+    }
+    // ground and platforms
+    c.fillStyle = sequel ? '#1a0c0a' : '#08111c';
+    c.fillRect(0, H - 46, W, 46);
+    for (let k = -1; k < 5; k++) {
+      const x = k * 150 - (scroll % 150);
+      c.fillRect(x + 40, H - 120 - (k % 2) * 40, 80, 10);
+    }
+    // the hero: a small horned white mask in a dark (or red) cloak
+    const hop = Math.abs(Math.sin(t * 3)) * 28;
+    const hx = 170;
+    const hy = H - 46 - hop;
+    c.fillStyle = sequel ? '#b3262e' : '#1c2333';
+    c.beginPath();
+    c.moveTo(hx - 13, hy);
+    c.lineTo(hx + 13, hy);
+    c.lineTo(hx + 8, hy - 26);
+    c.lineTo(hx - 8, hy - 26);
+    c.fill();
+    c.fillStyle = '#f4f1ea';
+    c.beginPath();
+    c.ellipse(hx, hy - 34, 10, 12, 0, 0, Math.PI * 2);
+    c.fill();
+    c.beginPath();
+    c.moveTo(hx - 8, hy - 40);
+    c.lineTo(hx - 12, hy - 62);
+    c.lineTo(hx - 3, hy - 44);
+    c.moveTo(hx + 8, hy - 40);
+    c.lineTo(hx + 12, hy - 62);
+    c.lineTo(hx + 3, hy - 44);
+    c.fill();
+    c.fillStyle = '#05070c';
+    c.beginPath();
+    c.ellipse(hx - 4, hy - 33, 2.6, 4.4, 0, 0, Math.PI * 2);
+    c.ellipse(hx + 4, hy - 33, 2.6, 4.4, 0, 0, Math.PI * 2);
+    c.fill();
+    // nail / needle slash
+    if (Math.sin(t * 2.4) > 0.6) {
+      c.strokeStyle = 'rgba(255,255,255,0.9)';
+      c.lineWidth = 3;
+      c.beginPath();
+      c.arc(hx + 18, hy - 24, 26, -1.1, 1.0);
+      c.stroke();
+    }
+    // a crawling bug
+    const bx = 320 - ((t * 40) % 200);
+    c.fillStyle = sequel ? '#d98a3a' : '#e07a3a';
+    c.beginPath();
+    c.ellipse(bx, H - 54, 16, 9, 0, Math.PI, 0);
+    c.fill();
+    // HUD: masks and a soul vessel
+    c.fillStyle = 'rgba(255,255,255,0.92)';
+    for (let k = 0; k < 5; k++) {
+      c.beginPath();
+      c.ellipse(64 + k * 20, 26, 6, 8, 0, 0, Math.PI * 2);
+      c.fill();
+    }
+    c.beginPath();
+    c.arc(32, 30, 16, 0, Math.PI * 2);
+    c.lineWidth = 3;
+    c.strokeStyle = 'rgba(255,255,255,0.9)';
+    c.stroke();
+    c.fillStyle = 'rgba(255,255,255,0.55)';
+    c.fillRect(18, 30, 28, 14);
+    gameTex.needsUpdate = true;
+  };
+  let lastDraw = -1;
+  room.updaters.push({
+    update: (t) => {
+      if (t - lastDraw < 1 / 12) return;
+      lastDraw = t;
+      drawGame(t);
+    },
+  });
+  drawGame(0);
+
+  // Mini football: run into the ball (or press E) and score into the net
+  const goal = { x: 3.6, z: -7.4, half: 1.2, depth: 0.9, h: 1.25 };
+  const net = new THREE.Group();
+  net.position.set(goal.x, 0, goal.z);
+  for (const sx of [-1, 1]) net.add(mesh(new THREE.CylinderGeometry(0.05, 0.05, goal.h, 10), WHITE_METAL, sx * goal.half, goal.h / 2, 0));
+  const bar = mesh(new THREE.CylinderGeometry(0.05, 0.05, goal.half * 2 + 0.1, 10), WHITE_METAL, 0, goal.h, 0);
+  bar.rotation.z = Math.PI / 2;
+  net.add(bar);
+  const netTex = canvasTexture(128, 128, (ctx, w) => {
+    ctx.clearRect(0, 0, w, w);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 3;
+    for (let k = 0; k <= w; k += 16) {
+      ctx.beginPath();
+      ctx.moveTo(k, 0);
+      ctx.lineTo(k, w);
+      ctx.moveTo(0, k);
+      ctx.lineTo(w, k);
+      ctx.stroke();
+    }
+  });
+  netTex.wrapS = netTex.wrapT = THREE.RepeatWrapping;
+  const netMat = (rx, ry) => {
+    const tx = netTex.clone();
+    tx.repeat.set(rx, ry);
+    tx.needsUpdate = true;
+    return new THREE.MeshBasicMaterial({ map: tx, alphaTest: 0.4, side: THREE.DoubleSide, color: '#e9eef5' });
+  };
+  const netBack = new THREE.Mesh(new THREE.PlaneGeometry(goal.half * 2, goal.h), netMat(4, 2.2));
+  netBack.position.set(0, goal.h / 2, -goal.depth);
+  const netTop = new THREE.Mesh(new THREE.PlaneGeometry(goal.half * 2, goal.depth), netMat(4, 1.6));
+  netTop.rotation.x = Math.PI / 2;
+  netTop.position.set(0, goal.h, -goal.depth / 2);
+  net.add(netBack, netTop);
+  for (const sx of [-1, 1]) {
+    const side = new THREE.Mesh(new THREE.PlaneGeometry(goal.depth, goal.h), netMat(1.6, 2.2));
+    side.rotation.y = Math.PI / 2;
+    side.position.set(sx * goal.half, goal.h / 2, -goal.depth / 2);
+    net.add(side);
+  }
+  for (const m of net.children) m.userData.dynamic = true;
+  g.add(net);
+  addCollider(room, goal.x - goal.half, goal.z, 0.15);
+  addCollider(room, goal.x + goal.half, goal.z, 0.15);
+  room.colliders.push({ ...local(room, goal.x, goal.z - goal.depth / 2), r: 0, box: { minX: origin.x + goal.x - goal.half - 0.1, maxX: origin.x + goal.x + goal.half + 0.1, minZ: origin.z + goal.z - goal.depth - 0.1, maxZ: origin.z + goal.z - 0.15 } });
+  // pitch markings on the floor
+  const pitch = new THREE.Mesh(new THREE.PlaneGeometry(5.6, 6.2), new THREE.MeshStandardMaterial({
+    map: canvasTexture(256, 284, (ctx, w, h) => {
+      ctx.fillStyle = '#3f8f4a';
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#479d52';
+      for (let k = 0; k < 8; k += 2) ctx.fillRect(0, (k * h) / 8, w, h / 8);
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(6, 6, w - 12, h - 12);
+      ctx.strokeRect(w * 0.22, 6, w * 0.56, h * 0.2);
+      ctx.beginPath();
+      ctx.arc(w / 2, h - 6, w * 0.18, Math.PI, 0);
+      ctx.stroke();
+    }),
+    roughness: 1,
+  }));
+  pitch.rotation.x = -Math.PI / 2;
+  pitch.position.set(goal.x, 0.015, goal.z + 3.1);
+  g.add(pitch);
+  // the scoreboard
+  const scoreTex = canvasTexture(512, 160, () => {});
+  const drawScore = (n, msg) => {
+    const ctx = scoreTex.image.getContext('2d');
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, 512, 160);
+    ctx.fillStyle = '#4ade80';
+    ctx.font = '700 34px Inter, sans-serif';
+    ctx.fillText(msg, 28, 58);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '800 64px "Bricolage Grotesque", Inter, sans-serif';
+    ctx.fillText(`GOALS  ${n}`, 28, 130);
+    scoreTex.needsUpdate = true;
+  };
+  drawScore(0, 'MINI FOOTBALL · kick it in');
+  const board = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.69), new THREE.MeshBasicMaterial({ map: scoreTex, toneMapped: false }));
+  board.position.set(goal.x, 1.85, -8.94);
+  board.userData.dynamic = true;
+  g.add(board);
+
+  const R = 0.2;
+  const ball = new THREE.Mesh(new THREE.IcosahedronGeometry(R, 1), new THREE.MeshStandardMaterial({
+    map: canvasTexture(256, 128, (ctx, w, h) => {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#111827';
+      for (let k = 0; k < 10; k++) {
+        ctx.beginPath();
+        ctx.arc((k * 53) % w, (k * 37) % h, 13, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }),
+    roughness: 0.5,
+    flatShading: true,
+  }));
+  ball.castShadow = true;
+  ball.userData.dynamic = true;
+  g.add(ball);
+  const home = { x: goal.x - 0.6, z: goal.z + 4.2 };
+  const B = { x: home.x, z: home.z, y: R, vx: 0, vz: 0, vy: 0 };
+  const prev = { x: 0, z: 0, ok: false };
+  let goals = 0;
+  let resetAt = 0;
+  const axis = new THREE.Vector3();
+  const q = new THREE.Quaternion();
+  const kickThing = {
+    kind: 'kick',
+    label: 'Mini football',
+    verb: 'Kick',
+    x: 0,
+    z: 0,
+    kick: (heading) => {
+      const px = playerPos.x - origin.x;
+      const pz = playerPos.z - origin.z;
+      // aim at the goal when close enough, otherwise kick the way you face
+      let dx = goal.x - B.x;
+      let dz = goal.z - 0.4 - B.z;
+      if (Math.hypot(B.x - px, B.z - pz) > 2.6) return;
+      if (Math.hypot(dx, dz) > 7) {
+        dx = Math.sin(heading);
+        dz = Math.cos(heading);
+      }
+      const L = Math.hypot(dx, dz) || 1;
+      B.vx = (dx / L) * 7.5;
+      B.vz = (dz / L) * 7.5;
+      B.vy = 1.6;
+    },
+  };
+  room.interactables.push(kickThing);
+  room.updaters.push({
+    update: (t, dt = 1 / 60) => {
+      const px = playerPos.x - origin.x;
+      const pz = playerPos.z - origin.z;
+      const pvx = prev.ok ? (px - prev.x) / Math.max(dt, 1e-3) : 0;
+      const pvz = prev.ok ? (pz - prev.z) / Math.max(dt, 1e-3) : 0;
+      prev.x = px;
+      prev.z = pz;
+      prev.ok = true;
+      if (resetAt && t > resetAt) {
+        Object.assign(B, { x: home.x, z: home.z, y: R + 0.6, vx: 0, vz: 0, vy: 0 });
+        resetAt = 0;
+      }
+      // the player's feet
+      const dx = B.x - px;
+      const dz = B.z - pz;
+      const d = Math.hypot(dx, dz);
+      if (d < 0.6 && d > 1e-4 && B.y < 0.9) {
+        const nx = dx / d;
+        const nz = dz / d;
+        B.x = px + nx * 0.6;
+        B.z = pz + nz * 0.6;
+        const ps = Math.hypot(pvx, pvz);
+        const want = Math.max(2.2, Math.min(ps, 12) * 1.6);
+        const vn = B.vx * nx + B.vz * nz;
+        if (vn < want) {
+          B.vx += nx * (want - vn);
+          B.vz += nz * (want - vn);
+          if (ps > 4) B.vy = Math.max(B.vy, 1.2);
+        }
+      }
+      // gravity, bounce, rolling friction
+      B.vy -= 9.8 * dt;
+      B.y += B.vy * dt;
+      if (B.y < R) {
+        B.y = R;
+        B.vy = Math.abs(B.vy) > 1 ? -B.vy * 0.45 : 0;
+      }
+      const f = Math.exp(-(B.y <= R + 0.01 ? 0.8 : 0.1) * dt);
+      B.vx *= f;
+      B.vz *= f;
+      let nxp = B.x + B.vx * dt;
+      let nzp = B.z + B.vz * dt;
+      // the goal: scored once it crosses the line between the posts
+      const inMouth = Math.abs(nxp - goal.x) < goal.half - R && B.y < goal.h;
+      if (B.z >= goal.z && nzp < goal.z) {
+        if (inMouth && !resetAt) {
+          goals += 1;
+          drawScore(goals, ['GOAL!', 'GOOOAL!', 'Top corner!', 'Back of the net!'][goals % 4]);
+          window.__shire?.ui?.toast(`<b>⚽ Goal!</b> That’s ${goals} in the living room.`, 2600);
+          resetAt = t + 1.6;
+        } else if (!inMouth) {
+          B.vz = -B.vz * 0.6;
+          nzp = goal.z + 0.01;
+        }
+      }
+      if (nzp < goal.z) {
+        // inside the net: bounce off its sides and back
+        if (Math.abs(nxp - goal.x) > goal.half - R) {
+          B.vx = -B.vx * 0.3;
+          nxp = goal.x + Math.sign(nxp - goal.x) * (goal.half - R);
+        }
+        if (nzp < goal.z - goal.depth + R) {
+          B.vz = -B.vz * 0.2;
+          nzp = goal.z - goal.depth + R;
+        }
+      }
+      // walls and furniture
+      const lim = { x: room.w / 2 - R - 0.1, z: room.d / 2 - R - 0.1 };
+      if (Math.abs(nxp) > lim.x) {
+        B.vx = -B.vx * 0.7;
+        nxp = Math.sign(nxp) * lim.x;
+      }
+      if (Math.abs(nzp) > lim.z) {
+        B.vz = -B.vz * 0.7;
+        nzp = Math.sign(nzp) * lim.z;
+      }
+      for (const c of room.colliders) {
+        if (c.box || !c.r) continue;
+        const cx = c.x - origin.x;
+        const cz = c.z - origin.z;
+        const ex = nxp - cx;
+        const ez = nzp - cz;
+        const ed = Math.hypot(ex, ez);
+        const min = c.r + R;
+        if (ed < min && ed > 1e-4) {
+          const nx = ex / ed;
+          const nz = ez / ed;
+          nxp = cx + nx * min;
+          nzp = cz + nz * min;
+          const vn = B.vx * nx + B.vz * nz;
+          if (vn < 0) {
+            B.vx -= 1.7 * vn * nx;
+            B.vz -= 1.7 * vn * nz;
+          }
+        }
+      }
+      const moved = Math.hypot(nxp - B.x, nzp - B.z);
+      if (moved > 1e-5) {
+        axis.set(nzp - B.z, 0, -(nxp - B.x)).normalize();
+        q.setFromAxisAngle(axis, moved / R);
+        ball.quaternion.premultiply(q);
+      }
+      B.x = nxp;
+      B.z = nzp;
+      ball.position.set(B.x, B.y, B.z);
+      kickThing.x = origin.x + B.x;
+      kickThing.z = origin.z + B.z;
+    },
+  });
+
   room.cups = cups;
   return room;
 }
@@ -811,7 +1201,8 @@ function buildPlayhouseInterior(origin) {
     addCollider(room, -13.8, z, 0.8);
   }
   addNpc(room, makePerson({ seed: r(), style: 'streetwear', accent: C }), -12.6, 7.1, -Math.PI / 2, 'type', 'fun');
-  addThing(room, -12, 5.5, { kind: 'project', slug: 'ring', label: 'Arcade: Back in the Ring', verb: 'Play' });
+  addThing(room, -12, 5.5, { kind: 'link', url: PROJECTS.ring.play.url, label: 'Arcade: Back in the Ring, the Netbanking game', verb: 'Play (opens the game)' });
+  addThing(room, -12, 8.6, { kind: 'project', slug: 'ring', label: 'Back in the Ring: the case study', verb: 'Open' });
 
   // Stop-motion studio
   const sm = new THREE.Group();
@@ -849,6 +1240,40 @@ function buildPlayhouseInterior(origin) {
   });
   addNpc(room, makePerson({ seed: r(), style: 'kurta', accent: C }), -9.2, -6.2, -Math.PI / 2 - 0.4, 'think', 'fun');
   addThing(room, -9.4, -5.4, { kind: 'project', slug: 'modern-junkyard', label: 'Modern Junkyard: the stop-motion studio', verb: 'Open' });
+
+  // Stop-motion wall: the films, frame by frame, beside the big screen
+  const smFilms = ['urbanclap', 'veggie-people', 'holi-stop-motion', 'valentines-week', 'winter-foods', 'modern-junkyard'];
+  smFilms.forEach((slug, k) => {
+    const x = -13.95 + (k % 3) * 2.05;
+    const y = 4.5 - Math.floor(k / 3) * 1.75;
+    const ph = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 1.15), screenMat(PROJECTS[slug].images[0], 1.9 / 1.15));
+    ph.position.set(x, y, -11.92);
+    ph.userData.action = { kind: 'project', slug };
+    ph.userData.dynamic = true;
+    room.clickables.push(ph);
+    const cap = plate(1.9, 0.26, (ctx, w, h) => {
+      ctx.fillStyle = '#160e22';
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#ffd08a';
+      ctx.font = `700 ${h * 0.55}px Inter, sans-serif`;
+      ctx.textBaseline = 'middle';
+      ctx.fillText(PROJECTS[slug].title, 14, h / 2 + 2, w - 28);
+    });
+    cap.position.set(x, y - 0.72, -11.92);
+    g.add(ph, cap, mesh(new THREE.BoxGeometry(2.02, 1.6, 0.06), solid('#ff9f1c', { roughness: 0.6 }), x, y - 0.13, -11.96, false));
+  });
+  const smSign = plate(6, 0.6, (ctx, w, h) => {
+    ctx.fillStyle = '#160e22';
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#ff9f1c';
+    ctx.font = `800 ${h * 0.55}px "Bricolage Grotesque", Inter, sans-serif`;
+    ctx.textBaseline = 'middle';
+    ctx.fillText('STOP MOTION · one frame at a time', 16, h / 2 + 3, w - 32);
+  });
+  smSign.position.set(-11.9, 5.75, -11.92);
+  g.add(smSign);
+  addThing(room, -13.2, -9.9, { kind: 'project', slug: 'winter-foods', label: 'Stop motion: Winter Foods', verb: 'Open' });
+  addThing(room, -8.6, -9.9, { kind: 'project', slug: 'urbanclap', label: 'Stop motion: All Things A for UrbanClap', verb: 'Open' });
 
   // Found-object gallery
   const objects = [

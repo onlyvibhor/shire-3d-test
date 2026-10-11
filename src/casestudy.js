@@ -2,6 +2,7 @@
 // and styled after its case page (big type, mono labels, generous spacing).
 import toolkit from './content/toolkit.json';
 import mentorship from './content/mentorship.json';
+import { PROJECTS as PROJECT_META } from './data.js';
 
 const projectFiles = import.meta.glob('./content/projects/*.json', { eager: true, import: 'default' });
 const expFiles = import.meta.glob('./content/experiments/*.json', { eager: true, import: 'default' });
@@ -48,6 +49,27 @@ function toolCase(tool, extra = {}) {
 
 const fbVideo = (id) => `https://www.facebook.com/plugins/video.php?height=476&href=https%3A%2F%2Fwww.facebook.com%2Fblinkit.india%2Fvideos%2F${id}%2F&show_text=false&width=268&t=0`;
 const fbPost = (id) => `https://www.facebook.com/plugins/post.php?href=https%3A%2F%2Fwww.facebook.com%2Fblinkit.india%2Fposts%2F${id}&show_text=true&width=500`;
+
+// The Modern Junkyard films, each as its own short case
+function stopMotion(slug, titleLines, yt, caption) {
+  const m = PROJECT_META[slug];
+  return {
+    title: m.title,
+    title_lines: titleLines,
+    client: m.client,
+    role: m.role,
+    year: m.year,
+    category: 'Stop motion',
+    tagline: m.tagline,
+    cover: { image: m.images[0] },
+    sections: [
+      { type: 'video', url: `https://www.youtube.com/watch?v=${yt}`, caption },
+      { type: 'text', label: 'The film', body: m.summary },
+      { type: 'text', label: 'The studio', title: 'Modern Junkyard', body: 'My stop-motion studio: small and playful work, made one frame at a time. A paper-craft world for UrbanClap, vegetables that skateboard, juggle and dance, typography written in wool, and short animations for festivals and campaigns.' },
+    ],
+    links: [{ label: 'Watch on YouTube', url: `https://www.youtube.com/watch?v=${yt}` }, { label: 'Modern Junkyard on YouTube', url: 'https://www.youtube.com/@modernjunkyard606' }],
+  };
+}
 
 const SYNTH = {
   grofery: () => ({
@@ -193,6 +215,10 @@ const SYNTH = {
     ],
     links: [{ label: 'Behance project', url: 'https://www.behance.net/gallery/122959875/diwali-social-campaign-grofers-2020' }],
   }),
+  urbanclap: () => stopMotion('urbanclap', 'All Things\nA', 'JS8qOYDIngM', 'UrbanClap All Things A: April Fool digital film'),
+  'veggie-people': () => stopMotion('veggie-people', 'Veggie\nPeople', 'rhfcFDIY9Ss', 'Lettuce Dance'),
+  'holi-stop-motion': () => stopMotion('holi-stop-motion', 'Happy\nHoli', 'IApjyY245Us', 'Grofers Holi Stop Motion Animation'),
+  'valentines-week': () => stopMotion('valentines-week', 'Valentines\nWeek 2018', 'a1UiBuCb8zI', 'Valentines Week 2018'),
   toolkit: () => ({
     title: 'The Studio AI Toolkit',
     title_lines: 'Studio\nAI Toolkit',
@@ -324,7 +350,8 @@ export function createCaseStudy({ projects, places, onOpen }) {
     const list = (title, rows) => (rows.length ? `<div><h4>${title}</h4><ul>${rows.join('')}</ul></div>` : '');
     const team = list('Team', (p.team || []).map((t) => `<li><span>${esc(t.name)}</span><span>${esc(t.role)}</span></li>`));
     const awards = list('Recognition', (p.awards || []).map((a) => `<li><span>${esc(a.title)}</span><span>${esc(a.detail)}</span></li>`));
-    const links = list('Links', (p.links || []).map((l) => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener"><span>${esc(l.label)}</span><span aria-hidden="true">↗</span></a></li>`));
+    const allLinks = [...(meta.play ? [meta.play] : []), ...(p.links || [])];
+    const links = list('Links', allLinks.map((l) => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener"><span>${esc(l.label)}</span><span aria-hidden="true">↗</span></a></li>`));
     const idx = order.indexOf(slug);
     const nextSlug = order[(idx + 1) % order.length];
     const cover = p.cover?.image || meta.images[0];
@@ -342,6 +369,7 @@ export function createCaseStudy({ projects, places, onOpen }) {
         </section>
         ${cover ? `<div class="cs-cover"><img src="${esc(cover)}" alt="${esc(p.title)}" /></div>` : ''}
         ${p.tagline ? `<p class="cs-hook">${inline(p.tagline)}</p>` : ''}
+        ${meta.play ? `<div class="cs-play-cta"><a class="btn btn--big" href="${esc(meta.play.url)}" target="_blank" rel="noopener">🎮 ${esc(meta.play.label)} ↗</a></div>` : ''}
         ${metrics}
         ${(p.sections || []).filter((b) => !(b.type === 'image' && b.image === cover)).map(block).join('')}
         ${team || awards || links ? `<section class="cs-end">${team}${awards}${links}</section>` : ''}

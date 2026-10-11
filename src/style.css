@@ -413,3 +413,6 @@ figure.cs-blk { margin-top: clamp(56px, 11vh, 140px); margin-bottom: 0; }
   #tourbar { bottom: 12px; }
   .tourbar__track { width: 70px; }
 }
+
+.cs-play-cta { padding: 0 var(--pad) clamp(30px, 6vh, 70px); }
+.cs-play-cta .btn { text-decoration: none; display: inline-flex; gap: .5em; }
