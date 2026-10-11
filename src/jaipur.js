@@ -957,7 +957,7 @@ function buildKites(scene, ctx) {
       flyers.push({ x: Math.cos(a) * d, z: Math.sin(a) * d, dept: h.id, seed: i * 2 + k });
     }
   });
-  // a ring of rooftop-style flyers round the Party Tree hill
+  // a ring of rooftop-style flyers round the jamun tree hill
   for (let k = 0; k < 6; k++) {
     const a = (k / 6) * Math.PI * 2 + 0.5;
     flyers.push({ x: Math.cos(a) * 24, z: Math.sin(a) * 24, dept: HAMLETS[k].id, seed: 30 + k });

@@ -5,6 +5,7 @@ import { makeDome, makeDrone, makeScooter, makeDesk, makeMonitorWall, dashboardT
 import { makePerson, giveProp, animate } from './characters.js';
 import { makeArch } from './landmarks.js';
 import { buildCreatures } from './creatures.js';
+import { makePillar } from './pillars.js';
 import { buildTraffic } from './traffic.js';
 import { buildJaipur, makePol, cuspedArchPoints, PINK as JAIPUR_PINK, OCHRE } from './jaipur.js';
 import { WHITE_METAL, BRUSHED, CHROME, GLASS, GOLD, WOOD, DARK, MOUND, WINDOW_GLOW, CONCRETE, solid, glow, mesh, canvasTexture, deepMerge, mergeStatic } from './materials.js';
@@ -762,7 +763,139 @@ function buildLab(scene, ctx) {
   deepMerge(g);
 }
 
-// ---------- Centre: Party Tree, HQ hall, standing stones ----------
+// ---------- Centre: the jamun tree, HQ hall, the five pillars ----------
+
+// A jamun tree, like the one at Vibhor's childhood home: grey-brown bark, spreading limbs,
+// a dense glossy dark-green crown, purple-black fruit, and fallen jamuns staining the ground.
+function barkTexture() {
+  const t = canvasTexture(128, 256, (c, w, h) => {
+    c.fillStyle = '#6a5a4c';
+    c.fillRect(0, 0, w, h);
+    for (let k = 0; k < 70; k++) {
+      c.fillStyle = k % 3 ? 'rgba(40,30,22,0.35)' : 'rgba(170,155,135,0.25)';
+      const x = (k * 37) % w;
+      c.fillRect(x, (k * 53) % h, 2 + (k % 3), 30 + (k % 5) * 18);
+    }
+  });
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(2, 1);
+  return t;
+}
+function buildJamun(g, r) {
+  const bark = new THREE.MeshStandardMaterial({ map: barkTexture(), roughness: 0.95 });
+  const tree = new THREE.Group();
+  g.add(tree);
+  // trunk with flared roots
+  const trunk = mesh(new THREE.CylinderGeometry(0.72, 1.15, 5.6, 14), bark, 0, 2.8, 0);
+  trunk.rotation.z = 0.04;
+  tree.add(trunk);
+  for (let k = 0; k < 6; k++) {
+    const a = (k / 6) * Math.PI * 2 + 0.3;
+    const root = mesh(new THREE.CylinderGeometry(0.12, 0.42, 1.9, 7), bark, Math.cos(a) * 1.05, 0.35, Math.sin(a) * 1.05);
+    root.rotation.set(Math.sin(a) * 1.15, 0, -Math.cos(a) * 1.15);
+    tree.add(root);
+  }
+  // spreading limbs, each ending in a clump of the crown
+  const greens = ['#2c5a2a', '#356b2f', '#264f27', '#3f7a34', '#2f6330'];
+  const leafMats = greens.map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.55, metalness: 0.05, flatShading: true }));
+  const crownPts = [];
+  for (let k = 0; k < 7; k++) {
+    const a = (k / 7) * Math.PI * 2 + r() * 0.4;
+    const len = 3.4 + r() * 1.4;
+    const tilt = 0.75 + r() * 0.25;
+    const base = new THREE.Vector3(0, 4.4 + r() * 1.2, 0);
+    const dir = new THREE.Vector3(Math.cos(a) * Math.sin(tilt), Math.cos(tilt), Math.sin(a) * Math.sin(tilt));
+    const end = base.clone().addScaledVector(dir, len);
+    const limb = mesh(new THREE.CylinderGeometry(0.16, 0.36, len, 8), bark, 0, 0, 0);
+    limb.position.copy(base).add(end).multiplyScalar(0.5);
+    limb.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    tree.add(limb);
+    crownPts.push(end);
+  }
+  // the dense crown: a broad dome of overlapping clumps
+  for (let k = 0; k < 26; k++) {
+    const a = r() * Math.PI * 2;
+    const rr = Math.sqrt(r()) * 5.6;
+    const y = 9.2 + (1 - (rr / 5.6) ** 2) * 2.6 + (r() - 0.5) * 0.8;
+    const clump = mesh(new THREE.IcosahedronGeometry(2.0 + r() * 1.2, 1), leafMats[k % leafMats.length], Math.cos(a) * rr, y, Math.sin(a) * rr);
+    clump.scale.y = 0.78;
+    tree.add(clump);
+  }
+  for (const p of crownPts) tree.add(mesh(new THREE.IcosahedronGeometry(1.9 + r() * 0.6, 1), leafMats[Math.floor(r() * leafMats.length)], p.x, p.y + 0.8, p.z));
+  // jamun fruit: glossy purple-black, in clusters on the outside of the crown
+  const fruitGeo = new THREE.SphereGeometry(0.11, 8, 6);
+  fruitGeo.scale(1, 1.25, 1);
+  const fruitMat = new THREE.MeshPhysicalMaterial({ color: '#3a1846', roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.1 });
+  const fruits = new THREE.InstancedMesh(fruitGeo, fruitMat, 420);
+  const m4 = new THREE.Matrix4();
+  const v = new THREE.Vector3();
+  let n = 0;
+  for (let c = 0; c < 60 && n < 420; c++) {
+    const a = r() * Math.PI * 2;
+    const rr = 3.2 + r() * 3.4;
+    const y = 8.0 + (1 - (Math.min(rr, 6) / 6) ** 2) * 3.4 + r() * 0.6;
+    const cx = Math.cos(a) * rr;
+    const cz = Math.sin(a) * rr;
+    for (let k = 0; k < 7 && n < 420; k++) {
+      v.set(cx + (r() - 0.5) * 0.45, y - r() * 0.35, cz + (r() - 0.5) * 0.45);
+      m4.makeTranslation(v.x, v.y, v.z);
+      fruits.setMatrixAt(n++, m4);
+    }
+  }
+  fruits.count = n;
+  fruits.castShadow = true;
+  tree.add(fruits);
+  // fallen jamuns and their purple stains under the tree
+  const fallen = new THREE.InstancedMesh(fruitGeo, fruitMat, 50);
+  const stain = new THREE.InstancedMesh(new THREE.CircleGeometry(1, 12), new THREE.MeshStandardMaterial({ color: '#6b3a70', roughness: 1, polygonOffset: true, polygonOffsetFactor: -2 }), 24);
+  const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
+  for (let k = 0; k < 50; k++) {
+    const a = r() * Math.PI * 2;
+    const rr = 1.8 + r() * 5.2;
+    m4.compose(v.set(Math.cos(a) * rr, 0.09, Math.sin(a) * rr), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2), new THREE.Vector3(1, 1, 1));
+    fallen.setMatrixAt(k, m4);
+  }
+  for (let k = 0; k < 24; k++) {
+    const a = r() * Math.PI * 2;
+    const rr = 1.8 + r() * 5;
+    const sc = 0.12 + r() * 0.28;
+    m4.compose(v.set(Math.cos(a) * rr, 0.035, Math.sin(a) * rr), q, new THREE.Vector3(sc, sc * (0.7 + r() * 0.5), 1));
+    stain.setMatrixAt(k, m4);
+  }
+  tree.add(fallen, stain);
+  // a small wooden sign by the trunk
+  const sign = new THREE.Group();
+  sign.position.set(0, 0, 2.6);
+  sign.add(mesh(new THREE.BoxGeometry(0.08, 1.0, 0.08), WOOD, 0, 0.5, 0));
+  const board = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.5, 0.55),
+    new THREE.MeshBasicMaterial({
+      toneMapped: false,
+      side: THREE.DoubleSide,
+      map: canvasTexture(480, 176, (c, w, h) => {
+        c.fillStyle = '#7a5a3c';
+        c.fillRect(0, 0, w, h);
+        c.strokeStyle = '#5a3f28';
+        c.lineWidth = 8;
+        c.strokeRect(4, 4, w - 8, h - 8);
+        c.fillStyle = '#fff3dc';
+        c.font = '800 54px "Bricolage Grotesque", Inter, sans-serif';
+        c.fillText('Jamun tree', 28, 78);
+        c.font = '500 26px Inter, sans-serif';
+        c.fillText('from my childhood home', 30, 128);
+      }),
+    })
+  );
+  board.position.y = 1.15;
+  board.userData.dynamic = true;
+  sign.add(board);
+  const info = new THREE.Object3D();
+  info.position.set(0, 0, 3.4);
+  info.userData.interact = { kind: 'toast', label: 'The jamun tree', verb: 'Read', text: '<b>🌳 The jamun tree.</b> A jamun like the one at Vibhor’s childhood home. Every road on the island starts under its branches.' };
+  sign.add(info);
+  g.add(sign);
+}
+
 
 function runeTexture(rune) {
   return canvasTexture(128, 128, (x) => {
@@ -783,19 +916,7 @@ function buildCentre(scene, ctx) {
   g.position.y = y0;
   scene.add(g);
 
-  g.add(mesh(new THREE.CylinderGeometry(0.9, 1.6, 8, 12), solid('#6e5038', { flatShading: true }), 0, 4, 0));
-  for (let k = 0; k < 6; k++) {
-    const a = (k / 6) * Math.PI * 2;
-    const root = mesh(new THREE.CylinderGeometry(0.2, 0.5, 2.4, 6), solid('#6e5038'), Math.cos(a) * 1.4, 0.4, Math.sin(a) * 1.4);
-    root.rotation.set(Math.sin(a) * 1.0, 0, -Math.cos(a) * 1.0);
-    g.add(root);
-  }
-  const leaves = ['#4f9a33', '#5fae38', '#3f8a2c', '#79bf45'];
-  for (let k = 0; k < 12; k++) {
-    const a = r() * Math.PI * 2;
-    const d = k === 0 ? 0 : 2.5 + r() * 3;
-    g.add(mesh(new THREE.IcosahedronGeometry(2.8 + r() * 1.8, 1), solid(leaves[k % 4], { flatShading: true }), Math.cos(a) * d, 9.5 + r() * 3, Math.sin(a) * d));
-  }
+  buildJamun(g, r);
   collider(g, 1.9);
   // Floating halo ring around the canopy
   const halo = new THREE.Mesh(new THREE.TorusGeometry(7.5, 0.16, 12, 96), WHITE_METAL);
@@ -823,21 +944,17 @@ function buildCentre(scene, ctx) {
   g.add(hall);
 
   ctx.stones = [];
+  const pillarAnim = [];
   PILLARS.forEach((p, k) => {
     const a = THREE.MathUtils.degToRad(-120 + 36 + k * 72);
-    const x = Math.cos(a) * 9.6;
-    const z = Math.sin(a) * 9.6;
-    const s = new THREE.Group();
-    s.position.set(x, groundAt(x, z) - y0 - 0.2, z);
-    s.rotation.y = Math.atan2(x, z);
-    s.add(mesh(new THREE.BoxGeometry(1.3, 3.4, 0.6), WHITE_METAL, 0, 1.7, 0));
-    const runeMat = new THREE.MeshBasicMaterial({ color: '#ffc93c', alphaMap: runeTexture(p.rune), transparent: true, toneMapped: false });
-    const rune = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.9), runeMat);
-    rune.position.set(0, 2.1, 0.31);
-    s.add(rune);
+    const x = Math.cos(a) * 9.8;
+    const z = Math.sin(a) * 9.8;
+    const s = makePillar(p, pillarAnim);
+    s.position.set(x, groundAt(x, z) - y0 - 0.05, z);
+    s.rotation.y = Math.atan2(x, z); // plaque faces out, toward the roads
     g.add(s);
-    collider(g, 0.8, x, z);
-    ctx.stones.push({ pillar: p, x, z, mat: runeMat });
+    collider(g, 1.4, x, z);
+    ctx.stones.push({ pillar: p, x, z });
   });
 
   const mix = HAMLETS.map((h) => h.color);
@@ -856,7 +973,7 @@ function buildCentre(scene, ctx) {
       halo.rotation.z = t * 0.05;
       halo.position.y = 7.2 + Math.sin(t * 0.8) * 0.25;
       haloGlow.position.y = halo.position.y - 0.2;
-      for (const st of ctx.stones) st.mat.opacity = 0.7 + Math.sin(t * 2 + st.x) * 0.3;
+      for (const f of pillarAnim) f(t);
     },
   });
 }

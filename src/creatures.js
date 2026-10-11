@@ -508,7 +508,7 @@ export function buildCreatures(scene, ctx) {
             R.eatenPlayerAt = t;
             player.root.visible = false;
             sfx('chomp', { gap: 0.5 });
-            ui.toast('<b>🦖 CHOMP.</b> The T-rex ate you. Back to the Party Tree…', 3200);
+            ui.toast('<b>🦖 CHOMP.</b> The T-rex ate you. Back to the jamun tree…', 3200);
           } else {
             // the shove: a big knock back and a hop
             const k = 1 / Math.max(pd, 0.01);

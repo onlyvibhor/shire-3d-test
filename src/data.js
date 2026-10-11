@@ -72,7 +72,7 @@ export const AWARDS = [
   { id: 'et-silver', name: 'ET Brand Disruption Awards 2026', detail: 'Silver, Most Disruptive B2B Campaign', project: 'trial' },
 ];
 
-// The five standing stones around the Party Tree.
+// The five pillars around the jamun tree.
 export const PILLARS = [
   { id: 'better', name: 'Make it better', rune: '✦', text: 'One visual system and storytelling method across Payments, RazorpayX and POS.' },
   { id: 'award', name: 'Award-winning', rune: '★', text: 'Shorty Awards winner, Kyoorius First List, ET Brand Disruption Gold for the design team.' },
@@ -475,11 +475,11 @@ export const PROJECTS = {
   },
 };
 
-// The centre of the village: Communication Design HQ under the Party Tree.
+// The centre of the village: Communication Design HQ under the jamun tree.
 export const CENTER = {
   id: 'hq',
   name: 'Communication Design HQ',
-  place: 'The Party Tree',
+  place: 'The Jamun Tree',
   color: '#d9a441',
   lead: 'Where every department meets. My team sits here, connecting briefs, words, pixels and launches into one story.',
   how: [
