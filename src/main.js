@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { step, finishLoading, hideLoader } from './loading.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
@@ -81,26 +82,32 @@ composer.addPass(new OutputPass());
 // ---------- World ----------
 
 // Everything on the island lives in `outdoor`, so it can be hidden when you step inside a building.
+await step('Raising the island', 0.05);
 const outdoor = new THREE.Group();
 scene.add(outdoor);
 const sky = buildSky(outdoor);
 const updateClouds = buildClouds(outdoor);
 const { terrain } = buildTerrain(outdoor);
 const ocean = buildOcean(outdoor);
+await step('Planting grass and flowers', 0.18);
 const grassWind = buildGrass(outdoor, LITE ? 60000 : 180000);
 const lavWind = buildLavender(outdoor, LITE ? 6000 : 14000);
 const flowerWind = buildFlowers(outdoor, LITE ? 4000 : 10000);
+await step('Growing the woods', 0.3);
 buildMountains(outdoor);
 const colliders = [];
 buildTrees(outdoor, colliders);
 buildMonoliths(outdoor, colliders);
 const updateRail = buildSkyRail(outdoor, colliders);
 buildStreetLamps(outdoor, colliders);
+await step('Building the piers', 0.38);
 const coast = buildCoast(outdoor, colliders);
 const updateProps = buildFloatingProps(outdoor);
 const updatePollen = buildPollen(outdoor);
+await step('Building the hamlets', 0.45);
 const village = buildVillage(outdoor);
 const dayNight = createDayNight({ scene, root: outdoor, sun, hemi, sky, renderer, bloom, ocean: ocean });
+await step('Furnishing the rooms', 0.78);
 const rooms = buildInteriors(scene);
 for (const room of Object.values(rooms)) room.interactables.push({ kind: 'exit', label: 'Back to the island', verb: 'Exit', x: room.origin.x + room.exit.x, z: room.origin.z + room.exit.z });
 colliders.push(...village.colliders);
@@ -1049,7 +1056,10 @@ function frame() {
   composer.render();
   requestAnimationFrame(frame);
 }
+await step('Waking everyone up', 0.95);
 requestAnimationFrame(frame);
+await finishLoading({ renderer, scene, camera, render: () => composer.render() });
+hideLoader();
 ui.ready();
 
 window.__shire = { state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };

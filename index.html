@@ -8,8 +8,32 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Mono&family=Inter+Tight:wght@400;500;600;700&family=Instrument+Serif:ital@1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      /* The loading screen, inlined so it paints before any script or stylesheet arrives */
+      html, body { background: #0b1020; }
+      #loader { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: #0b1020; color: #f4f7ff; font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif; transition: opacity .8s ease, visibility .8s; }
+      body.is-ready #loader { opacity: 0; visibility: hidden; pointer-events: none; }
+      .ld { width: min(260px, 70vw); }
+      .ld__name { margin: 0; font-family: 'Bricolage Grotesque', Inter, system-ui, sans-serif; font-weight: 600; font-size: 20px; letter-spacing: -.01em; }
+      .ld__sub { margin: 4px 0 22px; font-size: 12px; color: rgba(226,234,255,.5); }
+      .ld__bar { position: relative; height: 1px; background: rgba(255,255,255,.12); overflow: hidden; }
+      .ld__bar i { position: absolute; inset: 0; background: linear-gradient(90deg, #3d7bff, #00d2ff); transform-origin: left; transform: scaleX(0); transition: transform .45s cubic-bezier(.2,.8,.2,1); }
+      /* before the scripts report progress, a quiet sweep */
+      body:not(.is-loading) .ld__bar i { width: 30%; transform: none; animation: ld-sweep 1.4s ease-in-out infinite; }
+      @keyframes ld-sweep { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+      .ld__meta { display: flex; justify-content: space-between; margin: 10px 0 0; font-family: 'DM Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: .04em; color: rgba(226,234,255,.5); font-variant-numeric: tabular-nums; }
+      @media (prefers-reduced-motion: reduce) { .ld__bar i { transition: none; animation: none !important; } }
+    </style>
   </head>
   <body data-mode="intro">
+    <div id="loader" role="status" aria-live="polite">
+      <div class="ld">
+        <p class="ld__name">Vibhor Mathur</p>
+        <p class="ld__sub">A portfolio you can walk through</p>
+        <div class="ld__bar"><i id="ld-fill"></i></div>
+        <p class="ld__meta"><span id="ld-step">Loading</span><span id="ld-pct"></span></p>
+      </div>
+    </div>
     <canvas id="scene"></canvas>
     <div id="labels"></div>
     <div id="thoughts"></div>
@@ -133,7 +157,7 @@
 
     <div id="indoor"></div>
     <div id="fader"></div>
-    <div id="loader"><span>Building the village…</span></div>
+
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
