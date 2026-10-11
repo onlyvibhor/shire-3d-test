@@ -472,3 +472,108 @@ figure.cs-blk { margin-top: clamp(56px, 11vh, 140px); margin-bottom: 0; }
   .btn.btn--hud { padding: 9px 12px; }
   .hud__nav { gap: 6px; }
 }
+
+/* ==========================================================================
+   Compact, minimal: smaller type, tighter padding, quieter shadows
+   ========================================================================== */
+:root {
+  --depth: 0 14px 30px -14px rgba(2, 8, 28, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  --glass-tint: rgba(10, 16, 34, 0.72);
+}
+kbd { font-size: 10px; padding: 1px 5px; box-shadow: none; }
+.eyebrow { font-size: 10px; margin-bottom: 6px; }
+.close { width: 26px; height: 26px; font-size: 16px; top: 8px; right: 8px; }
+
+/* HUD: one slim bar */
+#hud { padding: 10px 12px; gap: 8px; }
+.hud__brand { gap: 8px; padding: 4px 10px 4px 4px; cursor: pointer; transition: background-color .2s; }
+.hud__brand:hover { background-color: rgba(30, 44, 80, .8); }
+.hud__brand img { width: 26px; height: 26px; box-shadow: none; }
+.hud__brand b { font-size: 13px; }
+.hud__brand span { font-size: 10.5px; }
+.hud__nav { gap: 4px; }
+.btn.btn--hud { padding: 6px 10px; font-size: 12px; font-weight: 600; gap: 6px; box-shadow: var(--depth); }
+.btn.btn--hud kbd { display: none; }
+.btn:hover { transform: none; }
+#btn-time b { font-size: 11px; }
+
+/* objectives: a small card, progress as hairlines */
+#missions { top: 56px; left: 12px; width: 200px; padding: 8px 10px 10px; }
+.missions__head { font-size: 10px; padding: 0 0 6px; }
+#mission-list { gap: 6px; margin-bottom: 8px; }
+#mission-list li { font-size: 11.5px; gap: 3px 6px; }
+#mission-list li i { height: 2px; }
+#mission-list li i::after { box-shadow: none; }
+#visited-dots { gap: 4px; }
+.dot { width: 12px; height: 12px; border-width: 1.5px; }
+.dot.is-visited { box-shadow: none; }
+
+#minimap { left: 12px; bottom: 12px; width: 124px; height: 124px; box-shadow: 0 0 0 1px rgba(255,255,255,.3), var(--depth); }
+#keys { right: 12px; bottom: 12px; padding: 5px 9px; font-size: 10.5px; line-height: 1.8; }
+
+/* labels, speech and thoughts */
+.label { padding: 4px 9px 5px 8px; column-gap: 6px; grid-template-columns: 7px auto; }
+.label::before { width: 7px; height: 7px; box-shadow: none; }
+.label::after { display: none; }
+.label__name { font-size: 12px; font-weight: 700; }
+.label__team { font-size: 10px; }
+#speech { max-width: 240px; padding: 7px 10px 8px; font-size: 12px; }
+#speech small { font-size: 9px; }
+.thought { max-width: 180px; padding: 5px 9px; font-size: 11px; }
+
+/* the side panel: flat, narrower, no swing */
+#panel { top: 56px; right: 12px; width: min(340px, calc(100vw - 24px)); max-height: calc(100vh - 120px); padding: 16px 16px 14px; transform: translateX(calc(100% + 40px)); }
+#panel.is-open, #panel.is-open:hover { transform: none; }
+#panel::before { opacity: .5; }
+#panel h2 { font-size: 22px; margin-bottom: 6px; }
+#panel h3 { font-size: 10px; margin: 14px 0 8px; }
+#panel p, #panel ul { font-size: 12.5px; }
+#panel .lead { font-size: 13px; }
+.chips { gap: 4px; margin-top: 10px; }
+.chip { font-size: 11px; padding: 3px 8px; }
+.works { gap: 6px; }
+.work { grid-template-columns: 64px 1fr; gap: 10px; padding: 5px; }
+.work:hover { transform: none; background: rgba(255,255,255,.14); }
+.work img { width: 64px; height: 44px; }
+.work b { font-size: 12.5px; }
+.work em { font-size: 11px; }
+.numbers { gap: 6px; margin-top: 12px; }
+.numbers div { padding: 8px; }
+.numbers b { font-size: 20px; }
+.numbers span { font-size: 10.5px; }
+.actions { gap: 6px; margin-top: 12px; }
+.actions .btn { font-size: 12px; padding: 7px 11px; }
+
+/* prompt and toast */
+#prompt { bottom: 72px; gap: 8px; padding: 5px 12px 5px 5px; font-size: 12.5px; }
+#prompt kbd { font-size: 12px; padding: 3px 8px; box-shadow: none; }
+#toast { bottom: 16px; padding: 8px 14px; font-size: 12.5px; line-height: 1.45; }
+#indoor { top: 56px; padding: 5px 12px 5px 9px; font-size: 12px; }
+
+/* the splash / about card */
+.intro__card { width: min(600px, 100%); padding: 24px 26px; }
+.intro__head { gap: 14px; margin-bottom: 12px; }
+.intro__head img { width: 64px; height: 64px; transform: none; box-shadow: none; }
+.intro__card h1 { font-size: clamp(28px, 5vw, 44px); }
+.intro__role { font-size: 12.5px; margin-top: 4px; }
+.intro__tagline { font-size: 17px; margin-bottom: 8px; }
+.intro__body { font-size: 13.5px; line-height: 1.55; margin-bottom: 14px; }
+.legend { gap: 5px; margin-bottom: 12px; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+.legend li { padding: 5px 8px; font-size: 12px; }
+.legend li:hover { transform: none; }
+.legend span { font-size: 10.5px; }
+.intro__awards { padding: 8px 10px; font-size: 12px; margin-bottom: 14px; }
+.btn--big { padding: 10px 16px; font-size: 13.5px; }
+.intro__keys { font-size: 11px; margin-top: 10px; }
+#splash-close { display: none; }
+body.splash-open #intro { opacity: 1; visibility: visible; pointer-events: auto; z-index: 32; background: rgba(5, 10, 30, .45); }
+body.splash-open #intro .orbs { display: none; }
+body.splash-open #splash-close { display: block; }
+
+/* hire card */
+.hire__card { width: min(700px, 100%); padding: 24px; }
+.hire__head img { width: 60px; height: 60px; transform: none; }
+.hire__head h2 { font-size: 26px; }
+.hire__card .lead { font-size: 17px; }
+.hire__card h3 { font-size: 10px; margin: 18px 0 8px; }
+.result b { font-size: 22px; }

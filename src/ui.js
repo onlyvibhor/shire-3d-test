@@ -23,8 +23,28 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     .map((p) => `<li><i style="background:${p.color}"></i><b>${esc(p.name)}</b><span>${esc(p.place)}${p.projects.length ? ` · ${p.projects.length} projects` : ""}</span></li>`)
     .join('');
   $('#intro-awards').innerHTML = awards.map((a) => `<li><span>🏆</span>${esc(a.name)}<em>${esc(a.detail)}</em></li>`).join('');
-  $('#btn-enter').addEventListener('click', onEnter);
-  $('#btn-tour').addEventListener('click', onTour);
+  // The splash card doubles as the about-me card: the name chip in the HUD reopens it over the game.
+  const enterBtn = $('#btn-enter');
+  const enterLabel = enterBtn.textContent;
+  const splashOpen = () => document.body.classList.contains('splash-open');
+  function openSplash() {
+    document.body.classList.add('splash-open');
+    enterBtn.textContent = 'Back to the island';
+  }
+  function closeSplash() {
+    document.body.classList.remove('splash-open');
+    enterBtn.textContent = enterLabel;
+  }
+  enterBtn.addEventListener('click', () => (splashOpen() ? closeSplash() : onEnter()));
+  $('#btn-tour').addEventListener('click', () => {
+    closeSplash();
+    onTour();
+  });
+  $('#splash-close').addEventListener('click', closeSplash);
+  $('.hud__brand').addEventListener('click', openSplash);
+  $('#intro').addEventListener('click', (e) => {
+    if (e.target.id === 'intro' && splashOpen()) closeSplash();
+  });
 
   // ----- HUD -----
   $('#btn-overview').addEventListener('click', onOverview);
@@ -382,6 +402,10 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
   });
 
   function closeOverlays() {
+    if (splashOpen()) {
+      closeSplash();
+      return true;
+    }
     if (webpop.classList.contains('is-open')) {
       closeWeb();
       return true;
@@ -398,7 +422,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     }
     return false;
   }
-  const modalOpen = () => caseStudy.isOpen() || hire.classList.contains('is-open') || webpop.classList.contains('is-open');
+  const modalOpen = () => splashOpen() || caseStudy.isOpen() || hire.classList.contains('is-open') || webpop.classList.contains('is-open');
 
   // ----- Tour -----
   $('#tour-prev').addEventListener('click', () => onTourStep(-1));
@@ -440,6 +464,6 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
 
   return {
     placeLabel, showPlace, hidePlace, toast, toggleHire, toggleMissions, closeOverlays, modalOpen, setMode, setTourProgress,
-    ready, openProject, openWeb, stepGallery, prompt, speech, thoughts, collectTrophy, visited, setClock, setTimeMode, showInfo, fade, setIndoor,
+    ready, openProject, openWeb, openSplash, stepGallery, prompt, speech, thoughts, collectTrophy, visited, setClock, setTimeMode, showInfo, fade, setIndoor,
   };
 }

@@ -5,6 +5,7 @@ import { HAMLETS } from './data.js';
 import { walkY, rng } from './world.js';
 import { canvasTexture } from './materials.js';
 import { makePerson, giveProp } from './characters.js';
+import { playerPos } from './village.js';
 
 // ---------- A floating tag above a walker, e.g. "📄 Brief → Brand" ----------
 
@@ -239,10 +240,18 @@ export function buildTraffic(scene, ctx) {
         const there = new THREE.SpriteMaterial({ map: tagTexture(E.icon, E.tag(a, b), a.color), transparent: true, depthWrite: false });
         const back = new THREE.SpriteMaterial({ map: tagTexture(E.icon, kind === 'collab' ? E.tag(a, b) : kind === 'brief' ? `Brief delivered ✓ back to ${a.name}` : `Approved ✓ back to ${a.name}`, a.color), transparent: true, depthWrite: false });
         const tag = new THREE.Sprite(there);
-        tag.scale.set(2.6, 0.57, 1);
+        tag.scale.set(1.9, 0.42, 1);
         tag.position.y = 2.55;
         p.root.add(tag);
-        ctx.updaters.push({ update: () => (tag.material = walker.dir > 0 ? there : back) });
+        const wp = new THREE.Vector3();
+        ctx.updaters.push({
+          update: () => {
+            tag.material = walker.dir > 0 ? there : back;
+            // up close their speech bubble says it; the tag would only fill the screen
+            p.root.getWorldPosition(wp);
+            tag.visible = wp.distanceTo(playerPos) > 4.5;
+          },
+        });
       }
       ctx.npcs.push({ p, dept: a.id, name: kind === 'brief' ? `Brief runner · ${a.name}` : kind === 'approval' ? `Approval chaser · ${a.name}` : `${a.name} × ${b.name}`, lines: E.lines(a, b), thoughts: E.thoughts(a, b) });
     }
