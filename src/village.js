@@ -5,6 +5,7 @@ import { makeDome, makeDrone, makeScooter, makeDesk, makeMonitorWall, dashboardT
 import { makePerson, giveProp, animate } from './characters.js';
 import { makeArch } from './landmarks.js';
 import { buildCreatures } from './creatures.js';
+import { buildTraffic } from './traffic.js';
 import { buildJaipur, makePol, cuspedArchPoints, PINK as JAIPUR_PINK, OCHRE } from './jaipur.js';
 import { WHITE_METAL, BRUSHED, CHROME, GLASS, GOLD, WOOD, DARK, MOUND, WINDOW_GLOW, CONCRETE, solid, glow, mesh, canvasTexture, deepMerge, mergeStatic } from './materials.js';
 
@@ -1537,6 +1538,7 @@ export function buildVillage(scene) {
   buildScooters(scene, ctx);
   ctx.Walker = Walker;
   buildJaipur(scene, ctx);
+  buildTraffic(scene, ctx);
   const creatures = buildCreatures(scene, ctx);
   const smoke = buildSmoke(scene);
 

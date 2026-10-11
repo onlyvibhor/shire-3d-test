@@ -796,7 +796,7 @@ function updateNpcs(t) {
     npcPos.y += 0.5;
     npcPos.project(camera);
     if (npcPos.z > 1 || Math.abs(npcPos.x) > 0.95 || Math.abs(npcPos.y) > 0.95) continue;
-    const th = n.talk.thoughts;
+    const th = n.thoughts || n.talk.thoughts;
     bubbles.push({
       text: th[(n.i * 3 + Math.floor((t + n.i * 1.7) / 8)) % th.length],
       color: n.color,
