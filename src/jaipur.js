@@ -242,7 +242,7 @@ export function makePol({ w = 9, h = 8, a = 2.2, spring = 3.4, depth = 1.6, colo
 // Pink sandstone posts with chhatri finials, a cusped crest, and a painted panel in the style of Jaipur's
 // blue pottery: cream ground, indigo borders, flowers in the corners, and the belief set in big type.
 
-const INDIGO = '#22408a';
+export const INDIGO = '#22408a';
 function flower(c, x, y, r, petal = INDIGO, heart = '#19a7a1') {
   c.fillStyle = petal;
   for (let k = 0; k < 8; k++) {
@@ -275,14 +275,13 @@ function paintedPanel(w, h, draw) {
     draw(c, w, h);
   });
 }
-export function makeBeliefSign(place, belief) {
+// A Jaipur signboard: pink sandstone posts with chhatri finials, a cusped crest and painted
+// panels front and back. `front` and `back` draw on canvases (c, w, h) with the cream ground ready.
+export function makeSignboard({ name = 'signboard', color = '#d9a441', W = 3.3, H = 2.05, y0 = 1.0, res = 1500, front, back }) {
   const g = new THREE.Group();
-  g.name = `belief-${place.id}`;
+  g.name = name;
   const stone = solid(PINK, { roughness: 0.85, emissive: PINK, emissiveIntensity: 0.12 });
   const lime = solid(LIME, { roughness: 0.8 });
-  const W = 3.3;
-  const H = 2.05;
-  const y0 = 1.0;
   // posts with caps and chhatri finials
   for (const sx of [-1, 1]) {
     g.add(mesh(new THREE.BoxGeometry(0.32, y0 + H + 0.35, 0.32), stone, sx * (W / 2 + 0.06), (y0 + H + 0.35) / 2, 0));
@@ -309,17 +308,34 @@ export function makeBeliefSign(place, belief) {
   g.add(mesh(new THREE.BoxGeometry(W - 0.12, 0.06, 0.2), lime, 0, y0 + 0.08, 0));
   g.add(mesh(new THREE.BoxGeometry(W - 0.12, 0.06, 0.2), lime, 0, y0 + H - 0.08, 0));
   // the crest medallion carries the department's colour
-  const med = new THREE.Mesh(new THREE.CircleGeometry(0.2, 24), new THREE.MeshStandardMaterial({ color: place.color, roughness: 0.4, emissive: place.color, emissiveIntensity: 0.15 }));
+  const med = new THREE.Mesh(new THREE.CircleGeometry(0.2, 24), new THREE.MeshStandardMaterial({ color, roughness: 0.4, emissive: color, emissiveIntensity: 0.15 }));
   for (const z of [0.075, -0.075]) {
     const m = med.clone();
     m.position.set(0, y0 + H + 0.26, z);
     if (z < 0) m.rotation.y = Math.PI;
     g.add(m);
   }
-  // front: the belief. back: the place's name
   const PW = W - 0.26;
   const PH = H - 0.26;
-  const front = paintedPanel(1500, Math.round((1500 * PH) / PW), (c, w, h) => {
+  const frontTex = paintedPanel(res, Math.round((res * PH) / PW), front);
+  const backTex = paintedPanel(res, Math.round((res * PH) / PW), back);
+  for (const [tex, z, ry] of [[frontTex, 0.076, 0], [backTex, -0.076, Math.PI]]) {
+    // a touch of self-light keeps the painted panel cream, not grey, when it's in shade
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(PW, PH), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85, emissive: '#ffffff', emissiveMap: tex, emissiveIntensity: 0.32 }));
+    m.position.set(0, y0 + H / 2, z);
+    m.rotation.y = ry;
+    m.userData.dynamic = true;
+    g.add(m);
+  }
+  g.traverse((o) => {
+    if (o.isMesh) o.castShadow = true;
+  });
+  return g;
+}
+
+export function makeBeliefSign(place, belief) {
+  // front: the belief. back: the place's name
+  const front = (c, w, h) => {
     const pad = 104;
     c.textBaseline = 'top';
     // measure the block (eyebrow, belief, supporting line) and centre it in the panel
@@ -350,8 +366,8 @@ export function makeBeliefSign(place, belief) {
     c.textAlign = 'right';
     c.font = `italic 400 54px ${FONT.serif}`;
     c.fillText('— Vibhor', w - pad, h - 128);
-  });
-  const back = paintedPanel(1500, Math.round((1500 * PH) / PW), (c, w, h) => {
+  };
+  const back = (c, w, h) => {
     c.textAlign = 'center';
     c.textBaseline = 'middle';
     c.fillStyle = '#2a1d14';
@@ -360,19 +376,8 @@ export function makeBeliefSign(place, belief) {
     c.fillStyle = place.color;
     fit(c, place.place, { weight: 600, size: 46, min: 24, family: FONT.sans, maxW: w - 260 });
     c.fillText(place.place, w / 2, h * 0.64);
-  });
-  for (const [tex, z, ry] of [[front, 0.076, 0], [back, -0.076, Math.PI]]) {
-    // a touch of self-light keeps the painted panel cream, not grey, when it's in shade
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(PW, PH), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85, emissive: '#ffffff', emissiveMap: tex, emissiveIntensity: 0.32 }));
-    m.position.set(0, y0 + H / 2, z);
-    m.rotation.y = ry;
-    m.userData.dynamic = true;
-    g.add(m);
-  }
-  g.traverse((o) => {
-    if (o.isMesh) o.castShadow = true;
-  });
-  return g;
+  };
+  return makeSignboard({ name: `belief-${place.id}`, color: place.color, front, back });
 }
 
 // ---------- Jantar Mantar ----------

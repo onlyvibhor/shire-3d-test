@@ -1,9 +1,11 @@
 import { createCaseStudy } from './casestudy.js';
 import { sfx, audioSettings, setLevel, toggleMute, onAudioChange, startAudio } from './audio.js';
+import { LEADER, LENSES, PLAYS, METHOD, PROJECTS as ALL_PROJECTS } from './data.js';
+import about from './content/about.json';
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-export function createUI({ owner, pillars, places, projects, awards, contact, favourites, tools = [], awardList = [], onEnter, onTour, onOverview, onTravel, onTourStep, onExitTour, onTime, onWalk, onRide, onPromptTap }) {
+export function createUI({ owner, pillars, places, projects, awards, contact, favourites, tools = [], awardList = [], onEnter, onTour, onOverview, onTravel, onTourStep, onExitTour, onTime, onWalk, onRide, onPromptTap, onBriefs, onHomeVisit }) {
   const visited = new Set();
   const viewed = new Set();
   const trophies = new Set();
@@ -23,6 +25,12 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     .filter((p) => p.id !== 'hq')
     .map((p) => `<li><i style="background:${p.color}"></i><b>${esc(p.name)}</b><span>${esc(p.place)}${p.projects.length ? ` · ${p.projects.length} projects` : ""}</span></li>`)
     .join('');
+  const statHtml = (list) => list.map((n) => `<div><b>${esc(n.value)}</b><span>${esc(n.label)}</span></div>`).join('');
+  const impactHtml = (list) => list.map((n) => `<div class="impact__item"><b>${esc(n.value)}</b><span>${esc(n.label)}</span><p>${esc(n.text)}</p></div>`).join('');
+  $('#intro-numbers').innerHTML = statHtml(owner.numbers);
+  $('#intro-leader-title').textContent = LEADER.title;
+  $('#intro-leader-line').textContent = LEADER.line;
+  $('#intro-impact').innerHTML = impactHtml(LEADER.impact);
   $('#intro-awards').innerHTML = awards.map((a) => `<li><span>🏆</span>${esc(a.name)}<em>${esc(a.detail)}</em></li>`).join('');
   // Soft ticks under the pointer and a click on every control
   const CONTROL = 'button, .btn, .work, .label, .dot, .legend li, [role="button"], a, .cs-vbox';
@@ -55,6 +63,11 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     onTour();
   });
   $('#splash-close').addEventListener('click', closeSplash);
+  $('#btn-brief-intro').addEventListener('click', () => {
+    if (splashOpen()) closeSplash();
+    else onEnter();
+    setTimeout(() => onBriefs?.(), 250);
+  });
   $('.hud__brand').addEventListener('click', openSplash);
   $('#intro').addEventListener('click', (e) => {
     if (e.target.id === 'intro' && splashOpen()) closeSplash();
@@ -138,8 +151,10 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     const id = e.target.dataset?.id;
     if (id) onTravel(id);
   });
+  let campaigns = [0, 0];
   function renderMissions() {
     const rows = [
+      ...(campaigns[1] ? [['Ship campaigns', campaigns[0], campaigns[1]]] : []),
       ['Meet every department', visited.size, places.length],
       ['Open project files', viewed.size, totalProjects],
       ['Find the golden trophies', trophies.size, awards.length],
@@ -229,6 +244,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
   }
   // Generic info panels: the AI stack, the awards, writing and leadership notes.
   function showInfo(kind) {
+    if (kind === 'playbook') return openPlaybook();
     const C = { tools: '#00c2ff', awards: '#f5b700', leadership: '#e0786a' }[kind];
     let body = '';
     if (kind === 'tools') {
@@ -440,6 +456,100 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
 
   // ----- Hire modal -----
   const hire = $('#hire');
+  // ----- Home: the about-me postcard -----
+  const homepop = $('#homepop');
+  const md = (t) => esc(t).replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  $('#home-headline').innerHTML = md(about.headline);
+  $('#home-intro').innerHTML = about.intro.map((p) => `<p>${md(p)}</p>`).join('');
+  $('#home-numbers').innerHTML = statHtml(owner.numbers);
+  $('#home-path').innerHTML = about.timeline.items.map((i) => `<li><span>${esc(i.years)}</span><b>${esc(i.org)}</b><em>${esc(i.role)}</em><p>${esc(i.note)}</p></li>`).join('');
+  $('#home-notes').innerHTML = about.leadership.items.map((i, k) => `<div><span>${String(k + 1).padStart(2, '0')}</span><b>${esc(i.title)}</b><p>${esc(i.body)}</p></div>`).join('');
+  $('#home-after').textContent = about.studio.body.split('\n')[0];
+  function openHome() {
+    if (homepop.classList.contains('is-open')) return;
+    homepop.classList.add('is-open');
+    homepop.querySelector('.sheet').scrollTop = 0;
+    sfx('open');
+  }
+  function closeHome() {
+    if (!homepop.classList.contains('is-open')) return;
+    homepop.classList.remove('is-open');
+    sfx('close');
+  }
+  homepop.addEventListener('click', (e) => {
+    if (e.target === homepop || e.target.closest('[data-close]')) closeHome();
+    else if (e.target.closest('[data-home-visit]')) {
+      closeHome();
+      onHomeVisit?.();
+    } else if (e.target.closest('[data-home-ride]')) {
+      closeHome();
+      onRide?.();
+    } else if (e.target.closest('[data-home-write]')) {
+      closeHome();
+      toggleHire(true, true);
+    }
+  });
+
+  // ----- The campaign playbook -----
+  const playbook = $('#playbook');
+  let lensFilter = 'all';
+  function renderPlaybook() {
+    const slugs = Object.keys(PLAYS).filter((s) => lensFilter === 'all' || PLAYS[s].lenses[lensFilter]);
+    $('#playbook-body').innerHTML = `
+      <p class="eyebrow">How I crack a campaign</p>
+      <h2 class="sheet__title">The campaign playbook</h2>
+      <p class="sheet__line">Every brief has to do four things. Here is how each campaign did them, in the words of the case studies.</p>
+      <div class="lens-row lens-row--filter">
+        <button class="${lensFilter === 'all' ? 'is-on' : ''}" data-lens="all" style="--l:#ffffff"><b>All campaigns</b><span>${Object.keys(PLAYS).length} plays</span></button>
+        ${LENSES.map((l) => `<button class="${lensFilter === l.id ? 'is-on' : ''}" data-lens="${l.id}" style="--l:${l.color}"><b>${l.icon} ${esc(l.name)}</b><span>${esc(l.ask)}</span></button>`).join('')}
+      </div>
+      <h3 class="sheet__h">The studio method</h3>
+      <ol class="method">${METHOD.map((m) => `<li><b>${esc(m.step)}</b><span>${esc(m.line)}</span></li>`).join('')}</ol>
+      <div class="plays">${slugs
+        .map((slug) => {
+          const pl = PLAYS[slug];
+          const pr = ALL_PROJECTS[slug];
+          const shown = LENSES.filter((l) => pl.lenses[l.id] && (lensFilter === 'all' || l.id === lensFilter));
+          return `<article class="play">
+            <img src="${esc(pr.images[0])}" alt="" loading="lazy" />
+            <div class="play__body">
+              <p class="play__kind">${esc(pl.kind)} · ${esc(pr.client)} · ${esc(pr.year)}</p>
+              <h4>${esc(pr.title)}</h4>
+              <dl><dt>Problem</dt><dd>${esc(pl.problem)}</dd><dt>Idea</dt><dd>${esc(pl.idea)}</dd><dt>Craft</dt><dd>${esc(pl.craft)}</dd></dl>
+              <div class="play__lenses">${shown.map((l) => `<p style="--l:${l.color}"><b>${esc(l.name)}</b> ${esc(pl.lenses[l.id])}</p>`).join('')}</div>
+              <button class="linkish" data-open="${slug}">Open the case study →</button>
+            </div>
+          </article>`;
+        })
+        .join('')}</div>`;
+  }
+  function openPlaybook() {
+    renderPlaybook();
+    playbook.classList.add('is-open');
+    playbook.querySelector('.sheet').scrollTop = 0;
+    sfx('open');
+  }
+  function closePlaybook() {
+    if (!playbook.classList.contains('is-open')) return;
+    playbook.classList.remove('is-open');
+    sfx('close');
+  }
+  playbook.addEventListener('click', (e) => {
+    if (e.target === playbook || e.target.closest('[data-close]')) return closePlaybook();
+    const lens = e.target.closest('[data-lens]');
+    if (lens) {
+      lensFilter = lens.dataset.lens;
+      renderPlaybook();
+      sfx('click');
+      return;
+    }
+    const o = e.target.closest('[data-open]');
+    if (o) {
+      closePlaybook();
+      openProject(o.dataset.open);
+    }
+  });
+
   $('#hire-for').textContent = owner.hireFor;
   $('#hire-results').innerHTML = owner.results.map((r) => `<button class="result" data-slug="${r.slug}"><b>${esc(r.value)}</b><span>${esc(r.label)}</span></button>`).join('');
   $('#hire-results').addEventListener('click', (e) => {
@@ -448,6 +558,15 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
       toggleHire(false);
       openProject(b.dataset.slug);
     }
+  });
+  $('#hire-leader-line').textContent = LEADER.line;
+  $('#hire-impact').innerHTML = impactHtml(LEADER.impact);
+  $('#hire-lenses').innerHTML = LENSES.map((l) => `<div style="--l:${l.color}"><b>${l.icon} ${esc(l.name)}</b><span>${esc(l.ask)}</span></div>`).join('');
+  $('#hire-people').innerHTML = LEADER.people.map((t) => `<li>${esc(t)}</li>`).join('');
+  $('#hire-quote').innerHTML = `“${esc(LEADER.quote.text)}”<cite>${esc(LEADER.quote.who)}</cite>`;
+  hire.querySelector('[data-playbook]').addEventListener('click', () => {
+    toggleHire(false);
+    openPlaybook();
   });
   $('#hire-gallery').innerHTML = owner.gallery.map((g) => `<figure><img src="${esc(g.image)}" alt="${esc(g.caption)}" loading="lazy" /><figcaption>${esc(g.caption)}</figcaption></figure>`).join('');
   $('#hire-numbers').innerHTML = owner.numbers.map((n) => `<div><b>${esc(n.value)}</b><span>${esc(n.label)}</span></div>`).join('');
@@ -524,7 +643,17 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     openWeb(a.href, a.dataset.title || a.textContent.replace('↗', '').trim());
   });
 
+  const overlays = [
+    { isOpen: () => playbook.classList.contains('is-open'), close: closePlaybook },
+    { isOpen: () => homepop.classList.contains('is-open'), close: closeHome },
+  ];
   function closeOverlays() {
+    for (const o of overlays) {
+      if (o.isOpen()) {
+        o.close();
+        return true;
+      }
+    }
     if (splashOpen()) {
       closeSplash();
       return true;
@@ -545,7 +674,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     }
     return false;
   }
-  const modalOpen = () => splashOpen() || caseStudy.isOpen() || hire.classList.contains('is-open') || webpop.classList.contains('is-open');
+  const modalOpen = () => overlays.some((o) => o.isOpen()) || splashOpen() || caseStudy.isOpen() || hire.classList.contains('is-open') || webpop.classList.contains('is-open');
 
   // ----- Tour -----
   $('#tour-prev').addEventListener('click', () => onTourStep(-1));
@@ -563,7 +692,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     if (m === 'overview') toast('<b>Bird’s-eye view.</b> Drag to orbit, scroll to zoom, click a label to fly in.', 4500);
     if (m === 'walk' && !setMode.welcomed) {
       setMode.welcomed = true;
-      toast('<b>Welcome to the village.</b><br>Walk up to a billboard and press <kbd>E</kbd> to open a project.', 6000);
+      toast('<b>Welcome to the village.</b><br>Walk up to a billboard to open a project, or pick up a brief from the board under the jamun tree (<kbd>J</kbd>) and carry it across the teams.', 7000);
     }
   }
   // Cards that lean towards the pointer
@@ -586,8 +715,16 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     document.body.dataset.mode = mode;
   }
 
-  return {
+  const api = {
     placeLabel, showPlace, hidePlace, toast, toggleHire, toggleMissions, closeOverlays, modalOpen, setMode, setTourProgress,
     ready, openProject, openWeb, openSplash, stepGallery, prompt, speech, thoughts, collectTrophy, visited, setClock, setTimeMode, showInfo, fade, setIndoor,
+    addOverlay: (o) => overlays.push(o),
+    openHome,
+    openPlaybook,
+    onCampaigns: (n, total) => {
+      campaigns = [n, total];
+      renderMissions();
+    },
   };
+  return api;
 }

@@ -2,7 +2,7 @@
 // and styled after its case page (big type, mono labels, generous spacing).
 import toolkit from './content/toolkit.json';
 import mentorship from './content/mentorship.json';
-import { PROJECTS as PROJECT_META } from './data.js';
+import { PROJECTS as PROJECT_META, PLAYS, LENSES } from './data.js';
 import { sfx } from './audio.js';
 
 const projectFiles = import.meta.glob('./content/projects/*.json', { eager: true, import: 'default' });
@@ -353,6 +353,19 @@ export function createCaseStudy({ projects, places, onOpen }) {
     const awards = list('Recognition', (p.awards || []).map((a) => `<li><span>${esc(a.title)}</span><span>${esc(a.detail)}</span></li>`));
     const allLinks = [...(meta.play ? [meta.play] : []), ...(p.links || [])];
     const links = list('Links', allLinks.map((l) => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener"><span>${esc(l.label)}</span><span aria-hidden="true">↗</span></a></li>`));
+    // how it was cracked: the problem, the idea, the craft, and what it did on each lens
+    const pl = PLAYS[slug];
+    const cracked = pl
+      ? `<section class="cs-crack">
+          <div class="cs-crack__head"><h4>How it was cracked</h4><span>${esc(pl.kind)}</span></div>
+          <div class="cs-crack__steps">
+            <div><span>The problem</span><p>${esc(pl.problem)}</p></div>
+            <div><span>The idea</span><p>${esc(pl.idea)}</p></div>
+            <div><span>The craft</span><p>${esc(pl.craft)}</p></div>
+          </div>
+          <div class="cs-crack__lenses">${LENSES.filter((l) => pl.lenses[l.id]).map((l) => `<div style="--l:${l.color}"><span>${l.icon} ${esc(l.name)}</span><p>${esc(pl.lenses[l.id])}</p></div>`).join('')}</div>
+        </section>`
+      : '';
     const idx = order.indexOf(slug);
     const nextSlug = order[(idx + 1) % order.length];
     const cover = p.cover?.image || meta.images[0];
@@ -371,6 +384,7 @@ export function createCaseStudy({ projects, places, onOpen }) {
         ${cover ? `<div class="cs-cover"><img src="${esc(cover)}" alt="${esc(p.title)}" /></div>` : ''}
         ${p.tagline ? `<p class="cs-hook">${inline(p.tagline)}</p>` : ''}
         ${meta.play ? `<div class="cs-play-cta"><a class="btn btn--big" href="${esc(meta.play.url)}" target="_blank" rel="noopener">🎮 ${esc(meta.play.label)} ↗</a></div>` : ''}
+        ${cracked}
         ${metrics}
         ${(p.sections || []).filter((b) => !(b.type === 'image' && b.image === cover)).map(block).join('')}
         ${team || awards || links ? `<section class="cs-end">${team}${awards}${links}</section>` : ''}

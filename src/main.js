@@ -19,6 +19,8 @@ import { buildVillage, playerPos } from './village.js';
 import { makePerson, animate, hit } from './characters.js';
 import { createUI } from './ui.js';
 import { createRide } from './ride.js';
+import { buildStory } from './story.js';
+import { createQuest } from './quest.js';
 import { isTouch, stick, stickKeys, initTouch, goLandscape } from './touch.js';
 
 // ---------- Renderer, scene, light ----------
@@ -237,6 +239,9 @@ function travelTo(id) {
   setMode('walk', { snap: true });
 }
 
+// the brief board and the campaign threads over the island
+const story = buildStory(outdoor, { colliders, interactables: village.interactables, clickables: village.clickables, groundAt, places: PLACES });
+
 // ---------- UI ----------
 
 const ui = createUI({
@@ -255,6 +260,8 @@ const ui = createUI({
     setMode('walk');
   },
   onPromptTap: (a) => act(a),
+  onBriefs: () => quest.openChooser(),
+  onHomeVisit: () => travelTo('home'),
   onTour: () => setMode('tour'),
   onWalk: () => setMode('walk'),
   onRide: () => {
@@ -270,6 +277,21 @@ const ui = createUI({
     sfx('time');
   },
 });
+
+// Run a campaign: carry a real brief through every team it went through
+const quest = createQuest({
+  scene: outdoor,
+  places: PLACES,
+  ui,
+  camera,
+  groundAt,
+  travelTo: (id) => travelTo(id),
+  openProject: (slug) => ui.openProject(slug),
+  openWeb: (url, title) => ui.openWeb(url, title),
+});
+ui.addOverlay({ isOpen: quest.isOpen, close: quest.closeChooser });
+ui.onCampaigns(quest.shipped(), quest.total);
+document.getElementById('btn-brief').addEventListener('click', () => quest.openChooser());
 
 function setMode(mode, { snap = false } = {}) {
   const prev = state.mode;
@@ -362,6 +384,7 @@ window.addEventListener('keydown', (e) => {
   else if (k === 'i') showHome();
   else if (k === 'c') setCameraPreset();
   else if (k === 'm') ui.toggleMissions();
+  else if (k === 'j') quest.openChooser();
   else if (k === 'l') {
     ui.setTimeMode(dayNight.cycle());
     sfx('time');
@@ -991,7 +1014,7 @@ function waveAtNeighbours() {
 
 // The Home button: the about-me panel, reachable from anywhere
 function showHome() {
-  ui.showPlace(PLACES.find((p) => p.id === 'home'));
+  ui.openHome();
 }
 document.getElementById('btn-home').addEventListener('click', showHome);
 
@@ -1019,7 +1042,8 @@ function act(a) {
   else if (a.kind === 'hire') ui.toggleHire(true);
   else if (a.kind === 'place') ui.showPlace(PLACES.find((p) => p.id === a.id));
   else if (a.kind === 'screen') ui.openProject(a.screen.userData.action.slug);
-  else if (['tools', 'awards', 'leadership'].includes(a.kind)) ui.showInfo(a.kind);
+  else if (['tools', 'awards', 'leadership', 'playbook'].includes(a.kind)) ui.showInfo(a.kind);
+  else if (a.kind === 'briefs') quest.openChooser();
 }
 
 // ---------- Labels & minimap ----------
@@ -1194,6 +1218,8 @@ function frame() {
   updateRail(t);
   updateProps(t);
   updatePollen(t);
+  story.update(t, quest.activeId());
+  quest.update(t, dt, { pos: state.pos, indoorId: state.indoor?.id || null, mode: state.mode, blocked: ui.modalOpen() });
   playerPos.copy(state.pos);
   updateCamera(dt, t);
   feedAudio(dt);
@@ -1211,4 +1237,4 @@ await finishLoading({ renderer, scene, camera, render: () => composer.render() }
 hideLoader();
 ui.ready();
 
-window.__shire = { ride, audioDebug, state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };
+window.__shire = { quest, story, ride, audioDebug, state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };

@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { PROJECTS, TOOLS, FAVOURITES, OWNER, AWARDS, AIHUB, HOME, FUN, HALL, AWARD_LIST } from './data.js';
+import { PROJECTS, TOOLS, FAVOURITES, OWNER, AWARDS, AIHUB, HOME, FUN, HALL, AWARD_LIST, LENSES, PLAYS, LEADER } from './data.js';
 import { makePerson, animate, giveProp } from './characters.js';
 import { screenMat, makeDesk, dashboardTexture } from './props.js';
 import { WHITE_METAL, BRUSHED, CHROME, GLASS, GOLD, WOOD, DARK, solid, glow, mesh, canvasTexture, deepMerge } from './materials.js';
 import { rng } from './world.js';
-import { fillFit } from './type.js';
+import { fillFit, fit, wrap, FONT } from './type.js';
 import { playerPos } from './village.js';
 import { sfx } from './audio.js';
 
@@ -642,6 +642,80 @@ function buildHomeInterior(origin) {
   g.add(shelf);
   addCollider(room, -11.4, -4.8, 1.7);
   addThing(room, -9.8, -4.8, { kind: 'leadership', label: 'Leadership notes', verb: 'Read' });
+
+  // The campaign playbook: a pinboard of the four things every campaign has to do, each with a real example
+  {
+    const EX = { work: 't20', convert: 'trial', impress: 'money', brand: 'ring' };
+    const W = 5.2;
+    const H = 2.7;
+    const tex = canvasTexture(2080, 1080, (c, w, h) => {
+      c.fillStyle = '#c99a6a';
+      c.fillRect(0, 0, w, h);
+      for (let k = 0; k < 2400; k++) {
+        c.fillStyle = k % 3 ? 'rgba(90,55,25,0.08)' : 'rgba(255,240,210,0.1)';
+        c.fillRect((k * 197) % w, (k * 89) % h, 3, 3);
+      }
+      c.fillStyle = '#fffaf0';
+      c.fillRect(60, 50, 980, 150);
+      c.fillStyle = '#0f172a';
+      c.textBaseline = 'top';
+      c.font = `400 30px ${FONT.mono}`;
+      c.fillText('HOW I CRACK A CAMPAIGN', 96, 74);
+      fit(c, 'The campaign playbook', { weight: 800, size: 74, min: 40, maxW: 900 });
+      c.fillText('The campaign playbook', 96, 112);
+      const cw = (w - 120 - 3 * 36) / 4;
+      LENSES.forEach((l, i) => {
+        const x = 60 + i * (cw + 36);
+        const y = 250;
+        const ch = h - y - 60;
+        c.save();
+        c.translate(x + cw / 2, y + ch / 2);
+        c.rotate((i % 2 ? 1 : -1) * 0.012);
+        c.translate(-(x + cw / 2), -(y + ch / 2));
+        c.fillStyle = 'rgba(0,0,0,0.18)';
+        c.fillRect(x + 8, y + 10, cw, ch);
+        c.fillStyle = '#fffaf0';
+        c.fillRect(x, y, cw, ch);
+        c.fillStyle = l.color;
+        c.fillRect(x, y, cw, 16);
+        c.fillStyle = '#c0392b';
+        c.beginPath();
+        c.arc(x + cw / 2, y + 40, 12, 0, Math.PI * 2);
+        c.fill();
+        c.fillStyle = '#0f172a';
+        fit(c, l.name, { weight: 800, size: 52, min: 30, maxW: cw - 56 });
+        c.fillText(l.name, x + 28, y + 70);
+        c.fillStyle = '#475569';
+        c.font = `500 30px ${FONT.sans}`;
+        let yy = y + 140;
+        for (const line of wrap(c, l.ask, cw - 56, 3)) {
+          c.fillText(line, x + 28, yy);
+          yy += 40;
+        }
+        yy += 26;
+        const slug = EX[l.id];
+        c.fillStyle = l.color;
+        c.font = `500 26px ${FONT.mono}`;
+        fit(c, PROJECTS[slug].title.toUpperCase(), { weight: 500, size: 26, min: 16, family: FONT.mono, maxW: cw - 56 });
+        c.fillText(PROJECTS[slug].title.toUpperCase(), x + 28, yy);
+        yy += 44;
+        c.fillStyle = '#0f172a';
+        c.font = `700 34px ${FONT.sans}`;
+        for (const line of wrap(c, PLAYS[slug].lenses[l.id], cw - 56, 5)) {
+          c.fillText(line, x + 28, yy);
+          yy += 44;
+        }
+        c.restore();
+      });
+    });
+    const board = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, emissive: '#ffffff', emissiveMap: tex, emissiveIntensity: 0.25 }));
+    board.position.set(-11.9, 3.05, 0.9);
+    board.rotation.y = Math.PI / 2;
+    board.userData = { dynamic: true, action: { kind: 'playbook' } };
+    g.add(board, mesh(new THREE.BoxGeometry(0.08, H + 0.2, W + 0.2), WOOD, -11.96, 3.05, 0.9, false));
+    room.clickables.push(board);
+    addThing(room, -10.3, 0.9, { kind: 'playbook', label: 'The campaign playbook', verb: 'Read' });
+  }
 
   // Mentoring corner
   for (const [x, ry] of [[-8, Math.PI / 2 + 0.5], [-5.6, -Math.PI / 2 - 0.5]]) {

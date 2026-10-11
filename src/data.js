@@ -504,10 +504,12 @@ export const CENTER = {
     'Brand films, keynote videos, landing pages, sales decks, social and product imagery',
     'Stories that start from data, consumer interviews and what past campaigns taught us',
     'Hire, coach and grow designers into a studio',
+    'Carry one idea across every team: the film, the landing page, the feed and the front page',
   ],
   projects: [],
   quotes: [
     'Welcome! Every road from here leads to a team we make work with.',
+    'Pick up a brief from the board under the tree. Carry it to every team it needs.',
     'Find the four golden trophies hidden around the village.',
     'Press O for a bird’s-eye view, or T for the guided tour.',
   ],
@@ -787,6 +789,8 @@ export const NPC_TALK = {
       'AI: could we pre-viz every TVC in a day?',
       'What if the jersey became the whole campaign?',
       'Next tentpole is GFF. Needs a film people talk about.',
+      '81 films from one pipeline. Our own design team built it.',
+      'Same founder, same costume: TV, print and social all match.',
     ],
     asks: [
       'Vibhor! Can we storyboard the next tentpole film together?',
@@ -801,6 +805,8 @@ export const NPC_TALK = {
       'AI: product shots without booking a studio?',
       'Idea: a launch film for every persona.',
       'Next: performance ads that still look premium.',
+      'MoneySaver: our biggest launch on our own channels.',
+      'The BTS film became content too. 313K impressions!',
     ],
     asks: [
       'Can we use the Product Image Generator for our next launch?',
@@ -815,6 +821,8 @@ export const NPC_TALK = {
       'Objective: turn the feature list into a world.',
       'AI: designers shipping landing pages without a dev queue?',
       'Next relaunch could be a game. Again?',
+      'A 30-second UI brief became a film, a page and a game.',
+      'Magic on the surface, science underneath.',
     ],
     asks: [
       'Can our next landing page be a game, like Back in the Ring?',
@@ -829,6 +837,8 @@ export const NPC_TALK = {
       'Objective: 30 posts a week, all on-brand.',
       'AI: auto-cut reels straight from the TVC?',
       'Next trend: founder POV videos.',
+      'One founder photo in, a finished post out.',
+      'The Wall of Laughter got HRs talking. Anonymously.',
     ],
     asks: [
       'Can Social Content Gen do Hindi and Tamil posts next?',
@@ -843,6 +853,8 @@ export const NPC_TALK = {
       'Objective: find the insight before the headline.',
       'AI: a voice-and-tone checker on every draft?',
       'Next: scripts that start from customer interviews.',
+      'Insight first: for HR, Salary Day is a nightmare.',
+      'One voice across film, social and landing pages.',
     ],
     asks: [
       'Can we pair a writer and a designer from day one?',
@@ -857,6 +869,8 @@ export const NPC_TALK = {
       'Objective: every deck on the new design language.',
       'AI: teach the Founder tool some new poses.',
       'Crit is Friday. Bring work in progress!',
+      'I directed my first merchant film. Over Zoom.',
+      'Prompts are inputs. Tools are modules. Systems create consistency.',
     ],
     asks: [
       'Vibhor, could you review my portfolio this week?',
@@ -866,8 +880,8 @@ export const NPC_TALK = {
   },
   hq: {
     roles: ['Studio designer', 'Studio producer', 'Visiting marketer'],
-    thoughts: ['Coffee first, then ideas.', 'What would make this award-worthy?', 'Objective: ship it on Friday.', 'AI: what can we automate next?'],
-    asks: ['Got a minute for a quick crit?', 'Can the studio take one more brief this sprint?', 'Want to grab a filter coffee and jam on ideas?'],
+    thoughts: ['Coffee first, then ideas.', 'What would make this award-worthy?', 'Does this brief serve the business?', 'AI: what can we automate next?', 'One idea, every touchpoint.', 'How do we measure this one?'],
+    asks: ['Got a minute for a quick crit?', 'New brief on the board: which team does it go to first?', 'Want to grab a filter coffee and jam on ideas?'],
   },
   awards: {
     roles: ['Awards curator', 'Visiting juror', 'Creative director'],
@@ -905,3 +919,243 @@ export const NPC_TALK = {
     asks: ['Want to animate a scene with me?', 'Seen the studio’s films on the big screen yet?'],
   },
 };
+
+// ---------------------------------------------------------------------------
+// The creative leader: what changes beyond any one team. Every line below is
+// taken from the about page, the leadership notes and the case studies.
+// ---------------------------------------------------------------------------
+export const LEADER = {
+  eyebrow: 'Creative leadership',
+  title: 'One studio. Every team. One story.',
+  line: 'My job is the roads between the teams: one idea carried from the brief to the film, the landing page, the feed and the front page, so a growing company sounds like one brand.',
+  impact: [
+    { value: '3', label: 'businesses on one visual system', text: 'One visual system and one way of telling stories across Payments, RazorpayX and POS.' },
+    { value: '10+', label: 'product lines on one deck language', text: 'A deck design language now used across more than ten product lines and business units.' },
+    { value: '4', label: 'in-house AI tools', text: 'Tools the whole team uses on live campaigns: repetitive work becomes a button.' },
+    { value: '1→3', label: 'brief to film, page and game', text: 'Back in the Ring: a brief for a 30-second UI video became a trailer, a landing page and a playable game, built in-house.' },
+    { value: '81', label: 'TV films from one pipeline', text: 'Production systems, not one-offs: one pipeline made 81 TV films, a newspaper front page and 200+ posts.' },
+    { value: 'Gold', label: 'ET Brand Disruption, the team', text: 'Most Disruptive Creative & Design Team, 2026: the award is for the studio, not one campaign.' },
+  ],
+  people: [
+    'Hired and developed the creative team at Grofers, and directed external production partners.',
+    'Hire, coach and grow designers into a studio at Razorpay: designers who now direct films and ship pages.',
+    'Mentor on ADPList and GrowthSchool; AI design workshops and talks from IIIT-Delhi to JK Lakshmipat University.',
+  ],
+  quote: { text: 'He felt more like an elder brother than just a mentor.', who: 'Vibhu Kapil, visual and motion designer, on ADPList' },
+};
+
+// The four things every campaign has to do. Each project's play says how it did them.
+export const LENSES = [
+  { id: 'work', name: 'Make it work', icon: '⚙', color: '#00c2ff', ask: 'Can it be made, on time, at the scale the business needs?' },
+  { id: 'convert', name: 'Convert', icon: '↗', color: '#12c98a', ask: 'Does it move the number the business cares about?' },
+  { id: 'impress', name: 'Leave an impression', icon: '✺', color: '#ff4f8b', ask: 'Will people remember it, share it and talk about it?' },
+  { id: 'brand', name: 'Shape the brand', icon: '◆', color: '#f5b700', ask: 'Does it make the brand look like the company it wants to become?' },
+];
+
+// How a brief moves through the studio: painted on the board at the jamun tree.
+export const METHOD = [
+  { step: 'Brief', line: 'Design for the business, not just the brief.' },
+  { step: 'Insight', line: 'Start from data, consumer interviews and what past campaigns taught us.' },
+  { step: 'Idea', line: 'One idea across every touchpoint: film, page, game, feed, print.' },
+  { step: 'Craft', line: 'AI is the production medium. Every frame is still directed.' },
+  { step: 'Scale', line: 'Build repeatable production systems, not one-offs.' },
+  { step: 'Proof', line: 'Make goals measurable.' },
+];
+
+// How each campaign was cracked: the problem, the idea, the craft, and what it did on each lens.
+export const PLAYS = {
+  t20: {
+    kind: 'Tentpole brand campaign',
+    problem: 'India celebrates cricketers and founders equally. Only one gets a stadium.',
+    idea: 'Put founders on the screen cricket fans are already watching, with a stadium, a jersey and a player card.',
+    craft: 'A custom avatar tool turned one photo per founder into a campaign library, lit three ways for every match slot.',
+    lenses: {
+      work: '81 TV films across 20 match dates. No cameras, sets or lights.',
+      convert: '133% lift in purchase intent.',
+      impress: '8.1M unique viewers and 928K LinkedIn impressions.',
+      brand: 'Designed to look like the broadcast, not interrupt it: founders who belonged on that screen.',
+    },
+  },
+  btb: {
+    kind: 'Tentpole brand film',
+    problem: 'Thirty busy founders in one frame, breaking glass, walls and ceilings: almost impossible to shoot.',
+    idea: 'Make breaking through literal. Each film opens on what a founder was told, and ends with "did it anyway".',
+    craft: 'AI-led end to end, not AI-assisted: one photograph per founder, 30 founder films, a launch film, teasers and music.',
+    lenses: {
+      work: 'Thirty founders. One frame. Zero logistics, zero live-action shoots.',
+      impress: 'IPL 2026 on JioHotstar, one of the biggest stages in Indian marketing.',
+      brand: 'Razorpay backing the founders who were told it would never work.',
+    },
+  },
+  ace: {
+    kind: 'Launch film',
+    problem: 'Introduce one integration for agentic commerce, on an incredibly tight timeline.',
+    idea: 'One founder’s POV in one continuous world, from a grand marble hall to a glowing tech studio.',
+    craft: 'Every environment, character and frame made with AI, and directed like a full-scale production.',
+    lenses: {
+      work: 'Built under an incredibly tight timeline for GFF 2026.',
+      brand: 'A locked, high-contrast visual style: complexity giving way to the agentic era.',
+    },
+  },
+  intl: {
+    kind: 'Product explainer',
+    problem: 'International payments are technical and hard to follow.',
+    idea: 'Demystify global e-commerce payments in under a minute.',
+    craft: 'A 40 to 60 second motion graphics film in Illustrator and After Effects.',
+    lenses: { work: 'Complex financial processes, turned into one clear story.', impress: '1000+ organic views.' },
+  },
+  money: {
+    kind: 'Product launch',
+    problem: 'A high-stakes launch: India’s first PA/PG with an OPGSP compliant solution, for exporters.',
+    idea: 'An AI-made launch film, and a media plan that showed the AI workflow in the open.',
+    craft: 'Midjourney, Studio D-ID and ElevenLabs, then a behind-the-scenes film on LinkedIn.',
+    lenses: {
+      convert: '70+ quality leads, and an 89.62% engagement rate on the launch blog.',
+      impress: '438K+ views: the biggest product launch on Razorpay’s own channels. 29.1M media reach.',
+      brand: 'The behind-the-scenes post reached 313K people: the process became content too.',
+    },
+  },
+  passport: {
+    kind: 'Brand campaign for a launch',
+    problem: 'Make borderless business feel effortless.',
+    idea: 'A distinctive campaign identity built with a new AI workflow.',
+    craft: 'Taken to YouTube, LinkedIn and Meta, with a behind-the-scenes film.',
+    lenses: {
+      convert: '94 leads and 35% lower buy rates.',
+      impress: '50% view-through on LinkedIn; 60K+ impressions for the BTS film.',
+      brand: 'Positioned Razorpay as a forerunner in fintech, showing effortless global expansion.',
+    },
+  },
+  whatsapp: {
+    kind: 'Product launch',
+    problem: 'Launch payments on WhatsApp, and make people feel something about a cart.',
+    idea: '"Melancholy": the silent stories of abandoned carts, turned into stories of completion. Shop. Don’t abandon.',
+    craft: 'Three concepts from brainstorms with marketing and design; AI imagery; led from concept to completion.',
+    lenses: {
+      convert: '2000+ businesses interested in the product.',
+      impress: '95K+ impressions; 10% engagement on Twitter, 4.5% on LinkedIn.',
+    },
+  },
+  'magic-checkout': {
+    kind: 'Conversion landing page',
+    problem: 'Checkout technology is complex, and feature lists don’t sell it.',
+    idea: 'Don’t explain checkout. Let people feel it.',
+    craft: 'Four stories on floating islands, then the world turns into a wireframe to reveal the science underneath.',
+    lenses: {
+      convert: 'Built around four outcomes a merchant cares about: conversion, COD control, purchase intent, loyalty.',
+      impress: 'Micro-animations that make every interaction feel alive.',
+      brand: 'Magic on the surface. Science underneath.',
+    },
+  },
+  ring: {
+    kind: 'Relaunch: film, page and game',
+    problem: 'Netbanking felt like an old champion, written off in the age of one-tap UPI and cards.',
+    idea: 'A comeback story: a boxing film, not a product update. One idea across a trailer, a landing page and a game.',
+    craft: 'A fully in-house, fully AI-made trailer. Claude kept shots consistent as creative director; one colour grade per act.',
+    lenses: {
+      work: 'A brief for a 30-second UI video became a trailer, a landing page and a playable game.',
+      convert: 'The page hands off from emotion to proof; every opponent you beat unlocks a feature.',
+      impress: 'Don’t just watch the comeback. Play it.',
+      brand: 'No faces: NETBANKING on the robe, RAZORPAY on the jacket. The brand is the hero of every frame.',
+    },
+  },
+  conv: {
+    kind: 'Proof: merchant films',
+    problem: 'Merchants trust other merchants more than claims.',
+    idea: 'Let them say it in their own words: Isak Fragrances and VS Mani Filter Coffees.',
+    craft: 'A remote shoot over Zoom and an on-site shoot, by young designers learning to direct.',
+    lenses: { work: 'Designers learning to direct, one shot at a time.', convert: 'Real businesses on how Magic Checkout changed their sales.' },
+  },
+  trial: {
+    kind: 'B2B awareness campaign',
+    problem: 'HR is the right audience for Payroll, and notoriously hard to engage.',
+    idea: 'For HR, Salary Day is a week-long nightmare. Put the repetition on trial, in an animal courtroom after the Panchatantra and Damini’s "sawaal pe sawaal".',
+    craft: 'An AI film, plus the Wall of Laughter: an anonymous board where HRs shared their funniest salary questions.',
+    lenses: {
+      convert: '13% lead uplift and a 16% traffic surge.',
+      impress: '2.1M+ impressions; 8.64% engagement, four times the B2B fintech average.',
+      brand: 'The story moved from "HR failure" to "systemic gap", and startups across HR joined in.',
+    },
+  },
+  'social-gen': {
+    kind: 'Production system',
+    problem: 'A tentpole campaign needs hundreds of on-brand posts, fast.',
+    idea: 'Turn the design session into a pipeline.',
+    craft: 'A founder photo and business story in; preset clothing, pose, light and background; a campaign-ready post out.',
+    lenses: { work: '200+ posts from one pipeline, including founders who never appeared on TV.' },
+  },
+  razorbae: {
+    kind: 'Always-on system',
+    problem: 'Always-on social needs a face, every week.',
+    idea: 'Shoot a brand avatar once, then train it into a system.',
+    craft: 'A repeatable AI avatar pipeline for reels.',
+    lenses: { work: 'Captured once, used for months.', impress: '129 reels and 6.55M views.' },
+  },
+  toolkit: {
+    kind: 'Studio tools',
+    problem: 'The same set tasks, every campaign.',
+    idea: 'Tools that make the work, built by the people who make the work.',
+    craft: 'Cinematography Tool, Product Image Generator, Advanced Image Editor and Founder Image Generator.',
+    lenses: { work: '4 AI tools in production on live campaigns.', brand: '20+ lenses and 100+ grades, so every campaign keeps its look.' },
+  },
+  'diwali-2020': {
+    kind: 'Purpose-led social',
+    problem: 'Local potters depend on the Diwali season.',
+    idea: 'Ek diye se do ghar roshan: one diya lights up two homes.',
+    craft: 'A social campaign that gave potters a platform on Grofers for their diyas, idols and planters.',
+    lenses: { brand: 'A grocery app that lit up the homes of the people who made the diyas.' },
+  },
+};
+
+// Run a campaign: pick up a brief at the jamun tree and carry it through the teams it really went through.
+export const CAMPAIGNS = [
+  {
+    id: 'trial',
+    slug: 'trial',
+    title: 'Trial of the Century',
+    brief: 'RazorpayX Payroll needs HR professionals to notice it. They rarely engage with branded content.',
+    stops: [
+      { place: 'copy', title: 'Find the insight', text: 'For employees, Salary Day is the best day of the month. For HR it is a week-long nightmare: the same payslip questions, every month.' },
+      { place: 'copy', title: 'Crack the idea', text: 'If the same questions come back every month, the system needs fixing, not the people. Put the repetition on trial, in an animal courtroom.', near: true },
+      { place: 'ai', title: 'Make it with AI', text: 'An animal courtroom inspired by the Panchatantra and the "sawaal pe sawaal" scene from Damini, made as an AI film.' },
+      { place: 'social', title: 'Give HR a voice', text: 'The Wall of Laughter: an anonymous board where HRs shared the funniest salary questions they had ever received.' },
+      { place: 'awards', title: 'Win the room', text: 'Shorty Awards winner for Generative AI, Kyoorius First List, ET Brand Disruption Silver.' },
+    ],
+  },
+  {
+    id: 't20',
+    slug: 't20',
+    title: 'Start-Up Champions',
+    brief: 'Back India’s start-up founders during the T20 World Cup, when the whole country is watching.',
+    stops: [
+      { place: 'brand', title: 'The idea', text: 'Treat founders the way the country treats cricketers: a stadium, a jersey and a player card.' },
+      { place: 'ai', title: 'Build the pipeline', text: 'A custom avatar tool on the Nano Banana API and Gemini: one photo per founder in, a 4K campaign library out.' },
+      { place: 'brand', title: 'Go on air', text: '81 TV films across 20 match dates, each founder lit three ways to match the match slot. Zero shoots.' },
+      { place: 'social', title: 'Scale it', text: '200+ social posts from the same pipeline, including founders who never appeared on TV. Then the newspaper front page.' },
+    ],
+  },
+  {
+    id: 'ring',
+    slug: 'ring',
+    title: 'Back in the Ring',
+    brief: 'Bring Netbanking back into the conversation, in the age of one-tap UPI. The brief was a 30-second UI video.',
+    stops: [
+      { place: 'copy', title: 'Reframe it', text: 'Not a legacy payment method: an old champion, written off by everyone, making its comeback.' },
+      { place: 'ai', title: 'Shoot without a camera', text: 'A fully in-house, AI-made boxing trailer. Claude as a consistent creative director; one colour world for every act.' },
+      { place: 'product', title: 'From emotion to proof', text: 'A parallax landing page that lands each feature like a fresh combo.' },
+      { place: 'fun', title: 'Make it playable', text: 'A browser boxing game: each opponent is an old Netbanking frustration, each win unlocks a feature.' },
+    ],
+  },
+  {
+    id: 'money',
+    slug: 'money',
+    title: 'MoneySaver launch',
+    brief: 'Launch India’s first PA/PG with an OPGSP compliant solution, for Indian exporters.',
+    stops: [
+      { place: 'pmm', title: 'Frame the launch', text: 'Open a bank account in your choice of country in under 5 seconds; save up to 50% on transfer charges.' },
+      { place: 'ai', title: 'Make the film with AI', text: 'Midjourney, Studio D-ID and ElevenLabs: a launch film made entirely with AI design tools.' },
+      { place: 'social', title: 'Show the process', text: 'A behind-the-scenes film of the AI workflow: 313K impressions on LinkedIn.' },
+      { place: 'hq', title: 'Measure it', text: '438K+ views, 29.1M media reach across 32+ stories, 70+ quality leads.' },
+    ],
+  },
+];

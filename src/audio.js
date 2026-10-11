@@ -234,8 +234,14 @@ const SFX = {
     burst({ t: now() + 0.07, d: 0.04, v: 0.1, f: 2200, dest: o });
   },
   trophy: (o) => [0, 4, 7, 11, 14, 19].forEach((n, i) => tone({ type: 'triangle', f: midi(76 + n), t: now() + i * 0.07, d: 0.5, v: 0.07, dest: o })),
+  // a rubber stamp on the brief: a thump and a bright chord
+  stamp: (o) => {
+    tone({ f: 140, f2: 70, d: 0.14, v: 0.28, dest: o });
+    burst({ kind: 'pink', d: 0.09, v: 0.22, f: 900, dest: o });
+    [0, 7, 12].forEach((n, i) => tone({ type: 'triangle', f: midi(74 + n), t: now() + 0.08 + i * 0.05, d: 0.35, v: 0.06, dest: o }));
+  },
   // body
-  jump: (o) => burst({ kind: 'pink', d: 0.12, v: 0.12, f: 900, f2: 1600, dest: o }),
+  jump:(o) => burst({ kind: 'pink', d: 0.12, v: 0.12, f: 900, f2: 1600, dest: o }),
   land: (o) => {
     tone({ f: 110, f2: 55, d: 0.12, v: 0.25, dest: o });
     burst({ kind: 'brown', d: 0.12, v: 0.3, f: 300, type: 'lowpass', dest: o });
