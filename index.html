@@ -2,7 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b1020" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Vibhor’s Island" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icon-180.png" />
     <title>Vibhor Mathur · Creative director</title>
     <meta name="description" content="Vibhor Mathur's portfolio as a walkable 3D village: every department is a community, and the work we shipped together sits on its streets." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -61,7 +69,7 @@
           <button id="btn-tour" class="btn btn--big btn--ghost">Take the guided tour</button>
         </div>
         <p class="intro__keys keys-desktop"><kbd>W A S D</kbd> walk · <kbd>Shift</kbd> run · <kbd>Space</kbd> jump · <kbd>E</kbd> interact · <kbd>F</kbd> wave · <kbd>L</kbd> day/night · <kbd>C</kbd> camera · drag to look · click to walk</p>
-        <p class="intro__keys keys-touch">Drag to look · tap the ground to walk · tap a billboard to open it</p>
+        <p class="intro__keys keys-touch">Left thumb to move · drag to look · pinch to zoom · tap anything that glows</p>
       </div>
     </section>
 
@@ -107,7 +115,28 @@
       <button id="btn-contact" class="contact-fab" title="Write to Vibhor"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 14v-2a7.5 7.5 0 0 1 15 0v2"/><rect x="3.5" y="13.5" width="3.5" height="5.5"/><rect x="17" y="13.5" width="3.5" height="5.5"/><path d="M19 19c0 1.5-2 2.5-5 2.5"/></svg><span>Contact</span></button>
     </header>
 
-    <div id="ridebar" aria-live="off"><b><span id="ride-speed">0</span><small>km/h</small></b><span><kbd>W</kbd> pedal <kbd>S</kbd> brake <kbd>A</kbd><kbd>D</kbd> steer <kbd>Shift</kbd> sprint <kbd>Space</kbd> hop <kbd>B</kbd> bell <kbd>X</kbd> get off</span></div>
+    <!-- touch: a floating thumb-stick on the left, buttons on the right -->
+    <div id="stick-zone" aria-hidden="true"></div>
+    <div id="stick" aria-hidden="true"><i></i></div>
+    <div id="touchbar">
+      <button id="tb-use" class="tb" aria-label="Use">Use</button>
+      <button id="tb-jump" class="tb tb--big" aria-label="Jump">Jump</button>
+      <button id="tb-bell" class="tb tb--ride" aria-label="Ring the bell">🔔</button>
+      <button id="tb-off" class="tb tb--ride" aria-label="Get off the bike">Off</button>
+    </div>
+
+    <!-- phones held upright: ask for landscape -->
+    <section id="rotate" role="dialog" aria-label="Turn your phone">
+      <div class="rotate__phone"><i></i></div>
+      <h2>Turn your phone sideways</h2>
+      <p>The island is built for landscape. Rotate your phone to walk around.</p>
+      <div class="rotate__actions">
+        <button class="btn" data-full>Go full screen</button>
+        <button class="btn btn--ghost" data-anyway>Continue anyway</button>
+      </div>
+    </section>
+
+    <div id="ridebar" aria-live="off"><b><span id="ride-speed">0</span><small>km/h</small></b><span class="ridebar__keys"><kbd>W</kbd> pedal <kbd>S</kbd> brake <kbd>A</kbd><kbd>D</kbd> steer <kbd>Shift</kbd> sprint <kbd>Space</kbd> hop <kbd>B</kbd> bell <kbd>X</kbd> get off</span></div>
     <aside id="pass" aria-live="polite"></aside>
 
     <aside id="sound" class="soundpop" aria-label="Sound settings">

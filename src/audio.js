@@ -22,6 +22,7 @@ try {
   // storage may be blocked; the defaults are fine
 }
 const subscribers = new Set();
+const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
 export const audioSettings = () => ({ ...settings });
 export function onAudioChange(fn) {
@@ -117,6 +118,10 @@ export function startAudio() {
   reverb.connect(rvGain).connect(out);
   noise = { white: makeNoise('white'), pink: makeNoise('pink'), brown: makeNoise('brown') };
   applyLevels(0.6);
+  // iOS suspends the context when the page is hidden or a call comes in; pick it back up
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && ctx.state !== 'running') ctx.resume().catch(() => {});
+  });
   buildAmbience();
   music.start();
   films.start();
@@ -572,6 +577,8 @@ const films = {
     g.gain.value = 0;
     src.connect(pan).connect(g).connect(bus.films);
     Object.assign(f, { el, pan, g });
+    // iPhone Safari only lets a media element play later if it was started inside a tap; this is that tap
+    if (IOS) el.play().then(() => (f.playing ? null : el.pause())).catch(() => {});
   },
   update(room) {
     for (const f of this.list) {

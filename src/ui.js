@@ -3,7 +3,7 @@ import { sfx, audioSettings, setLevel, toggleMute, onAudioChange, startAudio } f
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-export function createUI({ owner, pillars, places, projects, awards, contact, favourites, tools = [], awardList = [], onEnter, onTour, onOverview, onTravel, onTourStep, onExitTour, onTime, onWalk, onRide }) {
+export function createUI({ owner, pillars, places, projects, awards, contact, favourites, tools = [], awardList = [], onEnter, onTour, onOverview, onTravel, onTourStep, onExitTour, onTime, onWalk, onRide, onPromptTap }) {
   const visited = new Set();
   const viewed = new Set();
   const trophies = new Set();
@@ -365,6 +365,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
   promptEl.addEventListener('click', () => {
     const a = promptAction;
     if (!a) return;
+    if (onPromptTap) return onPromptTap(a);
     if (a.kind === 'project') openProject(a.slug);
     else if (a.kind === 'contact') toggleHire(true, true);
     else if (a.kind === 'home' || a.kind === 'fun') showPlace(places.find((p) => p.id === a.kind));

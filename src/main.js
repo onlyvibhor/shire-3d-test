@@ -18,6 +18,7 @@ import { buildVillage, playerPos } from './village.js';
 import { makePerson, animate, hit } from './characters.js';
 import { createUI } from './ui.js';
 import { createRide } from './ride.js';
+import { isTouch, stick, stickKeys, initTouch, goLandscape } from './touch.js';
 
 // ---------- Renderer, scene, light ----------
 
@@ -245,7 +246,12 @@ const ui = createUI({
   favourites: FAVOURITES,
   tools: TOOLS,
   awardList: AWARD_LIST,
-  onEnter: () => setMode('walk'),
+  onEnter: () => {
+    // on phones, ask for full screen and landscape (Android Chrome honours it; iPhone Safari shows the rotate card instead)
+    if (isTouch) goLandscape();
+    setMode('walk');
+  },
+  onPromptTap: (a) => act(a),
   onTour: () => setMode('tour'),
   onWalk: () => setMode('walk'),
   onRide: () => {
@@ -290,7 +296,7 @@ function tourStep(d) {
 
 // ---------- Sound ----------
 // Browsers only allow sound after a click or key press; the first one starts the engine.
-for (const ev of ['pointerdown', 'keydown', 'touchstart']) window.addEventListener(ev, startAudio, { passive: true });
+for (const ev of ['pointerdown', 'keydown', 'touchstart', 'touchend', 'click']) window.addEventListener(ev, startAudio, { passive: true });
 // the soundtracks of Vibhor's films, playing where those films live on the island
 {
   const at = (room, x, z) => ({ x: room.origin.x + x, z: room.origin.z + z });
@@ -379,6 +385,24 @@ window.addEventListener('keydown', (e) => {
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
 });
 window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
+
+// ---------- Touch ----------
+let touchHop = false;
+initTouch({
+  onJump: () => {
+    if (ride.active) touchHop = true;
+    else if (state.mode === 'walk' && state.air === 0) {
+      state.vy = 6.5;
+      sfx('jump');
+    }
+  },
+  onBell: () => sfx('bell', { gap: 0.4 }),
+  onGetOff: () => ride.dismount(),
+  onUse: () => {
+    if (nearThing) act(nearThing);
+  },
+  isRiding: () => ride.active,
+});
 window.addEventListener('blur', () => keys.clear());
 
 const pointers = new Map();
@@ -463,19 +487,30 @@ canvas.addEventListener('wheel', (e) => {
   zoom(e.deltaY);
 }, { passive: false });
 
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
+function resize() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  camera.aspect = w / h;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  composer.setSize(window.innerWidth, window.innerHeight);
-});
+  renderer.setSize(w, h);
+  composer.setSize(w, h);
+}
+window.addEventListener('resize', resize);
+// phones report the new size a beat after rotating; iOS also resizes as the toolbars show and hide
+window.addEventListener('orientationchange', () => setTimeout(resize, 350));
+window.visualViewport?.addEventListener('resize', resize);
 
 // ---------- Player movement ----------
 
 const PLAYER_R = 0.45;
 const dir = new THREE.Vector2();
 function movePlayer(dt) {
-  ride.update(elapsed, dt, ui.modalOpen() || state.mode !== 'walk' ? new Set() : keys);
+  let rideKeys = ui.modalOpen() || state.mode !== 'walk' ? new Set() : stickKeys(keys);
+  if (touchHop) {
+    rideKeys = new Set(rideKeys).add(' ');
+    touchHop = false;
+  }
+  ride.update(elapsed, dt, rideKeys);
   if (ride.active) {
     animate(player, 'cycle', elapsed, state.speed);
     halo.visible = false;
@@ -493,7 +528,13 @@ function movePlayer(dt) {
       if (keys.has('q')) state.yaw += dt * 1.8;
       if (keys.has('e') && !nearThing) state.yaw -= dt * 1.8;
     }
+    // the thumb-stick: analog, so a gentle push walks slowly
+    if (stick.active) {
+      ix = stick.x;
+      iz = stick.y;
+    }
   }
+  const stickMag = stick.active ? Math.min(1, Math.hypot(stick.x, stick.y)) : 1;
   const yaw = state.mode === 'overview' ? state.ovYaw : state.yaw;
   let moving = false;
   if (ix || iz) {
@@ -513,8 +554,8 @@ function movePlayer(dt) {
       moving = true;
     }
   }
-  const running = keys.has('shift') || (state.target && Math.hypot(state.target.x - state.pos.x, state.target.z - state.pos.z) > 18);
-  const want = moving ? (running ? 9 : 4.2) : 0;
+  const running = keys.has('shift') || (stick.active && stickMag > 0.93) || (state.target && Math.hypot(state.target.x - state.pos.x, state.target.z - state.pos.z) > 18);
+  const want = moving ? (running ? 9 : 4.2 * Math.max(0.35, stickMag)) : 0;
   state.speed = THREE.MathUtils.lerp(state.speed, want, Math.min(1, dt * 7));
   if (moving) {
     let diff = Math.atan2(dir.x, dir.y) - state.heading;

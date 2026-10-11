@@ -739,4 +739,110 @@ body[data-mode="tour"] #toast { bottom: auto; }
 #ridebar small { font-size: 10px; color: var(--muted); font-family: var(--sans); }
 body.is-riding #ridebar { opacity: 1; transform: translate(-50%, 0); }
 body.is-riding #prompt { bottom: 142px; }
-@media (hover: none) { #ridebar span { display: none; } }
+@media (hover: none) { #ridebar .ridebar__keys { display: none; } }
+
+/* ==========================================================================
+   Phones and tablets
+   ========================================================================== */
+html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+button, .btn, .rail__btn, .dock__btn, .label, .work, .tb { touch-action: manipulation; }
+#panel, .intro__card, .hire__card, #case, .soundpop { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+body.is-touch { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; --blur: blur(14px) saturate(160%); }
+body.is-touch :is(input, textarea, select) { -webkit-user-select: text; user-select: text; font-size: 16px; } /* 16px stops iOS zooming into fields */
+.intro__card, .hire__card { max-height: calc(100dvh - 24px); }
+
+/* ---------- turn your phone ---------- */
+#rotate { position: fixed; inset: 0; z-index: 80; display: none; place-content: center; justify-items: center; gap: 12px; padding: 32px; text-align: center; background: #0b1020; color: var(--text); }
+#rotate h2 { margin: 18px 0 0; font-family: var(--display); font-size: 24px; }
+#rotate p { margin: 0; max-width: 300px; font-size: 14px; line-height: 1.5; color: var(--muted); }
+.rotate__actions { display: grid; gap: 10px; margin-top: 18px; width: min(260px, 80vw); }
+.rotate__actions .btn { justify-content: center; }
+.rotate__actions [hidden] { display: none; }
+.rotate__phone { width: 58px; height: 98px; border: 3px solid #f4f7ff; position: relative; animation: rotate-phone 2.4s cubic-bezier(.6,0,.3,1) infinite; }
+.rotate__phone i { position: absolute; left: 50%; bottom: 6px; width: 14px; height: 3px; margin-left: -7px; background: #f4f7ff; }
+@keyframes rotate-phone { 0%, 20% { transform: rotate(0); } 50%, 75% { transform: rotate(-90deg); border-color: #00d2ff; } 100% { transform: rotate(0); } }
+@media (orientation: portrait) and (hover: none) and (pointer: coarse) {
+  body:not(.portrait-ok) #rotate { display: grid; }
+}
+
+/* ---------- thumb-stick and buttons ---------- */
+#stick-zone, #stick, #touchbar { display: none; }
+body.is-touch:not([data-mode="intro"]) #stick-zone { display: block; position: fixed; left: 0; bottom: 0; width: 46vw; height: 62vh; z-index: 9; touch-action: none; }
+body.is-touch:not([data-mode="intro"]) #stick { display: block; position: fixed; left: calc(max(14px, env(safe-area-inset-left)) + 70px); top: calc(100dvh - 92px); z-index: 9; width: 112px; height: 112px; margin: -56px 0 0 -56px; border-radius: 50% !important; border: 1.5px solid rgba(255,255,255,.45); background: rgba(10,16,34,.28); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); opacity: .45; pointer-events: none; transition: opacity .2s; }
+#stick i { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50% !important; background: rgba(255,255,255,.9); box-shadow: 0 6px 16px rgba(0,0,0,.35); }
+#stick.is-on { opacity: 1; }
+body.is-touch[data-mode="walk"] #touchbar { display: grid; position: fixed; z-index: 11; right: max(14px, env(safe-area-inset-right)); bottom: max(14px, env(safe-area-inset-bottom)); grid-template-columns: auto auto; grid-template-areas: "use jump"; align-items: end; gap: 10px; }
+.tb { width: 58px; height: 58px; border-radius: 50% !important; border: 1.5px solid rgba(255,255,255,.4); color: #fff; font: 700 12px var(--sans); background: rgba(10,16,34,.45); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 8px 20px -8px rgba(0,0,0,.5); }
+.tb--big { width: 74px; height: 74px; font-size: 13px; background: linear-gradient(135deg, rgba(61,123,255,.85), rgba(122,77,255,.85)); border-color: rgba(255,255,255,.55); }
+.tb.is-down { transform: scale(.92); filter: brightness(1.2); }
+#tb-use { grid-area: use; opacity: .4; }
+#tb-use.is-ready { opacity: 1; background: rgba(0,210,255,.55); }
+#tb-jump { grid-area: jump; }
+.tb--ride { display: none; }
+body.touch-riding #touchbar { grid-template-columns: auto auto auto; grid-template-areas: "off bell jump"; }
+body.touch-riding .tb--ride { display: block; }
+body.touch-riding #tb-use { display: none; }
+#tb-bell { grid-area: bell; font-size: 20px; }
+#tb-off { grid-area: off; }
+body.is-touch #prompt { cursor: pointer; padding: 8px 14px 8px 8px; }
+body.is-touch #prompt kbd { display: inline-block !important; }
+body.is-touch #prompt kbd { font-size: 0; padding: 0; width: 26px; height: 26px; }
+body.is-touch #prompt kbd::after { content: '☝'; font-size: 15px; line-height: 26px; }
+
+/* ---------- landscape phones: short screens ---------- */
+@media (max-height: 540px) and (orientation: landscape) {
+  .hud__brand { top: 8px; left: max(8px, env(safe-area-inset-left)); padding: 4px 10px 4px 4px; }
+  .hud__brand img { width: 30px; height: 30px; }
+  .hud__brand b { font-size: 14px; }
+  .hud__brand em, .hud__eyebrow { display: none; }
+  .rail { top: 52px; left: max(8px, env(safe-area-inset-left)); gap: 6px; }
+  .rail__btn { width: 42px; height: 42px; }
+  .rail__btn span { display: none; }
+  .weather { top: 8px; right: max(8px, env(safe-area-inset-right)); width: auto; padding: 6px 10px; gap: 0; }
+  .weather__hours { display: none; }
+  .weather__now i { font-size: 20px; }
+  .weather__now b { font-size: 18px; }
+  .mapcard, #missions, .contact-fab, #keys { display: none !important; }
+  #pass { top: 52px; left: calc(max(8px, env(safe-area-inset-left)) + 52px); width: 290px; grid-template-columns: 1fr 64px; }
+  .pass__main { padding: 9px 12px 8px; }
+  #pass h2 { font-size: 18px; }
+  .pass__lead { display: none; }
+  .pass__place { margin-bottom: 4px; }
+  .pass__stub span { font-size: 24px; }
+  #panel { top: 52px !important; right: max(8px, env(safe-area-inset-right)); width: 260px; max-height: none; bottom: 108px; padding: 10px; }
+  .dock { bottom: max(6px, env(safe-area-inset-bottom)); padding: 4px; }
+  .dock__btn { min-width: 52px; padding: 4px 6px; font-size: 9.5px; }
+  .dock__btn .ic { width: 18px; height: 18px; }
+  .dock__btn--main { width: 44px; height: 44px; margin: -12px 6px 0; }
+  #prompt { bottom: 70px; font-size: 12.5px; max-width: 46vw; }
+  #ridebar { bottom: 70px; }
+  #ridebar .ridebar__keys { display: none; }
+  #toast { top: 8px; max-width: 46vw; font-size: 12px; padding: 7px 12px; }
+  #indoor { top: 52px; }
+  .soundpop { top: 52px; left: calc(max(8px, env(safe-area-inset-left)) + 52px); max-height: calc(100dvh - 64px); overflow: auto; }
+  .label { padding: 3px 7px 4px 6px; }
+  .label__name { font-size: 11px; }
+  .label__team { display: none; }
+  #speech { max-width: 200px; font-size: 11.5px; }
+  .thought { max-width: 150px; font-size: 10.5px; }
+  /* splash and modals use the full height */
+  #intro { padding: 8px max(8px, env(safe-area-inset-right)) 8px max(8px, env(safe-area-inset-left)); }
+  .intro__card { width: min(720px, 100%); padding: 16px 18px; max-height: calc(100dvh - 16px); }
+  .intro__head img { width: 44px; height: 44px; }
+  .intro__card h1 { font-size: 28px; }
+  .intro__tagline { font-size: 14px; }
+  .intro__body { font-size: 12.5px; margin-bottom: 10px; }
+  .legend { grid-template-columns: repeat(4, 1fr); }
+  .legend span { display: none; }
+  .intro__awards { display: none; }
+  .hire__card { padding: 16px; max-height: calc(100dvh - 16px); }
+  #case { inset: 0 !important; }
+  #webpop { padding: 0; }
+  .webpop__card { height: 100%; }
+}
+/* small portrait screens, if someone continues in portrait */
+@media (max-width: 760px) and (orientation: portrait) {
+  body.is-touch .rail { top: 64px; }
+  body.is-touch .rail__btn span { display: none; }
+  body.is-touch .rail__btn { width: 44px; height: 44px; }
+}
