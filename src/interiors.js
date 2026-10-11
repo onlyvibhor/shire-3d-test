@@ -4,6 +4,7 @@ import { makePerson, animate, giveProp } from './characters.js';
 import { screenMat, makeDesk, dashboardTexture } from './props.js';
 import { WHITE_METAL, BRUSHED, CHROME, GLASS, GOLD, WOOD, DARK, solid, glow, mesh, canvasTexture, deepMerge } from './materials.js';
 import { rng } from './world.js';
+import { fillFit } from './type.js';
 import { playerPos } from './village.js';
 import { sfx } from './audio.js';
 
@@ -313,10 +314,10 @@ function buildAIHub(origin) {
       ctx.fill();
       ctx.fillStyle = '#ffffff';
       ctx.font = `700 ${h * 0.034}px Inter, sans-serif`;
-      ctx.fillText(tool.name, cx + 62, cy + h * 0.047, cw - 100);
+      fillFit(ctx, tool.name, cx + 62, cy + h * 0.047, cw - 100);
       ctx.fillStyle = '#9fb0cc';
       ctx.font = `500 ${h * 0.024}px Inter, sans-serif`;
-      ctx.fillText(tool.use, cx + 62, cy + h * 0.083, cw - 100);
+      fillFit(ctx, tool.use, cx + 62, cy + h * 0.083, cw - 100);
     });
   });
   stack.position.set(-16.9, 4.2, -1);
@@ -342,10 +343,10 @@ function buildAIHub(origin) {
     ctx.fillRect(0, 0, w, h);
     ctx.fillStyle = C;
     ctx.font = `700 ${h * 0.2}px Inter, sans-serif`;
-    ctx.fillText('FOUNDER IMAGE GENERATOR', 20, h * 0.35, w - 40);
+    fillFit(ctx, 'FOUNDER IMAGE GENERATOR', 20, h * 0.35, w - 40);
     ctx.fillStyle = '#ffffff';
     ctx.font = `800 ${h * 0.28}px "Bricolage Grotesque", Inter, sans-serif`;
-    ctx.fillText('1 photo → 4K library', 20, h * 0.75, w - 40);
+    fillFit(ctx, '1 photo → 4K library', 20, h * 0.75, w - 40);
   });
   mlabel.position.set(-1.42, 2.8, 0);
   mlabel.rotation.y = -Math.PI / 2;
@@ -403,7 +404,7 @@ function buildAIHub(origin) {
       ctx.fillText(`PRINCIPLE 0${k + 1}`, 24, h * 0.3);
       ctx.fillStyle = '#ffffff';
       ctx.font = `800 ${h * 0.3}px "Bricolage Grotesque", Inter, sans-serif`;
-      ctx.fillText(text, 24, h * 0.72, w - 48);
+      fillFit(ctx, text, 24, h * 0.72, w - 48);
     }, { transparent: true });
     label.position.z = -0.05;
     label.rotation.y = Math.PI;
@@ -520,7 +521,7 @@ function buildHomeInterior(origin) {
       ctx.fillText(years, 28, h * 0.2);
       ctx.fillStyle = '#0f172a';
       ctx.font = `800 ${h * 0.13}px "Bricolage Grotesque", Inter, sans-serif`;
-      ctx.fillText(org, 28, h * 0.38, w - 56);
+      fillFit(ctx, org, 28, h * 0.38, w - 56);
       ctx.fillStyle = '#475569';
       ctx.font = `500 ${h * 0.075}px Inter, sans-serif`;
       wrapText(ctx, text, 28, h * 0.55, w - 56, h * 0.1);
@@ -544,7 +545,7 @@ function buildHomeInterior(origin) {
     ctx.font = `700 ${h * 0.45}px Inter, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('RECOGNITION · find all four on the island', w / 2, h / 2 + 2, w - 30);
+    fillFit(ctx, 'RECOGNITION · find all four on the island', w / 2, h / 2 + 2, w - 30);
   });
   plaque.position.set(0, 3.0, 0.02);
   cab.add(plaque);
@@ -1263,7 +1264,7 @@ function buildPlayhouseInterior(origin) {
       ctx.fillStyle = '#ffd08a';
       ctx.font = `700 ${h * 0.55}px Inter, sans-serif`;
       ctx.textBaseline = 'middle';
-      ctx.fillText(PROJECTS[slug].title, 14, h / 2 + 2, w - 28);
+      fillFit(ctx, PROJECTS[slug].title, 14, h / 2 + 2, w - 28);
     });
     cap.position.set(x, y - 0.72, -11.92);
     g.add(ph, cap, mesh(new THREE.BoxGeometry(2.02, 1.6, 0.06), solid('#ff9f1c', { roughness: 0.6 }), x, y - 0.13, -11.96, false));
@@ -1274,7 +1275,7 @@ function buildPlayhouseInterior(origin) {
     ctx.fillStyle = '#ff9f1c';
     ctx.font = `800 ${h * 0.55}px "Bricolage Grotesque", Inter, sans-serif`;
     ctx.textBaseline = 'middle';
-    ctx.fillText('STOP MOTION · one frame at a time', 16, h / 2 + 3, w - 32);
+    fillFit(ctx, 'STOP MOTION · one frame at a time', 16, h / 2 + 3, w - 32);
   });
   smSign.position.set(-11.9, 5.75, -11.92);
   g.add(smSign);
@@ -1497,7 +1498,7 @@ function buildHallInterior(origin) {
       const y = wrapText(ctx, a.category, 28, h * 0.62, w - 56, h * 0.12);
       ctx.fillStyle = a.tier === 'gold' ? '#f7d774' : '#dfe5ec';
       ctx.font = `600 ${h * 0.085}px Inter, sans-serif`;
-      ctx.fillText(a.project ? `for ${PROJECTS[a.project].title}` : 'for the Razorpay Creative & Design Team', 28, Math.min(y + 4, h * 0.92), w - 56);
+      fillFit(ctx, a.project ? `for ${PROJECTS[a.project].title}` : 'for the Razorpay Creative & Design Team', 28, Math.min(y + 4, h * 0.92), w - 56);
     });
     card.position.set(0, 2.1, 1.4);
     card.userData.action = a.project ? { kind: 'project', slug: a.project } : { kind: 'toast', text: `<b>🏆 ${a.show} ${a.year}</b><br>${a.title}: ${a.category}` };

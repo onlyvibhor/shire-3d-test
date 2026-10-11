@@ -4,6 +4,7 @@
 // Innovate (a spiral climbing to a light bulb). Each carries a clear name plaque.
 import * as THREE from 'three';
 import { WHITE_METAL, CHROME, GOLD, CONCRETE, solid, glow, mesh, canvasTexture } from './materials.js';
+import { fillFit } from './type.js';
 
 export const PILLAR_STYLE = {
   better: { color: '#3d7bff', icon: '✦' },
@@ -26,7 +27,7 @@ function plaque(p, color) {
     c.fillText(PILLAR_STYLE[p.id].icon, 52, 92);
     c.fillStyle = '#ffffff';
     c.font = '800 72px "Bricolage Grotesque", Inter, sans-serif';
-    c.fillText(p.name, 150, 96, w - 180);
+    fillFit(c, p.name, 150, 96, w - 180);
     c.fillStyle = 'rgba(226,234,255,0.82)';
     c.font = '500 30px Inter, sans-serif';
     // wrap the proof line onto two lines

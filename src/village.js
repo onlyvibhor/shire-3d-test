@@ -1,13 +1,14 @@
 import * as THREE from 'three';
-import { HAMLETS, PILLARS, CENTER, LAB, PROJECTS, AWARDS, HOME, FUN, FAVOURITES, OWNER, AIHUB, HALL } from './data.js';
+import { HAMLETS, PILLARS, CENTER, LAB, PROJECTS, AWARDS, HOME, FUN, FAVOURITES, OWNER, AIHUB, HALL, BELIEFS } from './data.js';
 import { groundAt, walkY, rng, PATHS, ROAD_HALF, distToPath, SURFACE } from './world.js';
 import { makeDome, makeDrone, makeScooter, makeDesk, makeMonitorWall, dashboardTexture, makeCafe, makeAdBoard, screenMat } from './props.js';
 import { makePerson, giveProp, animate } from './characters.js';
 import { makeArch } from './landmarks.js';
 import { buildCreatures } from './creatures.js';
 import { makePillar } from './pillars.js';
+import { projectPlateTexture, metricTexture, signPlateTexture, FONT, fit, fitWrap, fillFit } from './type.js';
 import { buildTraffic } from './traffic.js';
-import { buildJaipur, makePol, cuspedArchPoints, PINK as JAIPUR_PINK, OCHRE } from './jaipur.js';
+import { buildJaipur, makePol, cuspedArchPoints, makeBeliefSign, PINK as JAIPUR_PINK, OCHRE } from './jaipur.js';
 import { WHITE_METAL, BRUSHED, CHROME, GLASS, GOLD, WOOD, DARK, MOUND, WINDOW_GLOW, CONCRETE, solid, glow, mesh, canvasTexture, deepMerge, mergeStatic } from './materials.js';
 
 // The player's position, shared so walking villagers can step aside.
@@ -165,38 +166,14 @@ export class Walker {
 // ---------- Billboards: the projects, in the world ----------
 
 function metricSprite(value, label, color) {
-  const tex = canvasTexture(512, 220, (ctx, w, h) => {
-    ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = 'rgba(255,255,255,0.92)';
-    const rr = 36;
-    ctx.beginPath();
-    ctx.roundRect(8, 8, w - 16, h - 16, rr);
-    ctx.fill();
-    ctx.fillStyle = color;
-    ctx.font = '800 108px "Bricolage Grotesque", Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillText(value, w / 2, 122, w - 40);
-    ctx.fillStyle = '#334155';
-    ctx.font = '600 36px Inter, sans-serif';
-    ctx.fillText(label, w / 2, 176, w - 40);
-  });
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
-  s.scale.set(3.0, 1.29, 1);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: metricTexture(value, label, color), transparent: true, depthWrite: false }));
+  s.scale.set(2.9, 1.18, 1);
   return s;
 }
 
+// the old one-line title strip, kept for the few places that only have a name
 function titleTexture(text, color) {
-  return canvasTexture(1024, 128, (ctx, w, h) => {
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = color;
-    ctx.fillRect(0, 0, 14, h);
-    ctx.fillStyle = '#0f172a';
-    ctx.font = '700 58px "Bricolage Grotesque", Inter, sans-serif';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, 40, h / 2 + 3, w - 80);
-  });
+  return projectPlateTexture({ title: text }, color, 8);
 }
 
 function makeBillboard(slug, color, ctx, size = 1) {
@@ -221,8 +198,10 @@ function makeBillboard(slug, color, ctx, size = 1) {
   img.userData.slug = slug;
   img.userData.dynamic = true;
   g.add(img);
-  const title = new THREE.Mesh(new THREE.PlaneGeometry(W + 0.3, (W + 0.3) / 8), new THREE.MeshBasicMaterial({ map: titleTexture(p.title, color), toneMapped: false }));
-  title.position.set(0, lift - 0.33, 0.12);
+  // the project's name plate under the picture: client and year, then the title, big
+  const plateH = (W + 0.3) / 4.6;
+  const title = new THREE.Mesh(new THREE.PlaneGeometry(W + 0.3, plateH), new THREE.MeshBasicMaterial({ map: projectPlateTexture(p, color, 4.6), toneMapped: false }));
+  title.position.set(0, lift - 0.04 - plateH / 2, 0.12);
   const titleBack = title.clone();
   titleBack.position.z = 0.11;
   titleBack.rotation.y = Math.PI;
@@ -247,15 +226,17 @@ function makeBillboard(slug, color, ctx, size = 1) {
 
 // A wall of smaller posters, for departments with more work than billboard slots
 function wallHeaderTexture(text, sub, color) {
-  return canvasTexture(512, 400, (ctx, w, h) => {
+  return canvasTexture(900, 700, (ctx, w, h) => {
     ctx.fillStyle = color;
     ctx.fillRect(0, 0, w, h);
     ctx.fillStyle = '#ffffff';
-    ctx.font = '800 64px "Bricolage Grotesque", Inter, sans-serif';
     ctx.textBaseline = 'top';
-    text.split('\n').forEach((line, k) => ctx.fillText(line, 36, 60 + k * 72, w - 72));
-    ctx.font = '500 30px Inter, sans-serif';
-    ctx.fillText(sub, 36, h - 80, w - 72);
+    const lines = text.split('\n');
+    const size = Math.min(...lines.map((l) => fit(ctx, l, { weight: 800, size: 130, min: 50, maxW: w - 120 })));
+    ctx.font = `800 ${size}px ${FONT.display}`;
+    lines.forEach((line, k) => ctx.fillText(line, 60, 70 + k * size * 1.02));
+    ctx.font = `500 40px ${FONT.sans}`;
+    ctx.fillText(sub, 60, h - 100);
   });
 }
 
@@ -297,9 +278,9 @@ function makeCampaignWall(slugs, color, ctx, header) {
     const p = PROJECTS[c.slug];
     const img = new THREE.Mesh(new THREE.PlaneGeometry(PW, PH), new THREE.MeshBasicMaterial({ map: coverTexture(p.images[0], PW / PH), toneMapped: false }));
     img.userData = { slug: c.slug, dynamic: true };
-    const title = new THREE.Mesh(new THREE.PlaneGeometry(PW, PW / 8), new THREE.MeshBasicMaterial({ map: titleTexture(p.title, color), toneMapped: false }));
+    const title = new THREE.Mesh(new THREE.PlaneGeometry(PW, PW / 4.4), new THREE.MeshBasicMaterial({ map: projectPlateTexture(p, color, 4.4), toneMapped: false }));
     title.userData = { slug: c.slug, dynamic: true };
-    ctx.clickables.push(img, both(img, y, x, 0.1), title, both(title, y - PH / 2 - 0.2, x, 0.1));
+    ctx.clickables.push(img, both(img, y, x, 0.1), title, both(title, y - PH / 2 - 0.03 - PW / 8.8, x, 0.1));
     const marker = new THREE.Object3D();
     marker.position.set(x + (row ? 0.6 : -0.6), 0, 1.6); // stagger so stacked posters each have a spot
     marker.userData.project = c.slug;
@@ -327,7 +308,7 @@ function bubbleTexture(text, bg, fg = '#0f172a') {
     ctx.fillStyle = fg;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(text, w / 2, 70, w - 80);
+    fillFit(ctx, text, w / 2, 70, w - 80);
   });
 }
 
@@ -384,6 +365,15 @@ function buildHamlet(scene, h, i, ctx) {
     hole.rotation.y = -t;
     g.add(hole);
   });
+
+  // what I believe about working with this team, on a Jaipur signboard by the gate
+  const sideSign = i % 2 ? 1 : -1;
+  const belief = makeBeliefSign(h, BELIEFS[h.id]);
+  belief.position.set(sideSign * 5.8, 0, 11.4);
+  belief.rotation.y = -sideSign * 0.32;
+  g.add(belief);
+  collider(g, 0.35, sideSign * 5.8 - 1.7, 11.4);
+  collider(g, 0.35, sideSign * 5.8 + 1.7, 11.4);
 
   // Gateway arch on the road from the centre
   const arch = makeArch(h.color, h.name);
@@ -760,6 +750,12 @@ function buildLab(scene, ctx) {
   g.add(artist.root);
   ctx.updaters.push({ update: (t) => animate(artist, 'present', t) });
   ctx.npcs.push({ p: artist, dept: 'lab', lines: LAB.quotes, name: 'The artist' });
+  const labSign = makeBeliefSign(LAB, BELIEFS.lab);
+  labSign.position.set(5.6, 0, 3.2);
+  labSign.rotation.y = -0.5;
+  g.add(labSign);
+  collider(g, 0.35, 4.3, 4.2);
+  collider(g, 0.35, 6.9, 2.2);
   deepMerge(g);
 }
 
@@ -967,6 +963,17 @@ function buildCentre(scene, ctx) {
     ctx.updaters.push({ update: (t) => animate(p, act, t) });
     ctx.npcs.push(k === 0 ? { p, dept: 'hq', lines: CENTER.quotes, name: 'Studio host' } : { p, dept: 'hq' });
   });
+  // under the jamun tree, by the road you arrive on
+  {
+    const a = THREE.MathUtils.degToRad(104);
+    const x = Math.cos(a) * 13.2;
+    const z = Math.sin(a) * 13.2;
+    const hqSign = makeBeliefSign(CENTER, BELIEFS.hq);
+    hqSign.position.set(x, groundAt(x, z) - y0, z);
+    hqSign.rotation.y = Math.atan2(x, z) + 0.25;
+    g.add(hqSign);
+    collider(g, 1.2, x, z);
+  }
   deepMerge(g);
   ctx.updaters.push({
     update: (t) => {
@@ -1269,6 +1276,13 @@ function buildHome(scene, ctx) {
   ctx.npcs.push({ p: v1, dept: 'home' }, { p: v2, dept: 'home', lines: H.quotes, name: 'Neighbour' });
 
   deepMerge(g);
+  // what I believe, on a Jaipur signboard in the front yard
+  const homeSign = makeBeliefSign(H, BELIEFS.home);
+  homeSign.position.set(-5.2, 0, 4.2);
+  homeSign.rotation.y = 0.4;
+  g.add(homeSign);
+  collider(g, 0.35, -6.8, 3.6);
+  collider(g, 0.35, -3.6, 4.8);
 }
 
 // ---------- The Playhouse: films, stop motion, found objects, arcade ----------
@@ -1318,10 +1332,10 @@ function signTexture(text, sub, color, dark = true) {
     c.font = '800 112px "Bricolage Grotesque", Inter, sans-serif';
     c.textAlign = 'center';
     c.textBaseline = 'middle';
-    c.fillText(text, w / 2, h * 0.42, w - 80);
+    fillFit(c, text, w / 2, h * 0.42, w - 80);
     c.fillStyle = color;
     c.font = '600 40px Inter, sans-serif';
-    c.fillText(sub, w / 2, h * 0.78, w - 80);
+    fillFit(c, sub, w / 2, h * 0.78, w - 80);
   });
 }
 
@@ -1336,7 +1350,7 @@ function buildZoneDome(scene, ctx, place, { radius = 10, glass = false, extras }
   dome.position.z = -2;
   g.add(dome);
   collider(g, radius + 0.2, 0, -2);
-  const sign = new THREE.Mesh(new THREE.PlaneGeometry(7, 1.75), new THREE.MeshBasicMaterial({ map: signTexture(place.name.toUpperCase(), place.place, place.color), transparent: true, toneMapped: false }));
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(7, 1.75), new THREE.MeshBasicMaterial({ map: signPlateTexture(place.name, place.place, place.color), toneMapped: false }));
   sign.position.set(0, radius * 0.72, -2 + radius * 0.98);
   sign.rotation.x = -0.25;
   sign.userData.dynamic = true;
@@ -1368,6 +1382,14 @@ function buildZoneDome(scene, ctx, place, { radius = 10, glass = false, extras }
   g.add(p.root);
   ctx.updaters.push({ update: (t) => animate(p, 'talk', t) });
   ctx.npcs.push({ p, dept: place.id, lines: place.quotes, name: `${place.name} host` });
+  if (BELIEFS[place.id]) {
+    const sign = makeBeliefSign(place, BELIEFS[place.id]);
+    sign.position.set(-4.6, 0, doorZ + 5.2);
+    sign.rotation.y = 0.35;
+    g.add(sign);
+    collider(g, 0.35, -6.2, doorZ + 5.0);
+    collider(g, 0.35, -3.0, doorZ + 5.4);
+  }
   extras?.(g, doorZ, r);
   deepMerge(g);
 }

@@ -72,6 +72,23 @@ export const AWARDS = [
   { id: 'et-silver', name: 'ET Brand Disruption Awards 2026', detail: 'Silver, Most Disruptive B2B Campaign', project: 'trial' },
 ];
 
+// What Vibhor believes, one line per place, in his own words (from his leadership notes,
+// the portfolio's about page and each department's description). Shown on Jaipur-style signs.
+export const BELIEFS = {
+  hq: { title: 'Design for the business, not just the brief.', body: 'Work in step with brand marketing, so the output reflects company goals, not only creative ambition.' },
+  brand: { title: 'One visual language, from the TV spot to the newspaper front page.', body: 'Turn the campaign idea into a film, broadcast and print system.' },
+  pmm: { title: 'Every launch needs a story people can follow in under a minute.', body: 'Launch films that explain complex payments simply.' },
+  product: { title: 'Landing pages should be worlds, not feature lists.', body: 'Playable campaign games and parallax stories, shipped by designers.' },
+  social: { title: 'Always on, high volume, and still on-brand.', body: 'AI avatars captured once and used for months of reels.' },
+  copy: { title: 'Stories start from data, interviews and what past campaigns taught us.', body: 'Keep one voice across film, social and landing pages.' },
+  design: { title: 'Keep widening the toolkit.', body: 'Continuous learning keeps a team competitive, and engaged.' },
+  lab: { title: 'Everyday objects can be small vessels of emotion and meaning.', body: 'Personal experiments that feed the day job.' },
+  fun: { title: 'Have fun doing it.', body: 'Stop motion, found objects and quirky little things for Instagram, after hours.' },
+  home: { title: 'Build a culture that can take risks.', body: 'Turn brainstorms into hubs of collaboration, where trying something bold does not mean fearing failure.' },
+  ai: { title: 'Interfaces, not prompts.', body: 'Make AI easy to learn, so beginners are productive on day one.' },
+  awards: { title: 'Make goals measurable.', body: 'Use analytics not only to validate creative work but to show how it contributes to the company.' },
+};
+
 // The five pillars around the jamun tree.
 export const PILLARS = [
   { id: 'better', name: 'Make it better', rune: '✦', text: 'One visual system and storytelling method across Payments, RazorpayX and POS.' },

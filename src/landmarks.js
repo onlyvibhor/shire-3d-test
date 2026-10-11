@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { cuspedArchPoints, makeChhatri } from './jaipur.js';
 import { makePerson, animate } from './characters.js';
+import { FONT, fit, fillFit } from './type.js';
 import { HAMLETS } from './data.js';
 import { groundAt, walkY, rng, distToPath, ROAD_HALF, POND, PATHS, ZONES, coastR, SEA_LEVEL, SURFACE } from './world.js';
 import { WHITE_METAL, BRUSHED, CHROME, CONCRETE, GLASS, DARK as DARK_RAIL, mesh, canvasTexture, glow, mergeStatic, lightPool, solid } from './materials.js';
@@ -92,13 +93,14 @@ export function makeArch(color, label) {
     g.add(c);
   }
   if (label) {
-    const tex = canvasTexture(1024, 160, (ctx, w, h) => {
+    const tex = canvasTexture(2048, 320, (ctx, w, h) => {
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = '#1b2433';
-      ctx.font = '700 84px "Bricolage Grotesque", Inter, sans-serif';
+      ctx.fillStyle = '#16203a';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(label.toUpperCase(), w / 2, h / 2 + 4, w - 40);
+      if ('letterSpacing' in ctx) ctx.letterSpacing = '10px';
+      fit(ctx, label.toUpperCase(), { weight: 800, size: 168, min: 60, maxW: w - 140 });
+      ctx.fillText(label.toUpperCase(), w / 2, h / 2 + 8);
     });
     const plate = new THREE.Mesh(new THREE.PlaneGeometry(8, 1.25), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
     plate.position.set(0, 8.05, 0.7);
@@ -385,7 +387,7 @@ function makePier(scene, colliders, pier, deck) {
         c.font = '800 46px "Bricolage Grotesque", Inter, sans-serif';
         c.fillText('⛴ FERRY', 24, 70);
         c.font = '600 30px Inter, sans-serif';
-        c.fillText(pier.name, 24, 126, w - 48);
+        fillFit(c, pier.name, 24, 126, w - 48);
       }),
     })
   );

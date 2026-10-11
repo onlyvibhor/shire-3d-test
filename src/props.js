@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { WHITE_METAL, BRUSHED, CHROME, GLASS, DARK, WOOD, solid, glow, mesh, canvasTexture } from './materials.js';
+import { projectPlateTexture, fillFit } from './type.js';
 
 const loader = new THREE.TextureLoader();
 const texCache = {};
@@ -284,10 +285,10 @@ export function dashboardTexture(title, color, metrics = [], seed = 1) {
       ctx.fill();
       ctx.fillStyle = color;
       ctx.font = '800 56px Inter, sans-serif';
-      ctx.fillText(v, x + 22, 200, 260);
+      fillFit(ctx, v, x + 22, 200, 260);
       ctx.fillStyle = '#9fb0cc';
       ctx.font = '500 20px Inter, sans-serif';
-      ctx.fillText(l, x + 22, 236, 260);
+      fillFit(ctx, l, x + 22, 236, 260);
     });
     // bars
     for (let i = 0; i < 14; i++) {
@@ -391,25 +392,10 @@ export function makeAdBoard(src, color, title) {
   const strip = new THREE.Mesh(new THREE.BoxGeometry(W + 0.5, 0.1, 0.1), glow(color, 2.5));
   strip.position.set(0, 6.5 + H + 0.32, -0.02);
   g.add(strip);
-  const tag = new THREE.Mesh(
-    new THREE.PlaneGeometry(4.4, 0.62),
-    new THREE.MeshBasicMaterial({
-      map: canvasTexture(1024, 144, (ctx, w, h) => {
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, w, h);
-        ctx.fillStyle = color;
-        ctx.fillRect(0, 0, 16, h);
-        ctx.fillStyle = '#0f172a';
-        ctx.font = '700 64px "Bricolage Grotesque", Inter, sans-serif';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(title, 44, h / 2 + 3, w - 80);
-      }),
-      toneMapped: false,
-    })
-  );
-  tag.position.set(-W / 2 + 2.2, 6.5 - 0.1, 0.02);
+  const tag = new THREE.Mesh(new THREE.PlaneGeometry(5.6, 1.12), new THREE.MeshBasicMaterial({ map: projectPlateTexture({ title, client: 'Now showing' }, color, 5), toneMapped: false }));
+  tag.position.set(-W / 2 + 2.8, 6.5 - 0.42, 0.02);
   const tagBack = tag.clone();
-  tagBack.position.set(W / 2 - 2.2, 6.5 - 0.1, -0.4);
+  tagBack.position.set(W / 2 - 2.8, 6.5 - 0.42, -0.4);
   tagBack.rotation.y = Math.PI;
   g.add(tag, tagBack);
   img.userData.dynamic = tag.userData.dynamic = imgBack.userData.dynamic = tagBack.userData.dynamic = true;

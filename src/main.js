@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { step, finishLoading, hideLoader } from './loading.js';
+import { loadFonts } from './type.js';
 import { startAudio, sfx, updateAudio, addFilm, audioDebug } from './audio.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
@@ -85,6 +86,8 @@ composer.addPass(new OutputPass());
 // ---------- World ----------
 
 // Everything on the island lives in `outdoor`, so it can be hidden when you step inside a building.
+await step('Setting the type', 0.02);
+await loadFonts(); // signs and labels are painted with these fonts, so they must be here first
 await step('Raising the island', 0.05);
 const outdoor = new THREE.Group();
 scene.add(outdoor);

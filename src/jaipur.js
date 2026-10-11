@@ -5,6 +5,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { HAMLETS } from './data.js';
 import { groundAt, walkY, rng, coastR, JANTAR, BAZAAR } from './world.js';
 import { solid, mesh, canvasTexture, deepMerge, WHITE_METAL, DARK, WOOD } from './materials.js';
+import { FONT, fit, fitWrap, wrap } from './type.js';
 import { makePerson, animate } from './characters.js';
 import { sfx } from './audio.js';
 import { playerPos } from './village.js';
@@ -234,6 +235,143 @@ export function makePol({ w = 9, h = 8, a = 2.2, spring = 3.4, depth = 1.6, colo
       g.add(c);
     }
   }
+  return g;
+}
+
+// ---------- Belief signs: a Rajput signboard per place ----------
+// Pink sandstone posts with chhatri finials, a cusped crest, and a painted panel in the style of Jaipur's
+// blue pottery: cream ground, indigo borders, flowers in the corners, and the belief set in big type.
+
+const INDIGO = '#22408a';
+function flower(c, x, y, r, petal = INDIGO, heart = '#19a7a1') {
+  c.fillStyle = petal;
+  for (let k = 0; k < 8; k++) {
+    const a = (k / 8) * Math.PI * 2;
+    c.beginPath();
+    c.ellipse(x + Math.cos(a) * r * 0.62, y + Math.sin(a) * r * 0.62, r * 0.42, r * 0.2, a, 0, Math.PI * 2);
+    c.fill();
+  }
+  c.fillStyle = heart;
+  c.beginPath();
+  c.arc(x, y, r * 0.3, 0, Math.PI * 2);
+  c.fill();
+}
+function paintedPanel(w, h, draw) {
+  return canvasTexture(w, h, (c) => {
+    c.fillStyle = '#f6ead2';
+    c.fillRect(0, 0, w, h);
+    // a little texture in the plaster
+    for (let k = 0; k < 500; k++) {
+      c.fillStyle = k % 2 ? 'rgba(120,90,50,0.035)' : 'rgba(255,255,255,0.25)';
+      c.fillRect((k * 131) % w, (k * 71) % h, 3 + (k % 5), 2);
+    }
+    // double indigo border, flowers in the corners
+    c.strokeStyle = INDIGO;
+    c.lineWidth = 10;
+    c.strokeRect(26, 26, w - 52, h - 52);
+    c.lineWidth = 3;
+    c.strokeRect(46, 46, w - 92, h - 92);
+    for (const [x, y] of [[46, 46], [w - 46, 46], [46, h - 46], [w - 46, h - 46]]) flower(c, x, y, 30);
+    draw(c, w, h);
+  });
+}
+export function makeBeliefSign(place, belief) {
+  const g = new THREE.Group();
+  g.name = `belief-${place.id}`;
+  const stone = solid(PINK, { roughness: 0.85, emissive: PINK, emissiveIntensity: 0.12 });
+  const lime = solid(LIME, { roughness: 0.8 });
+  const W = 3.3;
+  const H = 2.05;
+  const y0 = 1.0;
+  // posts with caps and chhatri finials
+  for (const sx of [-1, 1]) {
+    g.add(mesh(new THREE.BoxGeometry(0.32, y0 + H + 0.35, 0.32), stone, sx * (W / 2 + 0.06), (y0 + H + 0.35) / 2, 0));
+    g.add(mesh(new THREE.BoxGeometry(0.44, 0.12, 0.44), lime, sx * (W / 2 + 0.06), y0 + H + 0.41, 0));
+    const c = makeChhatri(0.32, LIME);
+    c.position.set(sx * (W / 2 + 0.06), y0 + H + 0.47, 0);
+    g.add(c);
+    g.add(mesh(new THREE.BoxGeometry(0.44, 0.18, 0.44), lime, sx * (W / 2 + 0.06), 0.09, 0));
+  }
+  // the frame: a sandstone board with a cusped crest rising from its top edge
+  const crest = cuspedArchPoints(0.62, 0, 5, 0.14);
+  const frameShape = new THREE.Shape();
+  frameShape.moveTo(-W / 2, 0);
+  frameShape.lineTo(W / 2, 0);
+  frameShape.lineTo(W / 2, H);
+  frameShape.lineTo(0.62, H);
+  for (let i = crest.length - 1; i >= 0; i--) frameShape.lineTo(crest[i][0], H + crest[i][1] * 0.55);
+  frameShape.lineTo(-W / 2, H);
+  frameShape.closePath();
+  const frameGeo = new THREE.ExtrudeGeometry(frameShape, { depth: 0.14, bevelEnabled: false });
+  frameGeo.translate(0, y0, -0.07);
+  g.add(new THREE.Mesh(frameGeo, stone));
+  // lime-white moulding round the panel
+  g.add(mesh(new THREE.BoxGeometry(W - 0.12, 0.06, 0.2), lime, 0, y0 + 0.08, 0));
+  g.add(mesh(new THREE.BoxGeometry(W - 0.12, 0.06, 0.2), lime, 0, y0 + H - 0.08, 0));
+  // the crest medallion carries the department's colour
+  const med = new THREE.Mesh(new THREE.CircleGeometry(0.2, 24), new THREE.MeshStandardMaterial({ color: place.color, roughness: 0.4, emissive: place.color, emissiveIntensity: 0.15 }));
+  for (const z of [0.075, -0.075]) {
+    const m = med.clone();
+    m.position.set(0, y0 + H + 0.26, z);
+    if (z < 0) m.rotation.y = Math.PI;
+    g.add(m);
+  }
+  // front: the belief. back: the place's name
+  const PW = W - 0.26;
+  const PH = H - 0.26;
+  const front = paintedPanel(1500, Math.round((1500 * PH) / PW), (c, w, h) => {
+    const pad = 104;
+    c.textBaseline = 'top';
+    // measure the block (eyebrow, belief, supporting line) and centre it in the panel
+    const { size, lines } = fitWrap(c, belief.title, { weight: 800, size: 126, min: 54, maxW: w - pad * 2, maxLines: 3 });
+    const lh = size * 1.04;
+    c.font = `500 42px ${FONT.sans}`;
+    const body = wrap(c, belief.body, w - pad * 2 - 40, 2);
+    const blockH = 44 + lines.length * lh + 26 + body.length * 54;
+    let y = Math.max(96, (h - 70 - blockH) / 2);
+    // eyebrow: a short rule in the place's colour, then the label in indigo
+    c.fillStyle = place.color;
+    c.fillRect(pad, y + 8, 46, 12);
+    c.fillStyle = INDIGO;
+    if ('letterSpacing' in c) c.letterSpacing = '5px';
+    const eyebrow = `WHAT I BELIEVE · ${place.name.toUpperCase()}`;
+    fit(c, eyebrow, { weight: 400, size: 32, min: 16, family: FONT.mono, maxW: w - pad * 2 - 70 });
+    c.fillText(eyebrow, pad + 66, y);
+    if ('letterSpacing' in c) c.letterSpacing = '0px';
+    y += 64;
+    c.fillStyle = '#2a1d14';
+    c.font = `800 ${size}px ${FONT.display}`;
+    lines.forEach((l, i) => c.fillText(l, pad, y + i * lh));
+    y += lines.length * lh + 26;
+    c.fillStyle = '#6b5444';
+    c.font = `500 42px ${FONT.sans}`;
+    body.forEach((l, i) => c.fillText(l, pad, y + i * 54));
+    c.fillStyle = INDIGO;
+    c.textAlign = 'right';
+    c.font = `italic 400 54px ${FONT.serif}`;
+    c.fillText('— Vibhor', w - pad, h - 128);
+  });
+  const back = paintedPanel(1500, Math.round((1500 * PH) / PW), (c, w, h) => {
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillStyle = '#2a1d14';
+    fit(c, place.name, { weight: 800, size: 120, min: 50, maxW: w - 220 });
+    c.fillText(place.name, w / 2, h * 0.44);
+    c.fillStyle = place.color;
+    fit(c, place.place, { weight: 600, size: 46, min: 24, family: FONT.sans, maxW: w - 260 });
+    c.fillText(place.place, w / 2, h * 0.64);
+  });
+  for (const [tex, z, ry] of [[front, 0.076, 0], [back, -0.076, Math.PI]]) {
+    // a touch of self-light keeps the painted panel cream, not grey, when it's in shade
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(PW, PH), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85, emissive: '#ffffff', emissiveMap: tex, emissiveIntensity: 0.32 }));
+    m.position.set(0, y0 + H / 2, z);
+    m.rotation.y = ry;
+    m.userData.dynamic = true;
+    g.add(m);
+  }
+  g.traverse((o) => {
+    if (o.isMesh) o.castShadow = true;
+  });
   return g;
 }
 
