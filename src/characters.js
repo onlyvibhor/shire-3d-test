@@ -603,6 +603,34 @@ function pose(p, action, t, speed = 0) {
       armR.elbow.rotation.x = -1.0 + Math.sin(ph * 13 + 1) * 0.05;
       break;
     }
+    case 'smoke': {
+      // sitting on a log; a slow drag now and then, or holding it out to share
+      hips.position.y = 0.55;
+      legL.hip.rotation.set(-1.25, 0, -0.2);
+      legR.hip.rotation.set(-1.25, 0, 0.2);
+      legL.knee.rotation.x = legR.knee.rotation.x = 1.3;
+      chest.rotation.x = 0.12;
+      armL.shoulder.rotation.set(-0.5, 0, 0.1);
+      armL.elbow.rotation.x = -0.9;
+      if (p.offer) {
+        armR.shoulder.rotation.set(-1.25 * p.offer, 0, -0.1);
+        armR.elbow.rotation.x = -0.15;
+        head.rotation.y = 0.2;
+      } else {
+        const drag = Math.max(0, Math.sin(ph * 0.5)) ** 8;
+        armR.shoulder.rotation.set(-0.45 - drag * 1.0, 0, -0.2);
+        armR.elbow.rotation.x = -1.3 - drag * 0.75;
+        head.rotation.x = -drag * 0.2 + 0.1;
+      }
+      break;
+    }
+    case 'puff':
+      // standing, cigarette at the lips, chin up
+      armR.shoulder.rotation.set(-1.35, 0, -0.25);
+      armR.elbow.rotation.x = -1.95;
+      head.rotation.x = -0.18;
+      armL.shoulder.rotation.z = -0.15;
+      break;
     case 'kite':
       // both hands up, tugging the string (Sankranti on the rooftops)
       head.rotation.x = -0.45;

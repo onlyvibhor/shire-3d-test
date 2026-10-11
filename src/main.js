@@ -489,7 +489,7 @@ function movePlayer(dt) {
   state.pos.y = ground + state.air;
   player.root.position.copy(state.pos);
   player.root.rotation.y = state.heading;
-  animate(player, state.air > 0.05 ? 'jump' : 'walk', elapsed, state.speed);
+  animate(player, state.forcePose && state.speed < 1 ? state.forcePose : state.air > 0.05 ? 'jump' : 'walk', elapsed, state.speed);
   halo.visible = state.air < 0.05;
   if (state.target) {
     marker.position.set(state.target.x, (state.indoor ? state.indoor.origin.y : walkY(state.target.x, state.target.z)) + 0.05, state.target.z);
@@ -737,6 +737,7 @@ function updateNpcs(t) {
   let asker = null;
   let ad = 3.4;
   for (const n of state.indoor ? state.indoor.npcs : village.npcs) {
+    if (!n.p.root.visible) continue; // eaten by the T-rex, back after lunch
     n.p.root.getWorldPosition(npcPos);
     const dx = npcPos.x - state.pos.x;
     const dz = npcPos.z - state.pos.z;
@@ -989,6 +990,7 @@ function frame() {
   const t = (elapsed = timer.getElapsed());
   movePlayer(dt);
   village.update(t, dt);
+  village.creatures.update(t, dt, { state, player, ui, npcs: village.npcs, respawn: () => travelTo('hq') });
   grassWind.uTime.value = t;
   lavWind.uTime.value = t;
   flowerWind.uTime.value = t;
