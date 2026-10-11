@@ -205,8 +205,8 @@ function travelTo(id) {
   const dz = p.z - z;
   state.heading = Math.atan2(dx, dz);
   state.yaw = Math.atan2(-dx, -dz);
-  state.pitch = 0.3;
-  state.dist = Math.min(state.dist, 6.5);
+  state.pitch = camPreset.pitch;
+  state.dist = camPreset.dist;
   state.target = null;
   marker.visible = false;
   setMode('walk', { snap: true });
@@ -278,6 +278,7 @@ window.addEventListener('keydown', (e) => {
   else if (k === 't') setMode(state.mode === 'tour' ? 'walk' : 'tour');
   else if (k === 'h') ui.toggleHire();
   else if (k === 'i') showHome();
+  else if (k === 'c') setCameraPreset();
   else if (k === 'm') ui.toggleMissions();
   else if (k === 'l') ui.setTimeMode(dayNight.cycle());
   else if ((k === 'e' || k === 'enter') && nearThing) act(nearThing);
@@ -371,7 +372,7 @@ canvas.addEventListener('pointerup', (e) => {
 canvas.addEventListener('pointercancel', (e) => pointers.delete(e.pointerId));
 function zoom(delta) {
   if (state.mode === 'overview') state.ovDist = THREE.MathUtils.clamp(state.ovDist * (1 + delta * 0.001), 60, 320);
-  else if (state.mode === 'walk') state.dist = THREE.MathUtils.clamp(state.dist * (1 + delta * 0.001), 3, 26);
+  else if (state.mode === 'walk') state.dist = THREE.MathUtils.clamp(state.dist * (1 + delta * 0.001), 2.8, 30);
 }
 canvas.addEventListener('wheel', (e) => {
   e.preventDefault();
@@ -549,8 +550,8 @@ function enterRoom(id) {
     state.pos.set(room.origin.x + room.spawn.x, room.origin.y, room.origin.z + room.spawn.z);
     state.heading = room.spawn.heading;
     state.yaw = 0;
-    state.pitch = 0.28;
-    state.dist = Math.min(state.dist, 5.5);
+    state.pitch = Math.min(camPreset.pitch, 0.5);
+    state.dist = Math.min(camPreset.dist, 5.5);
     state.target = null;
     marker.visible = false;
     setShadowRange(24);
@@ -594,6 +595,22 @@ const camLook = new THREE.Vector3();
 let snapCamera = false;
 const desiredPos = new THREE.Vector3();
 const desiredLook = new THREE.Vector3();
+// Three camera presets, cycled with C or the HUD camera button
+const CAMERAS = [
+  { id: 'close', label: 'Close', dist: 3.4, pitch: 0.1, shoulder: 0.75, lookY: 1.55, fov: 62 },
+  { id: 'classic', label: 'Classic', dist: 7, pitch: 0.3, shoulder: 0.6, lookY: 1.6, fov: 55 },
+  { id: 'drone', label: 'Drone', dist: 22, pitch: 1.12, shoulder: 0, lookY: 1.0, fov: 50 },
+];
+let camPreset = CAMERAS[1];
+function setCameraPreset(next) {
+  camPreset = next ?? CAMERAS[(CAMERAS.indexOf(camPreset) + 1) % CAMERAS.length];
+  state.dist = camPreset.dist;
+  state.pitch = camPreset.pitch;
+  document.querySelector('#btn-cam span').textContent = `🎥 ${camPreset.label}`;
+  if (state.mode === 'walk') ui.toast(`<b>🎥 ${camPreset.label} camera</b>`, 1400);
+}
+document.getElementById('btn-cam').addEventListener('click', () => setCameraPreset());
+
 const orbitPoint = (out, c, yaw, pitch, dist) =>
   out.set(c.x + Math.sin(yaw) * Math.cos(pitch) * dist, c.y + Math.sin(pitch) * dist, c.z + Math.cos(yaw) * Math.cos(pitch) * dist);
 
@@ -623,11 +640,15 @@ function updateCamera(dt, t) {
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       state.yaw += diff * Math.min(1, dt * 0.9);
     }
-    desiredLook.set(state.pos.x, state.pos.y + 1.6, state.pos.z);
+    desiredLook.set(state.pos.x, state.pos.y + camPreset.lookY, state.pos.z);
     orbitPoint(desiredPos, desiredLook, state.yaw, state.pitch, state.dist);
     // over-the-shoulder offset, GTA style
-    desiredPos.x += Math.cos(state.yaw) * 0.6;
-    desiredPos.z -= Math.sin(state.yaw) * 0.6;
+    desiredPos.x += Math.cos(state.yaw) * camPreset.shoulder;
+    desiredPos.z -= Math.sin(state.yaw) * camPreset.shoulder;
+    if (camPreset.shoulder) {
+      desiredLook.x += Math.cos(state.yaw) * camPreset.shoulder * 0.5;
+      desiredLook.z -= Math.sin(state.yaw) * camPreset.shoulder * 0.5;
+    }
     if (state.indoor) {
       const R = state.indoor;
       desiredPos.x = R.origin.x + THREE.MathUtils.clamp(desiredPos.x - R.origin.x, -R.w / 2 + 0.4, R.w / 2 - 0.4);
@@ -651,6 +672,11 @@ function updateCamera(dt, t) {
   camLook.lerp(desiredLook, a);
   camera.position.copy(camPos);
   camera.lookAt(camLook);
+  const fov = state.mode === 'walk' ? camPreset.fov : 55;
+  if (Math.abs(camera.fov - fov) > 0.05) {
+    camera.fov = THREE.MathUtils.lerp(camera.fov, fov, 1 - Math.exp(-dt * 5));
+    camera.updateProjectionMatrix();
+  }
 
   const far = state.mode === 'walk' ? 620 : 950;
   const near = state.mode === 'walk' ? 170 : 320;
