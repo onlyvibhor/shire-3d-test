@@ -31,7 +31,7 @@ const nightGlow = (m) => {
   NIGHT_GLOWS.add(m);
   return m;
 };
-export const WINDOW_GLOW = nightGlow(new THREE.MeshStandardMaterial({ color: '#fff3cf', emissive: '#ffcf7a', emissiveIntensity: 1.2 }));
+export const WINDOW_GLOW = nightGlow(new THREE.MeshStandardMaterial({ color: '#fff3cf', emissive: '#ffcf7a', emissiveIntensity: 0.75 }));
 
 const cache = {};
 export const solid = (color, extra = {}) => {
@@ -39,11 +39,15 @@ export const solid = (color, extra = {}) => {
   return (cache[key] ||= new THREE.MeshStandardMaterial({ color, roughness: 0.7, ...extra }));
 };
 export const glow = (color, intensity = 2) => {
-  const m = solid(color, { emissive: color, emissiveIntensity: intensity * 0.7 });
+  // near-white lights bloom the most, so they get dimmed hardest
+  const c = new THREE.Color(color);
+  const white = Math.min(c.r, c.g, c.b);
+  const k = white > 0.75 ? 0.32 : white > 0.5 ? 0.45 : 0.6;
+  const m = solid(color, { emissive: color, emissiveIntensity: intensity * k });
   if (!NIGHT_GLOWS.has(m)) nightGlow(m);
   return m;
 };
-export function lightPool(color = '#ffd99a', base = 0.38) {
+export function lightPool(color = '#ffd99a', base = 0.26) {
   const m = new THREE.MeshBasicMaterial({ color, map: poolTexture(), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
   m.userData.base = base;
   NIGHT_POOLS.add(m);

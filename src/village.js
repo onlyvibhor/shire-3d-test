@@ -4,6 +4,7 @@ import { groundAt, walkY, rng, PATHS, ROAD_HALF, distToPath, SURFACE } from './w
 import { makeDome, makeDrone, makeScooter, makeDesk, makeMonitorWall, dashboardTexture, makeCafe, makeAdBoard, screenMat } from './props.js';
 import { makePerson, giveProp, animate } from './characters.js';
 import { makeArch } from './landmarks.js';
+import { buildJaipur, makePol, cuspedArchPoints, PINK as JAIPUR_PINK, OCHRE } from './jaipur.js';
 import { WHITE_METAL, BRUSHED, CHROME, GLASS, GOLD, WOOD, DARK, MOUND, WINDOW_GLOW, CONCRETE, solid, glow, mesh, canvasTexture, deepMerge, mergeStatic } from './materials.js';
 
 // The player's position, shared so walking villagers can step aside.
@@ -95,7 +96,7 @@ export function makeHobbitHole(doorColor, scale = 1, r = Math.random) {
 
 // ---------- Walkers ----------
 
-class Walker {
+export class Walker {
   constructor(parent, person, points, opts = {}) {
     this.p = person;
     this.points = points;
@@ -964,13 +965,13 @@ const PINK = new THREE.MeshStandardMaterial({ color: '#e48b78', roughness: 0.85 
 const CREAM = new THREE.MeshStandardMaterial({ color: '#f6e6d2', roughness: 0.7 });
 
 function archWindow(w, h, mat) {
+  // cusped, like the arches of the pink city
+  const pts = cuspedArchPoints(w / 2, h - 0.61 * w, 5, 0.14);
   const s = new THREE.Shape();
-  s.moveTo(-w / 2, 0);
-  s.lineTo(w / 2, 0);
-  s.lineTo(w / 2, h - w / 2);
-  s.absarc(0, h - w / 2, w / 2, 0, Math.PI, false);
-  s.lineTo(-w / 2, 0);
-  return new THREE.Mesh(new THREE.ShapeGeometry(s, 16), mat);
+  s.moveTo(pts[0][0], pts[0][1]);
+  for (const [x, y] of pts.slice(1)) s.lineTo(x, y);
+  s.closePath();
+  return new THREE.Mesh(new THREE.ShapeGeometry(s), mat);
 }
 
 function textPanel(lines, color, w = 512, h = 640) {
@@ -1223,9 +1224,11 @@ function buildZoneDome(scene, ctx, place, { radius = 10, glass = false, extras }
   g.add(sign);
   // glowing archway and a path of lights to the door
   const doorZ = -2 + radius * 1.15;
-  const archGlow = new THREE.Mesh(new THREE.TorusGeometry(radius * 0.27, 0.12, 8, 32, Math.PI), glow(place.color, 3));
-  archGlow.position.set(0, radius * 0.48, doorZ + 0.05);
-  g.add(archGlow);
+  // a Rajput gatehouse in front of the door, painted panels and all
+  const pol = makePol({ w: radius * 1.05, h: radius * 0.82, a: radius * 0.24, spring: radius * 0.3, depth: 1.1, color: place === HOME ? JAIPUR_PINK : OCHRE, accent: place.color });
+  pol.position.set(0, -0.3, doorZ + 0.35);
+  g.add(pol);
+  for (const sx of [-1, 1]) collider(g, 1.1, sx * radius * 0.42, doorZ + 0.35);
   for (let k = 0; k < 4; k++) {
     for (const sx of [-1, 1]) g.add(mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.5, 10), glow(place.color, 2), sx * 2.2, 0.25, doorZ + 1.5 + k * 2.2));
   }
@@ -1531,6 +1534,8 @@ export function buildVillage(scene) {
   buildHillDomes(scene);
   buildDrones(scene, ctx);
   buildScooters(scene, ctx);
+  ctx.Walker = Walker;
+  buildJaipur(scene, ctx);
   const smoke = buildSmoke(scene);
 
   scene.updateMatrixWorld(true);

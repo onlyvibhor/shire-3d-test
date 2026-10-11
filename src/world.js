@@ -32,6 +32,17 @@ for (const [place, i] of [[FUN, 2], [HALL, 3], [HOME, 4], [AIHUB, 5]]) {
 }
 export const ZONES = [HOME, FUN, AIHUB, HALL];
 
+// Jaipur on the island: Jantar Mantar in the free slot between the Lab and the Playhouse,
+// and the old-city bazaar along the ring road past Home.
+export const JANTAR = { x: 40, z: 0, r: 13 };
+export const BAZAAR = (() => {
+  const a = HAMLETS[4];
+  const b = HAMLETS[5];
+  const L = Math.hypot(b.x - a.x, b.z - a.z);
+  const u = (L / 2 - 16) / L;
+  return { ax: a.x + (b.x - a.x) * u, az: a.z + (b.z - a.z) * u, bx: b.x - (b.x - a.x) * u, bz: b.z - (b.z - a.z) * u, side: -1 };
+})();
+
 export const PATHS = [];
 HAMLETS.forEach((h, i) => {
   const n = HAMLETS[(i + 1) % HAMLETS.length];
@@ -102,6 +113,7 @@ export const PADS = [
 HAMLETS.forEach((h) => (h.y = rawHeight(h.x, h.z)));
 LAB.y = rawHeight(LAB.x, LAB.z);
 for (const z of ZONES) z.y = rawHeight(z.x, z.z);
+JANTAR.y = rawHeight(JANTAR.x, JANTAR.z);
 
 export function heightAt(x, z) {
   let h = rawHeight(x, z);
@@ -110,6 +122,7 @@ export function heightAt(x, z) {
   for (const hm of HAMLETS) h = THREE.MathUtils.lerp(hm.y, h, smooth(16, 28, Math.hypot(x - hm.x, z - hm.z)));
   h = THREE.MathUtils.lerp(LAB.y, h, smooth(7, 12, Math.hypot(x - LAB.x, z - LAB.z)));
   for (const zn of ZONES) h = THREE.MathUtils.lerp(zn.y, h, smooth(14, 22, Math.hypot(x - zn.x, z - zn.z)));
+  h = THREE.MathUtils.lerp(JANTAR.y, h, smooth(JANTAR.r + 1, JANTAR.r + 8, Math.hypot(x - JANTAR.x, z - JANTAR.z)));
   const pdist = Math.hypot(x - POND.x, z - POND.z);
   h -= 6.5 * (1 - smooth(0, POND.r * 1.3, pdist));
   return h;
@@ -174,6 +187,8 @@ function isClearing(x, z, pad = 0) {
   for (const zn of ZONES) if (Math.hypot(x - zn.x, z - zn.z) < 13 + pad) return true;
   if (Math.hypot(x - POND.x, z - POND.z) < POND.r + 1.5 + pad) return true;
   for (const h of HAMLETS) if (Math.hypot(x - h.x, z - h.z) < 9 + pad) return true;
+  if (Math.hypot(x - JANTAR.x, z - JANTAR.z) < JANTAR.r + 2 + pad) return true;
+  if (distToSegment(x, z, [BAZAAR.ax, BAZAAR.az, BAZAAR.bx, BAZAAR.bz]) < 11 + pad) return true;
   return distToPath(x, z) < ROAD_HALF + 0.4 + pad;
 }
 

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { cuspedArchPoints, makeChhatri } from './jaipur.js';
 import { HAMLETS } from './data.js';
 import { groundAt, walkY, rng, distToPath, ROAD_HALF, POND, PATHS, ZONES, coastR, SEA_LEVEL, SURFACE } from './world.js';
 import { WHITE_METAL, BRUSHED, CHROME, CONCRETE, GLASS, DARK as DARK_RAIL, mesh, canvasTexture, glow, mergeStatic, lightPool, solid } from './materials.js';
@@ -71,24 +72,23 @@ export function makeArch(color, label) {
   shape.lineTo(4.4, 9);
   shape.lineTo(-4.4, 9);
   shape.lineTo(-4.4, 0);
+  // a cusped Rajput arch, as on Jaipur's city gates
+  const pts = cuspedArchPoints(2.9, 3.4, 9, 0.14);
   const hole = new THREE.Path();
-  hole.moveTo(-2.9, 0);
-  hole.lineTo(2.9, 0);
-  hole.lineTo(2.9, 4.3);
-  hole.absarc(0, 4.3, 2.9, 0, Math.PI, false);
-  hole.lineTo(-2.9, 0);
+  hole.moveTo(pts[0][0], 0.001);
+  for (const [x, y] of pts.slice(1)) hole.lineTo(x, Math.max(y, 0.001));
+  hole.closePath();
   shape.holes.push(hole);
   const geo = new THREE.ExtrudeGeometry(shape, { depth: 1.2, bevelEnabled: true, bevelSize: 0.08, bevelThickness: 0.08, bevelSegments: 2, curveSegments: 24 });
   geo.translate(0, 0, -0.6);
   g.add(mesh(geo, WHITE_METAL));
   // glowing inner trim in the department colour
-  const trim = new THREE.Mesh(new THREE.TorusGeometry(2.9, 0.07, 8, 32, Math.PI), glow(color, 2.5));
-  trim.position.set(0, 4.3, 0.62);
-  g.add(trim);
-  for (const sx of [-2.9, 2.9]) {
-    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.12, 4.3, 0.12), glow(color, 2.5));
-    bar.position.set(sx, 2.15, 0.62);
-    g.add(bar);
+  const curve = new THREE.CatmullRomCurve3(pts.slice(1, -1).map(([x, y]) => new THREE.Vector3(x, y, 0.66)));
+  g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 160, 0.07, 6, false), glow(color, 2.5)));
+  for (const sx of [-1, 1]) {
+    const c = makeChhatri(1.15);
+    c.position.set(sx * 3.5, 9.05, 0);
+    g.add(c);
   }
   if (label) {
     const tex = canvasTexture(1024, 160, (ctx, w, h) => {

@@ -105,10 +105,10 @@ export function createDayNight({ scene, root = scene, sun, hemi, sky, renderer, 
     moon.material.opacity = s.night;
     moon.position.copy(moonDir).multiplyScalar(800);
     if (bloom) {
-      bloom.strength = 0.12 + s.night * 0.38;
-      bloom.threshold = 0.96 - s.night * 0.22;
+      bloom.strength = 0.1 + s.night * 0.26;
+      bloom.threshold = 0.97 - s.night * 0.15;
     }
-    for (const m of NIGHT_GLOWS) m.emissiveIntensity = m.userData.base * (0.3 + s.night * 0.95);
+    for (const m of NIGHT_GLOWS) m.emissiveIntensity = m.userData.base * (0.25 + s.night * 0.75);
     for (const m of NIGHT_POOLS) m.opacity = s.night * m.userData.base;
     if (ocean) {
       ocean.uniforms.uSun.value.copy(state.sunDir);

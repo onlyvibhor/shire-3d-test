@@ -632,6 +632,12 @@ function updateCamera(dt, t) {
     }
     k = 7;
   }
+  // a fixed shot, for screenshots and debugging: __shire.state.shot = { pos: [x, y, z], look: [x, y, z] }
+  if (state.shot) {
+    desiredPos.fromArray(state.shot.pos);
+    desiredLook.fromArray(state.shot.look);
+    snapCamera = true;
+  }
   const a = snapCamera ? 1 : 1 - Math.exp(-dt * k);
   snapCamera = false;
   camPos.lerp(desiredPos, a);
