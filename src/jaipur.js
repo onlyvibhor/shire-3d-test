@@ -791,6 +791,90 @@ function makeShopfront(r, w = 4.2) {
   return g;
 }
 
+// A thela: the four-wheeled hand cart of every Indian street. A planked deck on two axles, spoked
+// wooden wheels with iron tyres, push handles at the back, a striped canopy on four poles.
+export function makeThela(kind = 'chai', color = '#7a3b2a') {
+  const g = new THREE.Group();
+  const deckY = 0.82;
+  const iron = solid('#2a2622', { roughness: 0.6, metalness: 0.5 });
+  const plank = solid('#9a6b3f', { roughness: 0.85 });
+  const plankDark = solid('#7a5230', { roughness: 0.85 });
+  // deck: planks with a raised rim
+  for (let k = 0; k < 6; k++) g.add(mesh(new THREE.BoxGeometry(1.8, 0.05, 0.16), k % 2 ? plank : plankDark, 0, deckY, -0.42 + k * 0.168));
+  for (const sz of [-1, 1]) g.add(mesh(new THREE.BoxGeometry(1.84, 0.1, 0.05), plankDark, 0, deckY + 0.06, sz * 0.5));
+  for (const sx of [-1, 1]) g.add(mesh(new THREE.BoxGeometry(0.05, 0.1, 1.04), plankDark, sx * 0.92, deckY + 0.06, 0));
+  // chassis rails under the deck
+  for (const sz of [-1, 1]) g.add(mesh(new THREE.BoxGeometry(2.2, 0.07, 0.07), iron, -0.1, deckY - 0.07, sz * 0.36));
+  // push handles past the back end
+  for (const sz of [-1, 1]) {
+    const h = mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.55, 8), plankDark, -1.32, deckY - 0.04, sz * 0.36);
+    h.rotation.z = Math.PI / 2;
+    g.add(h);
+  }
+  // two axles, four wheels: spokes, hub, wooden felloe and an iron tyre
+  const R = 0.36;
+  const wheel = () => {
+    const w = new THREE.Group();
+    w.add(new THREE.Mesh(new THREE.TorusGeometry(R, 0.028, 8, 28), iron));
+    w.add(new THREE.Mesh(new THREE.TorusGeometry(R - 0.035, 0.03, 6, 28), plankDark));
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.1, 12), iron);
+    hub.rotation.x = Math.PI / 2;
+    w.add(hub);
+    for (let k = 0; k < 10; k++) {
+      const sp = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.016, R - 0.06, 6), plank);
+      const a = (k / 10) * Math.PI * 2;
+      sp.position.set(Math.cos(a) * (R / 2 - 0.01), Math.sin(a) * (R / 2 - 0.01), 0);
+      sp.rotation.z = a - Math.PI / 2;
+      w.add(sp);
+    }
+    w.traverse((o) => (o.castShadow = true));
+    return w;
+  };
+  for (const ax of [-0.62, 0.62]) {
+    const axle = mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.2, 8), iron, ax, R, 0);
+    axle.rotation.x = Math.PI / 2;
+    g.add(axle);
+    // a leaf spring from the axle up to the rail
+    for (const sz of [-1, 1]) {
+      g.add(mesh(new THREE.BoxGeometry(0.4, 0.04, 0.05), iron, ax, deckY - 0.12, sz * 0.36));
+      g.add(mesh(new THREE.BoxGeometry(0.05, deckY - 0.12 - R, 0.05), iron, ax, (deckY - 0.12 + R) / 2, sz * 0.36));
+    }
+    for (const sz of [-1, 1]) {
+      const w = wheel();
+      w.position.set(ax, R, sz * 0.58);
+      g.add(w);
+    }
+  }
+  // canopy: four poles and a striped awning
+  for (const [px, pz] of [[-0.85, -0.45], [0.85, -0.45], [-0.85, 0.45], [0.85, 0.45]]) g.add(mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.15, 8), iron, px, deckY + 0.6, pz));
+  const top = new THREE.Mesh(new THREE.PlaneGeometry(2.1, 1.25), new THREE.MeshStandardMaterial({ map: awningTexture('#d64545', '#fff6e5'), side: THREE.DoubleSide }));
+  top.position.set(0, deckY + 1.2, 0);
+  top.rotation.x = -Math.PI / 2;
+  top.castShadow = true;
+  g.add(top);
+  // the goods
+  if (kind === 'chai') {
+    // a brass kettle on a stove, glasses on a tray, a jar of rusks
+    g.add(mesh(new THREE.CylinderGeometry(0.16, 0.18, 0.18, 14), iron, -0.45, deckY + 0.12, 0));
+    g.add(mesh(new THREE.CylinderGeometry(0.13, 0.15, 0.22, 16), solid('#c9a23a', { roughness: 0.3, metalness: 0.7 }), -0.45, deckY + 0.32, 0));
+    const spout = mesh(new THREE.CylinderGeometry(0.015, 0.025, 0.16, 8), solid('#c9a23a', { roughness: 0.3, metalness: 0.7 }), -0.3, deckY + 0.36, 0);
+    spout.rotation.z = -0.9;
+    g.add(spout);
+    g.add(mesh(new THREE.BoxGeometry(0.5, 0.02, 0.32), solid('#b7b7b7', { roughness: 0.3, metalness: 0.7 }), 0.25, deckY + 0.04, 0));
+    for (let k = 0; k < 8; k++) g.add(mesh(new THREE.CylinderGeometry(0.03, 0.025, 0.08, 10), solid('#f4efe6', { roughness: 0.2 }), 0.08 + (k % 4) * 0.11, deckY + 0.09, -0.08 + Math.floor(k / 4) * 0.16));
+    g.add(mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.24, 14), solid('#cfe8f3', { roughness: 0.1 }), 0.65, deckY + 0.15, 0.2));
+  } else {
+    // marigold garlands heaped on the deck and hanging from the canopy
+    for (let k = 0; k < 6; k++) {
+      const ring = mesh(new THREE.TorusGeometry(0.16, 0.06, 6, 14), solid(k % 2 ? '#ff9f1c' : '#f2c94c'), -0.6 + k * 0.24, deckY + 0.1, 0);
+      ring.rotation.x = Math.PI / 2;
+      g.add(ring);
+    }
+    for (let k = 0; k < 5; k++) g.add(mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.5, 8), solid(k % 2 ? '#ff9f1c' : '#f2c94c'), -0.7 + k * 0.35, deckY + 0.92, 0.47));
+  }
+  return g;
+}
+
 function buildBazaar(scene, ctx) {
   const r = rng(1729);
   const { ax, az, bx, bz, side } = BAZAAR;
@@ -839,17 +923,9 @@ function buildBazaar(scene, ctx) {
   for (const s of sellers) {
     const x = ax + ux * s.t - nx * 5.6;
     const z = az + uz * s.t - nz * 5.6;
-    const cart = new THREE.Group();
+    const cart = makeThela(s.top === '#e2b04f' ? 'flowers' : 'chai', s.top);
     cart.position.set(x, groundAt(x, z), z);
     cart.rotation.y = facing + Math.PI;
-    cart.add(mesh(new THREE.BoxGeometry(1.8, 0.12, 1), WOOD, 0, 0.85, 0));
-    for (const sx of [-0.7, 0.7]) cart.add(mesh(new THREE.TorusGeometry(0.35, 0.05, 6, 16), DARK, sx, 0.4, 0.55));
-    const top = new THREE.Mesh(new THREE.PlaneGeometry(2, 1.2), new THREE.MeshStandardMaterial({ map: awningTexture('#d64545', '#fff6e5'), side: THREE.DoubleSide }));
-    top.position.set(0, 2, 0);
-    top.rotation.x = -Math.PI / 2;
-    cart.add(top);
-    for (const [px, pz] of [[-0.85, -0.45], [0.85, -0.45], [-0.85, 0.45], [0.85, 0.45]]) cart.add(mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.15, 6), DARK, px, 1.42, pz));
-    for (let k = 0; k < 6; k++) cart.add(mesh(new THREE.TorusGeometry(0.16, 0.06, 6, 12), solid(s.top === '#e2b04f' ? (k % 2 ? '#ff9f1c' : '#f2c94c') : '#f4efe6'), -0.6 + k * 0.24, 1.0, 0).rotateX(Math.PI / 2));
     scene.add(cart);
     const vendor = makePerson({ seed: r(), style: 'kurta', top: s.top, accent: s.top });
     vendor.root.position.set(x - nx * 1.2, groundAt(x - nx * 1.2, z - nz * 1.2), z - nz * 1.2);
