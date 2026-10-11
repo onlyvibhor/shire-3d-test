@@ -6,7 +6,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import './style.css';
 import { OWNER, PILLARS, CENTER, HAMLETS, LAB, HOME, FUN, AIHUB, HALL, PROJECTS, AWARDS, ASSETS, NPC_TALK, CONTACT, FAVOURITES, TOOLS, AWARD_LIST } from './data.js';
 import {
-  buildSky, makeSkyMaterial, buildClouds, buildTerrain, buildGrass, buildLavender, buildMountains, buildTrees, buildPollen,
+  buildSky, makeSkyMaterial, buildClouds, buildTerrain, buildGrass, buildLavender, buildFlowers, buildMountains, buildTrees, buildPollen,
   heightAt, groundAt, walkY, POND, PATHS, WORLD_RADIUS, buildOcean, SEA_LEVEL, coastR,
 } from './world.js';
 import { buildMonoliths, buildSkyRail, buildFloatingProps, buildStreetLamps, buildCoast } from './landmarks.js';
@@ -89,6 +89,7 @@ const { terrain } = buildTerrain(outdoor);
 const ocean = buildOcean(outdoor);
 const grassWind = buildGrass(outdoor, LITE ? 60000 : 180000);
 const lavWind = buildLavender(outdoor, LITE ? 6000 : 14000);
+const flowerWind = buildFlowers(outdoor, LITE ? 4000 : 10000);
 buildMountains(outdoor);
 const colliders = [];
 buildTrees(outdoor, colliders);
@@ -990,6 +991,7 @@ function frame() {
   village.update(t, dt);
   grassWind.uTime.value = t;
   lavWind.uTime.value = t;
+  flowerWind.uTime.value = t;
   if (!state.indoor) dayNight.update(dt);
   else for (const u of state.indoor.updaters) u.update(t, dt);
   ui.setClock(dayNight.label());

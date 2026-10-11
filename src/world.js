@@ -524,6 +524,110 @@ export function buildLavender(scene, count = 14000) {
   return wind;
 }
 
+// ---------- Flowers: marigold verges, rose and jasmine beds round the plazas, wildflower meadows ----------
+
+export function buildFlowers(scene, count = 9000) {
+  const r = rng(77);
+  const paint = (g, color) => {
+    const c = new THREE.Color(color);
+    g.setAttribute('color', new THREE.Float32BufferAttribute(new Array(g.attributes.position.count).fill([c.r, c.g, c.b]).flat(), 3));
+    return g;
+  };
+  // a little clump: three blooms on stems over a few leaves
+  const parts = [];
+  for (const [x, z, h] of [[0, 0, 0.7], [0.14, 0.08, 0.58], [-0.1, 0.12, 0.5]]) {
+    const stem = new THREE.CylinderGeometry(0.015, 0.02, h, 3);
+    stem.translate(x, h / 2, z);
+    const head = new THREE.IcosahedronGeometry(0.15, 1);
+    head.scale(1, 0.62, 1);
+    head.translate(x, h + 0.04, z);
+    parts.push(paint(stem.toNonIndexed(), '#5c8f3a'), paint(head.toNonIndexed(), '#ffffff'));
+  }
+  for (let k = 0; k < 3; k++) {
+    const leaf = new THREE.ConeGeometry(0.09, 0.3, 3);
+    leaf.rotateZ(1.0);
+    leaf.translate(0.12, 0.12, 0);
+    leaf.rotateY((k / 3) * Math.PI * 2);
+    parts.push(paint(leaf.toNonIndexed(), '#4c8a30'));
+  }
+  const geo = mergeGeometries(parts);
+  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75, flatShading: true });
+  const wind = windMaterial(mat, { strength: 0.14 });
+  const mesh = new THREE.InstancedMesh(geo, mat, count);
+  const MARIGOLD = ['#ff9f1c', '#ffb703', '#f77f00', '#ffd23f'];
+  const BEDS = ['#e63946', '#ff4f8b', '#ffffff', '#ffd6e0', '#d6247a', '#ffb703'];
+  const WILD = ['#ffffff', '#ffd23f', '#c4a6f5', '#ff8fb1', '#7bdff2'];
+  const m = new THREE.Matrix4();
+  const q = new THREE.Quaternion();
+  const e = new THREE.Euler();
+  const col = new THREE.Color();
+  const v = new THREE.Vector3();
+  const sc = new THREE.Vector3();
+  let i = 0;
+  const plant = (x, z, palette, s = 1) => {
+    if (i >= count || isClearing(x, z) || heightAt(x, z) < SEA_LEVEL + 2.4) return;
+    const k = s * (1.0 + r() * 0.6);
+    q.setFromEuler(e.set((r() - 0.5) * 0.3, r() * 6, (r() - 0.5) * 0.3));
+    m.compose(v.set(x, groundAt(x, z) - 0.02, z), q, sc.set(k, k, k));
+    mesh.setMatrixAt(i, m);
+    mesh.setColorAt(i, col.set(palette[Math.floor(r() * palette.length)]));
+    i++;
+  };
+  const budget = (f) => Math.floor(count * f);
+  // marigold verges along the roads
+  for (let n = 0, guard = 0; n < budget(0.4) && guard < count * 20; guard++) {
+    const seg = PATHS[Math.floor(r() * PATHS.length)];
+    const u = r();
+    const dx = seg[2] - seg[0];
+    const dz = seg[3] - seg[1];
+    const L = Math.hypot(dx, dz) || 1;
+    const side = r() < 0.5 ? -1 : 1;
+    const off = ROAD_HALF + 0.8 + r() * 1.3;
+    const x = seg[0] + dx * u + (-dz / L) * off * side;
+    const z = seg[1] + dz * u + (dx / L) * off * side;
+    if (distToPath(x, z) < ROAD_HALF + 0.6) continue;
+    const before = i;
+    plant(x, z, MARIGOLD, 0.95);
+    if (i > before) n++;
+  }
+  // rose and jasmine beds ringing the plazas and domes
+  const rings = [
+    ...HAMLETS.map((h) => ({ x: h.x, z: h.z, r0: 12.5, r1: 15 })),
+    ...ZONES.map((zn) => ({ x: zn.x, z: zn.z, r0: 13.5, r1: 16 })),
+    { x: JANTAR.x, z: JANTAR.z, r0: JANTAR.r + 2.2, r1: JANTAR.r + 4 },
+    { x: 0, z: 0, r0: 10.5, r1: 13 },
+  ];
+  for (let n = 0; n < budget(0.3); n++) {
+    const g = rings[Math.floor(r() * rings.length)];
+    const a = r() * Math.PI * 2;
+    const d = g.r0 + r() * (g.r1 - g.r0);
+    plant(g.x + Math.cos(a) * d, g.z + Math.sin(a) * d, BEDS, 1.1);
+  }
+  // wildflower meadows out on the hills
+  const patches = [];
+  for (let p = 0, guard = 0; p < 40 && guard < 4000; guard++) {
+    const a = r() * Math.PI * 2;
+    const d = 30 + r() * 120;
+    const x = Math.cos(a) * d;
+    const z = Math.sin(a) * d;
+    if (isClearing(x, z, 4)) continue;
+    patches.push({ x, z, rad: 4 + r() * 7 });
+    p++;
+  }
+  while (i < count && patches.length) {
+    const p = patches[Math.floor(r() * patches.length)];
+    const a = r() * Math.PI * 2;
+    const d = Math.sqrt(r()) * p.rad;
+    const before = i;
+    plant(p.x + Math.cos(a) * d, p.z + Math.sin(a) * d, WILD, 0.85);
+    if (i === before && r() < 0.02) break;
+  }
+  mesh.count = i;
+  mesh.frustumCulled = false;
+  scene.add(mesh);
+  return wind;
+}
+
 // ---------- Trees ----------
 
 export function buildTrees(scene, colliders) {
