@@ -1,8 +1,9 @@
 import { createCaseStudy } from './casestudy.js';
+import { sfx, audioSettings, setLevel, toggleMute, onAudioChange, startAudio } from './audio.js';
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-export function createUI({ owner, pillars, places, projects, awards, contact, favourites, tools = [], awardList = [], onEnter, onTour, onOverview, onTravel, onTourStep, onExitTour, onTime }) {
+export function createUI({ owner, pillars, places, projects, awards, contact, favourites, tools = [], awardList = [], onEnter, onTour, onOverview, onTravel, onTourStep, onExitTour, onTime, onWalk }) {
   const visited = new Set();
   const viewed = new Set();
   const trophies = new Set();
@@ -23,11 +24,24 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     .map((p) => `<li><i style="background:${p.color}"></i><b>${esc(p.name)}</b><span>${esc(p.place)}${p.projects.length ? ` · ${p.projects.length} projects` : ""}</span></li>`)
     .join('');
   $('#intro-awards').innerHTML = awards.map((a) => `<li><span>🏆</span>${esc(a.name)}<em>${esc(a.detail)}</em></li>`).join('');
+  // Soft ticks under the pointer and a click on every control
+  const CONTROL = 'button, .btn, .work, .label, .dot, .legend li, [role="button"], a, .cs-vbox';
+  let hovered = null;
+  document.addEventListener('pointerover', (e) => {
+    const el = e.target.closest?.(CONTROL);
+    if (el && el !== hovered) sfx('hover');
+    hovered = el;
+  });
+  document.addEventListener('click', (e) => {
+    if (e.target.closest?.(CONTROL)) sfx('click');
+  }, true);
+
   // The splash card doubles as the about-me card: the name chip in the HUD reopens it over the game.
   const enterBtn = $('#btn-enter');
   const enterLabel = enterBtn.textContent;
   const splashOpen = () => document.body.classList.contains('splash-open');
   function openSplash() {
+    sfx('open');
     document.body.classList.add('splash-open');
     enterBtn.textContent = 'Back to the island';
   }
@@ -48,18 +62,74 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
 
   // ----- HUD -----
   $('#btn-overview').addEventListener('click', onOverview);
+  $('#btn-map').addEventListener('click', onOverview);
+  $('#btn-walk').addEventListener('click', () => onWalk?.());
   $('#btn-tour-hud').addEventListener('click', () => (mode === 'tour' ? onExitTour() : onTour()));
   $('#btn-hire').addEventListener('click', () => toggleHire(true));
+  $('#btn-about').addEventListener('click', () => openSplash());
+  $('#btn-contact').addEventListener('click', () => toggleHire(true, true));
   $('#btn-time').addEventListener('click', () => onTime());
-  const clockEl = $('#btn-time b');
+
+  // ----- Time & sky card: the clock now, then the next few hours -----
+  const skyIcon = (h) => (h >= 6.5 && h < 17 ? '☀️' : h >= 17 && h < 19 ? '🌅' : h >= 5 && h < 6.5 ? '🌄' : '🌙');
+  const skyWord = (h) => (h >= 5 && h < 12 ? 'Morning' : h >= 12 && h < 17 ? 'Afternoon' : h >= 17 && h < 19.5 ? 'Golden hour' : 'Night');
+  const fmt = (h) => `${String(Math.floor(h) % 24).padStart(2, '0')}:00`;
   let clockText = '';
-  const setClock = (t) => {
-    if (t !== clockText) clockEl.textContent = clockText = t;
+  let hourShown = -1;
+  let modeLabel = 'Auto';
+  const setClock = (t, hour = 9.5) => {
+    if (t !== clockText) $('#clock').textContent = clockText = t;
+    const h = Math.floor(hour);
+    if (h === hourShown) return;
+    hourShown = h;
+    $('#clock-icon').textContent = skyIcon(hour);
+    $('#clock-label').textContent = `${skyWord(hour)} · ${modeLabel}`;
+    $('#hours').innerHTML = [0, 3, 6, 9, 12]
+      .map((d, i) => {
+        const hh = (h + d) % 24;
+        return `<li><span>${i ? fmt(hh) : 'Now'}</span><i>${skyIcon(hh + 0.5)}</i></li>`;
+      })
+      .join('');
   };
   const setTimeMode = (m) => {
-    $('#btn-time span').textContent = `${m.icon} ${m.label}`;
-    toast(`<b>${m.icon} ${m.label}</b> ${m.id === 'auto' ? 'A full day passes every 8 minutes.' : 'Time of day locked.'} Press <kbd>L</kbd> to change.`, 3000);
+    modeLabel = m.label;
+    hourShown = -1;
+    toast(`<b>${m.icon} ${m.label}</b> ${m.id === 'auto' ? 'A full day passes every 8 minutes.' : 'Time of day locked.'} Press <kbd>L</kbd> to change.`, 3000, { quiet: true });
   };
+
+  // ----- Sound popover -----
+  const soundEl = $('#sound');
+  const syncSound = (st = audioSettings()) => {
+    soundEl.querySelectorAll('[data-level]').forEach((inp) => {
+      inp.value = st[inp.dataset.level];
+      inp.style.setProperty('--v', `${st[inp.dataset.level] * 100}%`);
+    });
+    $('#sound-mute').textContent = st.muted ? 'Unmute' : 'Mute';
+    $('#btn-sound').classList.toggle('is-muted', st.muted);
+    $('#btn-sound span').textContent = st.muted ? 'Muted' : 'Sound';
+  };
+  syncSound();
+  onAudioChange(syncSound);
+  $('#btn-sound').addEventListener('click', (e) => {
+    e.stopPropagation();
+    startAudio();
+    soundEl.classList.toggle('is-open');
+    document.body.classList.remove('show-keys');
+  });
+  $('#sound-mute').addEventListener('click', () => toggleMute());
+  soundEl.addEventListener('input', (e) => {
+    const k = e.target.dataset?.level;
+    if (k) setLevel(k, +e.target.value);
+  });
+  document.addEventListener('pointerdown', (e) => {
+    if (!e.target.closest('#sound, #btn-sound')) soundEl.classList.remove('is-open');
+    if (!e.target.closest('#keys, #btn-keys')) document.body.classList.remove('show-keys');
+  });
+  $('#btn-keys').addEventListener('click', (e) => {
+    e.stopPropagation();
+    soundEl.classList.remove('is-open');
+    document.body.classList.toggle('show-keys');
+  });
   $('#missions-toggle').addEventListener('click', () => toggleMissions());
   $('#visited-dots').innerHTML = places
     .map((p, i) => `<button class="dot" data-id="${p.id}" style="--c:${p.color}" title="${i} · ${esc(p.name)}"></button>`)
@@ -105,6 +175,8 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
   // ----- Department panel -----
   const panel = $('#panel');
   function showPlace(p, { tour = false, index = 0, total = 0 } = {}) {
+    if (!panel.classList.contains('is-open') || panel.dataset.id !== p.id) sfx('open');
+    panel.dataset.id = p.id;
     const idx = places.findIndex((q) => q.id === p.id);
     const next = places[(idx + 1) % places.length];
     panel.style.setProperty('--c', p.color);
@@ -115,18 +187,17 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
         return `<button class="work" data-project="${slug}">
           <img src="${pr.images[0]}" alt="" loading="lazy" />
           <span><b>${esc(pr.title)}</b><em>${m ? `${esc(m[0])} ${esc(m[1])}` : esc(pr.client)}</em></span>
+          <svg class="work__go" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
         </button>`;
       })
       .join('');
+    renderPass(p);
     panel.innerHTML = `
       <button class="close" aria-label="Close">×</button>
-      <p class="eyebrow">${{ hq: 'Home base', home: 'Home', fun: 'Hobbies', lab: 'Studio' }[p.id] || 'Department'} · ${esc(p.place)}</p>
-      <h2>${esc(p.name)}</h2>
-      <p class="lead">${esc(p.lead)}</p>
-      <h3>${{ hq: 'What I do', lab: 'What happens here', home: 'About me', fun: 'After hours' }[p.id] || 'How I work with this team'}</h3>
+      <div class="card-head"><b>${{ hq: 'What I do', lab: 'What happens here', home: 'About me', fun: 'After hours' }[p.id] || 'How I work with this team'}</b></div>
       <ul>${p.how.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
       ${p.makes ? `<div class="chips">${p.makes.map((m) => `<span class="chip">${esc(m)}</span>`).join('')}</div>` : ''}
-      ${work ? `<h3>Work shipped together</h3><div class="works">${work}</div>` : ''}
+      ${work ? `<div class="card-head"><b>Work shipped together</b><span>${p.projects.length} ${p.projects.length === 1 ? 'project' : 'projects'}</span></div><div class="works">${work}</div>` : ''}
       ${p.id === 'fun' ? funExtra() : ''}
       ${p.id === 'home' ? `<div class="numbers">${owner.numbers.map((n) => `<div><b>${esc(n.value)}</b><span>${esc(n.label)}</span></div>`).join('')}</div><button class="btn btn--wide" data-contact>✉️ Write to Vibhor</button>` : ''}
       ${p.id === 'hq' ? `<div class="numbers">${owner.numbers.map((n) => `<div><b>${esc(n.value)}</b><span>${esc(n.label)}</span></div>`).join('')}</div>` : ''}
@@ -169,6 +240,8 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
         <h3>Writing</h3><div class="works">${owner.writing.map((w) => `<a class="work work--text" href="${esc(w.url)}" target="_blank" rel="noopener"><span><b>${esc(w.title)}</b><em>${esc(w.date)} ↗</em></span></a>`).join('')}</div>
         <h3>Teaching</h3><ul>${owner.teaching.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
     }
+    hidePass();
+    sfx('open');
     panel.style.setProperty('--c', C);
     panel.innerHTML = `<button class="close" aria-label="Close">×</button>${body}`;
     panel.querySelector('.close').onclick = () => hidePlace();
@@ -194,14 +267,54 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
   const indoorEl = $('#indoor');
   function setIndoor(place) {
     document.body.classList.toggle('is-indoor', !!place);
+    if (!place) {
+      $('#map-title').textContent = 'Vibhor’s island';
+      $('#map-sub').textContent = 'Exploring';
+    }
     if (place) {
       indoorEl.style.setProperty('--c', place.color);
       indoorEl.innerHTML = `<i></i><span>Inside</span><b>${esc(place.name)}</b><em>Walk out the door or press <kbd>Esc</kbd> to leave</em>`;
+      $('#map-title').textContent = place.name;
+      $('#map-sub').textContent = 'Inside · floor plan';
       toast(`<b>Welcome to ${esc(place.name)}.</b> Walk around and press <kbd>E</kbd> near anything that glows.`, 4500);
     }
   }
 
+  // The place "pass": a ticket with the department's name, numbers and a colour stub
+  const passEl = $('#pass');
+  const GLYPH = { hq: '🌳', brand: '🎬', pmm: '🚀', product: '🧩', social: '📣', copy: '✍️', design: '🎨', lab: '🌙', fun: '🍿', home: '🏡', ai: '🤖', awards: '🏆' };
+  function renderPass(p) {
+    const kind = { hq: 'Island pass', home: 'Home pass', fun: 'Playhouse pass', lab: 'Studio pass', ai: 'Hub pass', awards: 'Hall pass' }[p.id] || 'Department pass';
+    const makes = p.makes || [];
+    passEl.style.setProperty('--c', p.color);
+    passEl.innerHTML = `
+      <div class="pass__main">
+        <p class="pass__eyebrow">${kind}</p>
+        <h2>${esc(p.name)}</h2>
+        <p class="pass__place">${esc(p.place)}</p>
+        <p class="pass__lead">${esc(p.lead)}</p>
+        <ul class="pass__stats">
+          <li><b>${p.projects.length}</b><span>${p.projects.length === 1 ? 'project' : 'projects'}</span></li>
+          ${makes[0] ? `<li><b>${esc(makes[0])}</b><span>${esc(makes[1] || 'craft')}</span></li>` : ''}
+          <li><b>${visited.has(p.id) ? 'Again' : 'New'}</b><span>visit</span></li>
+        </ul>
+      </div>
+      <div class="pass__stub"><span>${GLYPH[p.id] || '📍'}</span><i></i></div>`;
+    passEl.classList.add('is-open');
+    $('#map-title').textContent = p.name;
+    $('#map-sub').textContent = p.place;
+  }
+  function hidePass() {
+    passEl.classList.remove('is-open');
+    if (!document.body.classList.contains('is-indoor')) {
+      $('#map-title').textContent = 'Vibhor’s island';
+      $('#map-sub').textContent = 'Exploring';
+    }
+  }
+
   function hidePlace() {
+    if (panel.classList.contains('is-open')) sfx('close');
+    hidePass();
     panel.classList.remove('is-open');
   }
   function markVisited(id) {
@@ -240,6 +353,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     const key = thing.verb + thing.label;
     if (promptEl.dataset.key !== key) {
       promptEl.dataset.key = key;
+      sfx('prompt');
       promptEl.innerHTML = `<kbd>E</kbd><span>${esc(thing.verb)}</span><b>${esc(thing.label)}</b>`;
     }
     promptEl.classList.add('is-open');
@@ -298,6 +412,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
   // ----- Trophies -----
   function collectTrophy(award) {
     trophies.add(award.id);
+    sfx('trophy');
     renderMissions();
     toast(`<b>🏆 Trophy found! ${trophies.size}/${awards.length}</b><br>${esc(award.name)}: ${esc(award.detail)}`, 6500);
     if (trophies.size === awards.length) setTimeout(() => toast('<b>All trophies found.</b><br>The work wins rooms. <a href="#" data-hire-link>Hire me →</a>', 8000), 6800);
@@ -306,7 +421,8 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
   // ----- Toast -----
   const toastEl = $('#toast');
   let toastTimer = 0;
-  function toast(html, ms = 4000) {
+  function toast(html, ms = 4000, { quiet = false } = {}) {
+    if (!quiet) sfx('toast');
     toastEl.innerHTML = html;
     toastEl.classList.add('is-open');
     toastEl.querySelector('[data-hire-link]')?.addEventListener('click', (e) => {
@@ -340,7 +456,9 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     if (e.target === hire || e.target.closest('[data-close]')) toggleHire(false);
   });
   function toggleHire(force, focusForm = false) {
-    hire.classList.toggle('is-open', force ?? !hire.classList.contains('is-open'));
+    const was = hire.classList.contains('is-open');
+    hire.classList.toggle('is-open', force ?? !was);
+    if (was !== hire.classList.contains('is-open')) sfx(was ? 'close' : 'open');
     if (focusForm && hire.classList.contains('is-open')) {
       setTimeout(() => {
         $('#contact-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -434,6 +552,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     mode = m;
     document.body.dataset.mode = m;
     $('#btn-overview').classList.toggle('is-active', m === 'overview');
+    $('#btn-walk').classList.toggle('is-active', m === 'walk');
     $('#btn-tour-hud').classList.toggle('is-active', m === 'tour');
     $('#btn-tour-hud').querySelector('span').textContent = m === 'tour' ? 'Exit tour' : 'Tour';
     if (m === 'overview') toast('<b>Bird’s-eye view.</b> Drag to orbit, scroll to zoom, click a label to fly in.', 4500);

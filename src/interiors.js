@@ -5,6 +5,7 @@ import { screenMat, makeDesk, dashboardTexture } from './props.js';
 import { WHITE_METAL, BRUSHED, CHROME, GLASS, GOLD, WOOD, DARK, solid, glow, mesh, canvasTexture, deepMerge } from './materials.js';
 import { rng } from './world.js';
 import { playerPos } from './village.js';
+import { sfx } from './audio.js';
 
 // Indoor sets live far from the island; entering one hides the outdoors and relights the scene.
 
@@ -976,6 +977,7 @@ function buildHomeInterior(origin) {
         dz = Math.cos(heading);
       }
       const L = Math.hypot(dx, dz) || 1;
+      sfx('kick');
       B.vx = (dx / L) * 7.5;
       B.vz = (dz / L) * 7.5;
       B.vy = 1.6;
@@ -1008,6 +1010,7 @@ function buildHomeInterior(origin) {
         const want = Math.max(2.2, Math.min(ps, 12) * 1.6);
         const vn = B.vx * nx + B.vz * nz;
         if (vn < want) {
+          if (want - vn > 2) sfx('kick', { gap: 0.25 });
           B.vx += nx * (want - vn);
           B.vz += nz * (want - vn);
           if (ps > 4) B.vy = Math.max(B.vy, 1.2);
@@ -1030,6 +1033,7 @@ function buildHomeInterior(origin) {
       if (B.z >= goal.z && nzp < goal.z) {
         if (inMouth && !resetAt) {
           goals += 1;
+          sfx('goal');
           drawScore(goals, ['GOAL!', 'GOOOAL!', 'Top corner!', 'Back of the net!'][goals % 4]);
           window.__shire?.ui?.toast(`<b>⚽ Goal!</b> That’s ${goals} in the living room.`, 2600);
           resetAt = t + 1.6;

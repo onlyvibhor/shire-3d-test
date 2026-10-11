@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { groundAt, SEA_LEVEL } from './world.js';
 import { solid, mesh, glow, canvasTexture } from './materials.js';
 import { makePerson, animate, hit } from './characters.js';
+import { sfx } from './audio.js';
 
 const deg = THREE.MathUtils.degToRad;
 const polar = (a, r) => ({ x: Math.cos(a) * r, z: Math.sin(a) * r });
@@ -417,6 +418,10 @@ export function buildCreatures(scene, ctx) {
           S.t = 0;
         }
       } else if (S.phase === 'puff') {
+        if (!S.puffed) {
+          S.puffed = true;
+          sfx('puff', { gap: 2 });
+        }
         state.forcePose = 'puff';
         smoker.p.offer = Math.max(0, 1 - S.t * 2);
         if (S.t > 1.3 && S.t < 2.6 && Math.random() < dt * 9) puffs.emit(player.parts.head.getWorldPosition(tmp).add(tmp2.set(0, 0.02, 0)), 1.2);
@@ -441,6 +446,7 @@ export function buildCreatures(scene, ctx) {
           smoker.cig.rotation.set(0, 0, 0);
           smoker.p.offer = 0;
           S.phase = 'idle';
+          S.puffed = false;
           S.cool = 20;
         }
       }
@@ -482,6 +488,7 @@ export function buildCreatures(scene, ctx) {
           R.state = 'chase';
           R.chaseT = 0;
           R.rampage = Math.random() < 0.2;
+          sfx('roar', { pos: root.position, range: 90, gap: 2 });
           ui.toast(R.rampage ? '<b>🦖 ROOOAR!</b> The T-rex looks hungry. RUN!' : '<b>🦖 ROAR!</b> The T-rex wants you out of its woods.', 2600);
         }
         break;
@@ -500,11 +507,14 @@ export function buildCreatures(scene, ctx) {
             R.timer = 1.6;
             R.eatenPlayerAt = t;
             player.root.visible = false;
+            sfx('chomp', { gap: 0.5 });
             ui.toast('<b>🦖 CHOMP.</b> The T-rex ate you. Back to the Party Tree…', 3200);
           } else {
             // the shove: a big knock back and a hop
             const k = 1 / Math.max(pd, 0.01);
             R.push = { x: dx * k, z: dz * k, v: 16 };
+            sfx('roar', { pos: root.position, range: 90, gap: 1 });
+            sfx('bump');
             state.vy = Math.max(state.vy, 5.5);
             R.state = 'roar';
             R.timer = 1.6;
@@ -542,6 +552,7 @@ export function buildCreatures(scene, ctx) {
           R.state = 'chase';
           R.chaseT = 0;
           R.rampage = Math.random() < 0.2;
+          sfx('roar', { pos: root.position, range: 90, gap: 2 });
         }
         break;
     }
@@ -572,6 +583,9 @@ export function buildCreatures(scene, ctx) {
     root.position.y = groundAt(root.position.x, root.position.z);
     root.rotation.y = R.heading;
     poseRex(rex, t, R.speed, R.state === 'chase' ? 'chase' : R.state === 'roar' ? 'roar' : R.state === 'eat' ? 'eat' : 'calm');
+    const stride = Math.floor((t * (1.4 + R.speed * 0.55)) / Math.PI);
+    if (R.speed > 1 && stride !== R.lastStride) sfx('stomp', { pos: root.position, range: 70, gap: 0.2 });
+    R.lastStride = stride;
 
     // it shoves (or, when hungry, eats) anyone else in its way
     if (R.speed > 1.5) {
@@ -584,6 +598,7 @@ export function buildCreatures(scene, ctx) {
         if (R.rampage && R.state === 'chase') {
           n.p.root.visible = false;
           eaten.push({ n, back: t + 30 });
+          sfx('chomp', { pos: mouth, range: 60, gap: 0.5 });
           ui.toast(`<b>🦖 Gulp.</b> The T-rex ate ${n.role ? `a ${n.role.toLowerCase()}` : 'someone'}. They’ll be back after lunch.`, 2600);
         } else if (!n.p.react) {
           n.p.root.getWorldQuaternion(new THREE.Quaternion());

@@ -6,6 +6,8 @@ import { HAMLETS } from './data.js';
 import { groundAt, walkY, rng, coastR, JANTAR, BAZAAR } from './world.js';
 import { solid, mesh, canvasTexture, deepMerge, WHITE_METAL, DARK, WOOD } from './materials.js';
 import { makePerson, animate } from './characters.js';
+import { sfx } from './audio.js';
+import { playerPos } from './village.js';
 
 export const PINK = '#df8a6c';
 export const OCHRE = '#f7913a';
@@ -903,6 +905,8 @@ function buildBicycles(scene, ctx) {
     ctx.updaters.push(w, {
       update: () => {
         bike.userData.spin(p.root.position.distanceTo(last));
+        // a ring of the bell when they pass you
+        if (p.root.position.distanceTo(playerPos) < 7 && Math.random() < 0.02) sfx('bell', { pos: p.root.position, range: 30, gap: 4 });
         p.crank = bike.userData.crank();
         last.copy(p.root.position);
       },

@@ -3,6 +3,7 @@
 import toolkit from './content/toolkit.json';
 import mentorship from './content/mentorship.json';
 import { PROJECTS as PROJECT_META } from './data.js';
+import { sfx } from './audio.js';
 
 const projectFiles = import.meta.glob('./content/projects/*.json', { eager: true, import: 'default' });
 const expFiles = import.meta.glob('./content/experiments/*.json', { eager: true, import: 'default' });
@@ -390,12 +391,14 @@ export function createCaseStudy({ projects, places, onOpen }) {
     document.getElementById('case-backdrop').onclick = close;
     root.querySelector('[data-next]').onclick = (e) => open(e.currentTarget.dataset.next);
     root.scrollTop = 0;
+    if (!root.classList.contains('is-open')) sfx('project');
     root.classList.add('is-open');
     document.getElementById('case-backdrop')?.classList.add('is-open');
     onOpen?.(slug);
   }
 
   function close() {
+    if (root.classList.contains('is-open')) sfx('close');
     root.classList.remove('is-open');
     document.getElementById('case-backdrop')?.classList.remove('is-open');
     root.querySelectorAll('video').forEach((v) => v.pause());

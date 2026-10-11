@@ -1445,6 +1445,7 @@ function buildDrones(scene, ctx) {
     scene.add(d);
     drones.push({ d, kind: 'orbit', c: new THREE.Vector3(arena.x, arena.y + 5 + k * 2, arena.z), rad: 6 + k * 3, speed: 0.35 + k * 0.2, ph: k * 2 });
   }
+  ctx.drones = drones.map((it) => it.d);
   const prev = new THREE.Vector3();
   ctx.updaters.push({
     update: (t) => {
@@ -1577,5 +1578,5 @@ export function buildVillage(scene) {
     smoke(t);
   };
 
-  return { update, colliders, stones: ctx.stones, npcs: ctx.npcs, clickables: ctx.clickables, trophies: ctx.trophies, projects, interactables, creatures };
+  return { update, colliders, stones: ctx.stones, npcs: ctx.npcs, clickables: ctx.clickables, trophies: ctx.trophies, projects, interactables, creatures, drones: ctx.drones || [] };
 }

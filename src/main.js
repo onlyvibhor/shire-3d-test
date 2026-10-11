@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { step, finishLoading, hideLoader } from './loading.js';
+import { startAudio, sfx, updateAudio, addFilm, audioDebug } from './audio.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
@@ -8,7 +9,7 @@ import './style.css';
 import { OWNER, PILLARS, CENTER, HAMLETS, LAB, HOME, FUN, AIHUB, HALL, PROJECTS, AWARDS, ASSETS, NPC_TALK, CONTACT, FAVOURITES, TOOLS, AWARD_LIST } from './data.js';
 import {
   buildSky, makeSkyMaterial, buildClouds, buildTerrain, buildGrass, buildLavender, buildFlowers, buildMountains, buildTrees, buildPollen,
-  heightAt, groundAt, walkY, POND, PATHS, WORLD_RADIUS, buildOcean, SEA_LEVEL, coastR,
+  heightAt, groundAt, walkY, POND, PATHS, WORLD_RADIUS, buildOcean, SEA_LEVEL, coastR, onPaving, BAZAAR,
 } from './world.js';
 import { buildMonoliths, buildSkyRail, buildFloatingProps, buildStreetLamps, buildCoast } from './landmarks.js';
 import { buildInteriors } from './interiors.js';
@@ -233,11 +234,15 @@ const ui = createUI({
   awardList: AWARD_LIST,
   onEnter: () => setMode('walk'),
   onTour: () => setMode('tour'),
+  onWalk: () => setMode('walk'),
   onOverview: () => setMode(state.mode === 'overview' ? 'walk' : 'overview'),
   onTravel: (id) => travelTo(id),
   onTourStep: (d) => tourStep(d),
   onExitTour: () => travelTo(PLACES[state.tourIndex].id),
-  onTime: () => ui.setTimeMode(dayNight.cycle()),
+  onTime: () => {
+    ui.setTimeMode(dayNight.cycle());
+    sfx('time');
+  },
 });
 
 function setMode(mode, { snap = false } = {}) {
@@ -265,6 +270,46 @@ function tourStep(d) {
   ui.showPlace(PLACES[state.tourIndex], { tour: true, index: state.tourIndex, total: PLACES.length });
 }
 
+// ---------- Sound ----------
+// Browsers only allow sound after a click or key press; the first one starts the engine.
+for (const ev of ['pointerdown', 'keydown', 'touchstart']) window.addEventListener(ev, startAudio, { passive: true });
+// the soundtracks of Vibhor's films, playing where those films live on the island
+{
+  const at = (room, x, z) => ({ x: room.origin.x + x, z: room.origin.z + z });
+  addFilm({ url: 'audio/lab-time.m4a', pos: { x: LAB.x, z: LAB.z }, radius: 18, gain: 0.7 });
+  addFilm({ url: 'audio/ai-creator.m4a', room: 'ai', pos: at(rooms.ai, 0, -8), radius: 16, gain: 0.55 });
+  addFilm({ url: 'audio/ring-game.m4a', room: 'fun', pos: at(rooms.fun, -13.8, 7.1), radius: 8, gain: 0.8 });
+  addFilm({ url: 'audio/power.m4a', room: 'fun', pos: at(rooms.fun, 13, -4), radius: 7, gain: 2.2 });
+}
+const audioState = { pos: new THREE.Vector3(), yaw: 0, room: null, night: 0, speed: 0, running: false, surface: 'grass', coastDist: 100, crowd: 0, woods: 0, droneDist: 999, mode: 'intro', air: 0 };
+const camDir = new THREE.Vector3();
+function feedAudio(dt) {
+  const A = audioState;
+  const x = state.pos.x;
+  const z = state.pos.z;
+  A.pos.copy(state.pos);
+  camera.getWorldDirection(camDir);
+  A.yaw = Math.atan2(-camDir.x, -camDir.z);
+  A.room = state.indoor ? state.indoor.id : null;
+  A.night = dayNight.state.night;
+  A.speed = state.speed;
+  A.running = state.speed > 6;
+  A.air = state.air;
+  A.mode = state.mode;
+  const r = Math.hypot(x, z);
+  A.coastDist = coastR(Math.atan2(z, x)) - r;
+  A.surface = state.indoor ? 'indoor' : coast.onFerry(x, z) !== null || jettyAt(x, z) ? 'wood' : onPaving(x, z) ? 'path' : groundAt(x, z) < SEA_LEVEL + 2.6 ? 'sand' : 'grass';
+  let near = Infinity;
+  for (const h of HAMLETS) near = Math.min(near, Math.hypot(x - h.x, z - h.z));
+  const bz = Math.hypot(x - (BAZAAR.ax + BAZAAR.bx) / 2, z - (BAZAAR.az + BAZAAR.bz) / 2);
+  A.crowd = Math.max(Math.max(0, 1 - near / 40), Math.max(0, 1 - bz / 30) * 1.3);
+  A.woods = Math.max(0, Math.min(1, (r - 100) / 14));
+  let dd = Infinity;
+  for (const d of village.drones) dd = Math.min(dd, d.position.distanceTo(state.pos));
+  A.droneDist = dd;
+  updateAudio(A, dt);
+}
+
 // ---------- Input ----------
 
 const keys = new Set();
@@ -287,10 +332,16 @@ window.addEventListener('keydown', (e) => {
   else if (k === 'i') showHome();
   else if (k === 'c') setCameraPreset();
   else if (k === 'm') ui.toggleMissions();
-  else if (k === 'l') ui.setTimeMode(dayNight.cycle());
+  else if (k === 'l') {
+    ui.setTimeMode(dayNight.cycle());
+    sfx('time');
+  }
   else if ((k === 'e' || k === 'enter') && nearThing) act(nearThing);
   else if (k === 'f' && state.mode === 'walk') waveAtNeighbours();
-  else if (k === ' ' && state.mode === 'walk' && state.air === 0) state.vy = 6.5;
+  else if (k === ' ' && state.mode === 'walk' && state.air === 0) {
+    state.vy = 6.5;
+    sfx('jump');
+  }
   else if (k === 'escape') {
     if (ui.closeOverlays()) return;
     if (state.indoor) exitRoom();
@@ -494,6 +545,7 @@ function movePlayer(dt) {
   state.vy -= 18 * dt;
   state.air += state.vy * dt;
   if (state.air <= 0) {
+    if (state.vy < -4) sfx('land');
     state.air = 0;
     state.vy = Math.max(0, state.vy);
   }
@@ -547,6 +599,7 @@ function applyIndoorLight(room) {
 }
 
 function enterRoom(id) {
+  sfx('enter');
   const room = rooms[id];
   if (!room || state.indoor) return;
   ui.fade(() => {
@@ -571,6 +624,7 @@ function enterRoom(id) {
 }
 
 function exitRoom() {
+  sfx('exit');
   const room = state.indoor;
   if (!room) return;
   ui.fade(() => {
@@ -613,8 +667,9 @@ function setCameraPreset(next) {
   camPreset = next ?? CAMERAS[(CAMERAS.indexOf(camPreset) + 1) % CAMERAS.length];
   state.dist = camPreset.dist;
   state.pitch = camPreset.pitch;
-  document.querySelector('#btn-cam span').textContent = `🎥 ${camPreset.label}`;
-  if (state.mode === 'walk') ui.toast(`<b>🎥 ${camPreset.label} camera</b>`, 1400);
+  document.querySelector('#btn-cam span').textContent = camPreset.label;
+  sfx('camera');
+  if (state.mode === 'walk') ui.toast(`<b>🎥 ${camPreset.label} camera</b>`, 1400, { quiet: true });
 }
 document.getElementById('btn-cam').addEventListener('click', () => setCameraPreset());
 
@@ -788,6 +843,7 @@ function updateNpcs(t) {
       tmpDir.set(dx, 0, dz).normalize().applyQuaternion(npcQuat.invert());
       const type = state.speed > 6 || n.rider ? 'fall' : 'stumble';
       if (hit(n.p, type, tmpDir, elapsed)) {
+        sfx('bump');
         state.speed *= 0.3;
         if (type === 'fall') ui.toast(`<b>Oops!</b> You knocked over a ${n.role.toLowerCase()}. They’ll be fine.`, 2500);
       }
@@ -842,6 +898,7 @@ function updateNpcs(t) {
 }
 
 function waveAtNeighbours() {
+  sfx('wave');
   let n = 0;
   for (const v of state.indoor ? state.indoor.npcs : village.npcs) {
     if (v.d < 9 && !v.p.react) {
@@ -860,6 +917,9 @@ document.getElementById('btn-home').addEventListener('click', showHome);
 
 function act(a) {
   if (!a) return;
+  if (a.kind !== 'enter' && a.kind !== 'exit' && a.kind !== 'project') sfx('interact');
+  if (a.label === 'The cat') sfx('purr');
+  if (/coffee|chai/i.test(a.label || '')) sfx('sip');
   if (a.kind === 'project') ui.openProject(a.slug);
   else if (a.kind === 'contact') ui.toggleHire(true, true);
   else if (a.kind === 'home') ui.showPlace(PLACES.find((p) => p.id === 'home'));
@@ -1035,9 +1095,10 @@ function frame() {
   flowerWind.uTime.value = t;
   if (!state.indoor) dayNight.update(dt);
   else for (const u of state.indoor.updaters) u.update(t, dt);
-  ui.setClock(dayNight.label());
+  ui.setClock(dayNight.label(), dayNight.state.hour);
   ocean.uniforms.uTime.value = t;
   const docked = coast.update(t, dayNight.state.night, dt, state.indoor || !player.root.visible ? null : state.pos);
+  if (docked) sfx('horn', { pos: coast.ferryBoat.position, range: 160 });
   if (docked && !state.indoor) {
     const f = coast.ferryBoat.position;
     if (coast.ferry.onboard) ui.toast(`<b>⛴ ${docked}.</b> Step off onto the pier, or stay aboard for the next stop.`, 3500);
@@ -1049,6 +1110,7 @@ function frame() {
   updatePollen(t);
   playerPos.copy(state.pos);
   updateCamera(dt, t);
+  feedAudio(dt);
   updateProximity(t);
   updateLabels();
   drawMinimap();
@@ -1062,4 +1124,4 @@ await finishLoading({ renderer, scene, camera, render: () => composer.render() }
 hideLoader();
 ui.ready();
 
-window.__shire = { state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };
+window.__shire = { audioDebug, state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };
