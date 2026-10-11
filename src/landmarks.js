@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { cuspedArchPoints, makeChhatri } from './jaipur.js';
+import { makePerson, animate } from './characters.js';
 import { HAMLETS } from './data.js';
 import { groundAt, walkY, rng, distToPath, ROAD_HALF, POND, PATHS, ZONES, coastR, SEA_LEVEL, SURFACE } from './world.js';
 import { WHITE_METAL, BRUSHED, CHROME, CONCRETE, GLASS, DARK as DARK_RAIL, mesh, canvasTexture, glow, mergeStatic, lightPool, solid } from './materials.js';
@@ -334,33 +335,212 @@ export function buildStreetLamps(world, colliders) {
 
 // ---------- Coast: a jetty with a bobbing sailboat, and a lighthouse ----------
 
+// ---------- Piers and the island ferry ----------
+
+export const PIERS = [
+  { name: 'Lavender Pier', deg: 2 },
+  { name: 'Sailing Club', deg: 60 },
+  { name: 'Woods Pier', deg: 142 },
+  { name: 'Lighthouse Pier', deg: 234 },
+];
+const PIER_TOP = SEA_LEVEL + 1.3;
+const FERRY_OUT = 26; // the ferry's lane, this far past the coastline
+
+function makePier(scene, colliders, pier, deck) {
+  const a = THREE.MathUtils.degToRad(pier.deg);
+  const R = coastR(a);
+  // start where the beach meets deck height, end well out in the water
+  let start = R - 30;
+  while (start < R && groundAt(Math.cos(a) * start, Math.sin(a) * start) > PIER_TOP + 0.2) start += 0.5;
+  start -= 1.5;
+  const end = R + FERRY_OUT - 1.7;
+  const len = end - start;
+  const g = new THREE.Group();
+  g.position.set(Math.cos(a) * start, 0, Math.sin(a) * start);
+  g.rotation.y = Math.atan2(Math.cos(a), Math.sin(a));
+  for (let k = 0; k < Math.ceil(len / 2); k++) {
+    const z = k * 2;
+    g.add(mesh(new THREE.BoxGeometry(3.4, 0.2, 1.9), deck, 0, PIER_TOP, z));
+    if (k % 2 === 0) for (const x of [-1.6, 1.6]) g.add(mesh(new THREE.CylinderGeometry(0.13, 0.13, 4, 8), deck, x, PIER_TOP - 1.8, z));
+  }
+  for (const x of [-1.65, 1.65]) g.add(mesh(new THREE.BoxGeometry(0.1, 0.1, len - 2), WHITE_METAL, x, PIER_TOP + 0.7, len / 2 - 2));
+  for (let k = 0; k < Math.floor(len / 6); k++) {
+    const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), glow('#ffe1a8', 1.4));
+    lamp.position.set(k % 2 ? 1.65 : -1.65, PIER_TOP + 1.0, 2 + k * 6);
+    g.add(lamp);
+  }
+  // bollards and a ferry stop sign
+  for (const x of [-1.4, 1.4]) g.add(mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.5, 10), DARK_RAIL, x, PIER_TOP + 0.35, len - 1.2));
+  const sign = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.2, 0.9),
+    new THREE.MeshBasicMaterial({
+      toneMapped: false,
+      side: THREE.DoubleSide,
+      map: canvasTexture(440, 180, (c, w, h) => {
+        c.fillStyle = '#0f2a5f';
+        c.fillRect(0, 0, w, h);
+        c.fillStyle = '#2f6bff';
+        c.fillRect(0, h - 14, w, 14);
+        c.fillStyle = '#ffffff';
+        c.font = '800 46px "Bricolage Grotesque", Inter, sans-serif';
+        c.fillText('⛴ FERRY', 24, 70);
+        c.font = '600 30px Inter, sans-serif';
+        c.fillText(pier.name, 24, 126, w - 48);
+      }),
+    })
+  );
+  sign.position.set(-2.4, PIER_TOP + 2.1, 1.2);
+  g.add(sign, mesh(new THREE.CylinderGeometry(0.06, 0.06, 2, 6), DARK_RAIL, -2.4, PIER_TOP + 0.9, 1.2));
+  const info = new THREE.Object3D();
+  info.position.set(0, 0, 2.5);
+  info.userData.interact = {
+    kind: 'toast',
+    label: `Ferry stop · ${pier.name}`,
+    verb: 'Timetable',
+    text: `<b>⛴ Island ferry.</b> It loops round the island: ${PIERS.map((p) => p.name).join(' → ')}. Wait at the end of the pier and step aboard when it docks. Stand on deck to ride.`,
+  };
+  g.add(info);
+  scene.add(g);
+  mergeStatic(g);
+  return { ...pier, a, x0: g.position.x, z0: g.position.z, dx: Math.cos(a), dz: Math.sin(a), len: len + 0.6, half: 1.5, y: PIER_TOP + 0.1 }; // walkable a step past the end, onto a docked ferry
+}
+
+function makeFerry() {
+  const boat = new THREE.Group();
+  const navy = solid('#14234a', { roughness: 0.5 });
+  const white = WHITE_METAL;
+  const blue = solid('#2f6bff', { roughness: 0.4 });
+  const teak = solid('#a0784c', { roughness: 0.8 });
+  // hull outline seen from above: flat stern, straight sides, pointed bow (+z)
+  const hullShape = (inset = 0) => {
+    const w = 1.85 - inset;
+    const sh = new THREE.Shape();
+    sh.moveTo(-w, 4.3 - inset);
+    sh.lineTo(w, 4.3 - inset);
+    sh.lineTo(w, -1.6);
+    sh.quadraticCurveTo(w, -3.8, 0, -5.2 + inset * 1.5);
+    sh.quadraticCurveTo(-w, -3.8, -w, -1.6);
+    sh.closePath();
+    return sh;
+  };
+  const slab = (shape, depth, mat, y) => {
+    const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false, curveSegments: 12 });
+    geo.rotateX(-Math.PI / 2); // shape y -> -z, so the bow ends up at +z
+    const m = new THREE.Mesh(geo, mat);
+    m.position.y = y;
+    m.castShadow = m.receiveShadow = true;
+    boat.add(m);
+    return m;
+  };
+  slab(hullShape(), 0.95, navy, -0.85);
+  slab(hullShape(), 0.14, blue, 0.1);
+  slab(hullShape(), 0.55, white, 0.24);
+  slab(hullShape(0.12), 0.06, teak, 0.72);
+  // cabin aft, open deck with benches forward
+  const cabin = new THREE.Group();
+  cabin.position.set(0, 0.78, -2.3);
+  boat.add(cabin);
+  cabin.add(mesh(new THREE.BoxGeometry(2.7, 0.9, 2.8), white, 0, 0.45, 0));
+  cabin.add(mesh(new THREE.BoxGeometry(2.72, 0.75, 2.6), new THREE.MeshPhysicalMaterial({ color: '#1d3557', metalness: 0.3, roughness: 0.1, clearcoat: 1 }), 0, 1.27, 0.05));
+  for (const x of [-0.45, 0.45]) cabin.add(mesh(new THREE.BoxGeometry(0.08, 0.75, 2.62), white, x * 3, 1.27, 0.05));
+  cabin.add(mesh(new THREE.BoxGeometry(3.0, 0.16, 3.2), white, 0, 1.72, 0));
+  cabin.add(mesh(new THREE.BoxGeometry(3.02, 0.06, 3.22), blue, 0, 1.64, 0));
+  const plate = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.2, 0.36),
+    new THREE.MeshBasicMaterial({
+      toneMapped: false,
+      map: canvasTexture(512, 84, (c, w, h) => {
+        c.fillStyle = '#ffffff';
+        c.fillRect(0, 0, w, h);
+        c.fillStyle = '#14234a';
+        c.font = '800 54px "Bricolage Grotesque", Inter, sans-serif';
+        c.textAlign = 'center';
+        c.textBaseline = 'middle';
+        c.fillText('ISLAND FERRY', w / 2, h / 2 + 3);
+      }),
+    })
+  );
+  plate.position.set(0, 0.5, 1.405);
+  cabin.add(plate);
+  // roof kit: mast, radar, light, flag, horn
+  cabin.add(mesh(new THREE.CylinderGeometry(0.05, 0.06, 1.6, 8), CHROME, 0, 2.6, -0.6));
+  const radar = new THREE.Group();
+  radar.position.set(0, 2.95, -0.6);
+  radar.add(mesh(new THREE.BoxGeometry(0.9, 0.08, 0.14), DARK_RAIL, 0, 0, 0));
+  cabin.add(radar);
+  cabin.add(mesh(new THREE.SphereGeometry(0.09, 8, 6), glow('#ffe1a8', 1.2), 0, 3.45, -0.6));
+  const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.42, 6, 1), new THREE.MeshStandardMaterial({ color: '#2f6bff', side: THREE.DoubleSide }));
+  flag.position.set(0, 3.2, -0.95);
+  flag.rotation.y = Math.PI / 2;
+  cabin.add(flag);
+  cabin.add(mesh(new THREE.CylinderGeometry(0.12, 0.05, 0.3, 10), solid('#d9a441', { metalness: 0.7, roughness: 0.3 }), 0.8, 1.95, 0.6).rotateX(Math.PI / 2));
+  // life rings on the cabin sides
+  for (const sx of [-1, 1]) {
+    const ring = mesh(new THREE.TorusGeometry(0.26, 0.07, 8, 18), solid('#ff6a1a'), sx * 1.38, 0.5, 0.6);
+    ring.rotation.y = Math.PI / 2;
+    cabin.add(ring);
+  }
+  // railings round the deck, with gangway gaps amidships on both sides
+  const post = new THREE.CylinderGeometry(0.03, 0.03, 0.7, 6);
+  for (const sx of [-1, 1]) {
+    for (let z = -3.4; z <= 3.9; z += 0.75) {
+      if (z > -1.0 && z < 1.0) continue;
+      boat.add(mesh(post, CHROME, sx * 1.68, 1.12, z, false));
+    }
+    for (const [z0, z1] of [[-3.4, -1.05], [1.05, 3.9]]) boat.add(mesh(new THREE.BoxGeometry(0.05, 0.05, z1 - z0), CHROME, sx * 1.68, 1.47, (z0 + z1) / 2, false));
+  }
+  for (let k = 0; k < 5; k++) {
+    const t = k / 4;
+    const x = (1 - t) * 1.55;
+    const z = 4.0 + t * 0.95;
+    for (const sx of [-1, 1]) boat.add(mesh(post, CHROME, sx * x, 1.12, z, false));
+  }
+  boat.add(mesh(new THREE.BoxGeometry(3.4, 0.05, 0.05), CHROME, 0, 1.47, -3.95, false));
+  // benches facing outward
+  for (const sx of [-1, 1]) {
+    boat.add(mesh(new THREE.BoxGeometry(0.45, 0.08, 2.0), teak, sx * 0.45, 1.2, 2.3));
+    boat.add(mesh(new THREE.BoxGeometry(0.08, 0.45, 2.0), teak, sx * 0.2, 1.45, 2.3));
+    for (const z of [1.5, 3.1]) boat.add(mesh(new THREE.BoxGeometry(0.4, 0.42, 0.08), DARK_RAIL, sx * 0.45, 0.96, z, false));
+  }
+  // navigation lights
+  boat.add(mesh(new THREE.SphereGeometry(0.07, 8, 6), glow('#e5484d', 1.2), -1.72, 1.5, 3.9, false));
+  boat.add(mesh(new THREE.SphereGeometry(0.07, 8, 6), glow('#22c55e', 1.2), 1.72, 1.5, 3.9, false));
+  // the wake
+  const wake = new THREE.Mesh(
+    new THREE.PlaneGeometry(4.5, 12),
+    new THREE.MeshBasicMaterial({
+      transparent: true,
+      depthWrite: false,
+      opacity: 0,
+      map: canvasTexture(128, 256, (c, w, h) => {
+        const g = c.createLinearGradient(0, 0, 0, h);
+        g.addColorStop(0, 'rgba(255,255,255,0.9)');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        c.fillStyle = g;
+        c.beginPath();
+        c.moveTo(w * 0.35, 0);
+        c.lineTo(w * 0.65, 0);
+        c.lineTo(w, h);
+        c.lineTo(0, h);
+        c.fill();
+      }),
+    })
+  );
+  wake.rotation.x = -Math.PI / 2;
+  wake.position.set(0, 0.02, -10.2);
+  boat.add(wake);
+  return { boat, radar, flag, wake };
+}
+
 export function buildCoast(scene, colliders) {
   const deck = new THREE.MeshStandardMaterial({ color: '#b08a5f', roughness: 0.85 });
-  const ja = THREE.MathUtils.degToRad(60);
-  const R = coastR(ja);
-  const jetty = new THREE.Group();
-  const start = R - 10;
-  jetty.position.set(Math.cos(ja) * start, 0, Math.sin(ja) * start);
-  jetty.rotation.y = Math.atan2(Math.cos(ja), Math.sin(ja));
-  const len = 34;
-  const topY = SEA_LEVEL + 1.3;
-  for (let k = 0; k < len / 2; k++) {
-    const z = k * 2;
-    jetty.add(mesh(new THREE.BoxGeometry(3.4, 0.2, 1.9), deck, 0, topY, z));
-    if (k % 2 === 0) for (const x of [-1.6, 1.6]) jetty.add(mesh(new THREE.CylinderGeometry(0.13, 0.13, 4, 8), deck, x, topY - 1.8, z));
-  }
-  for (const x of [-1.65, 1.65]) jetty.add(mesh(new THREE.BoxGeometry(0.1, 0.1, len), WHITE_METAL, x, topY + 0.7, len / 2 - 1));
-  for (let k = 0; k < 6; k++) {
-    const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), glow('#fff1c9', 2));
-    lamp.position.set(k % 2 ? 1.65 : -1.65, topY + 1.0, 2 + k * 6);
-    jetty.add(lamp);
-  }
-  scene.add(jetty);
-  mergeStatic(jetty);
-  // Walkable deck for the player (an oriented strip).
-  const jettyInfo = { x0: jetty.position.x, z0: jetty.position.z, dx: Math.cos(ja), dz: Math.sin(ja), len: len - 1, half: 1.5, y: topY + 0.1 };
+  const piers = PIERS.map((p) => makePier(scene, colliders, p, deck));
+  const sailing = piers[1];
+  const ja = sailing.a;
+  const start = Math.hypot(sailing.x0, sailing.z0);
+  const len = sailing.len;
 
-  // Sailboat moored at the end
+  // Sailboat moored alongside the Sailing Club pier
   const boat = new THREE.Group();
   const hull = mesh(new THREE.CylinderGeometry(1.3, 0.7, 5.5, 16, 1, false, 0, Math.PI), WHITE_METAL);
   hull.rotation.set(Math.PI / 2, 0, Math.PI);
@@ -378,11 +558,48 @@ export function buildCoast(scene, colliders) {
   sailMesh.rotation.y = Math.PI / 2;
   sailMesh.castShadow = true;
   boat.add(sailMesh);
-  boat.add(mesh(new THREE.BoxGeometry(2.42, 0.18, 0.4), glow('#2f6bff', 1.5), 0, 0.55, 2.2));
-  const bd = start + len + 3;
-  boat.position.set(Math.cos(ja) * bd + Math.cos(ja + Math.PI / 2) * 4, SEA_LEVEL + 0.2, Math.sin(ja) * bd + Math.sin(ja + Math.PI / 2) * 4);
-  boat.rotation.y = jetty.rotation.y;
+  boat.add(mesh(new THREE.BoxGeometry(2.42, 0.18, 0.4), glow('#2f6bff', 1.2), 0, 0.55, 2.2));
+  const bd = start + len - 9;
+  boat.position.set(Math.cos(ja) * bd + Math.cos(ja + Math.PI / 2) * 4.2, SEA_LEVEL + 0.2, Math.sin(ja) * bd + Math.sin(ja + Math.PI / 2) * 4.2);
+  boat.rotation.y = Math.atan2(Math.cos(ja), Math.sin(ja));
   scene.add(boat);
+
+  // The island ferry: loops round the island anticlockwise, docking at the end of every pier
+  const F = makeFerry();
+  scene.add(F.boat);
+  // a captain at the wheel and a passenger enjoying the view
+  const captain = makePerson({ seed: 0.42, style: 'overshirt', top: '#f4f4f2', pants: '#14234a', accessory: 'cap', noBag: true, scale: 0.92 });
+  captain.root.position.set(0.3, 0.78, -1.6);
+  F.boat.add(captain.root);
+  const rider = makePerson({ seed: 0.83, style: 'dress', accent: '#2f6bff', noBag: true });
+  rider.root.position.set(0.45, 0.72, 2.3);
+  rider.root.rotation.y = Math.PI / 2;
+  F.boat.add(rider.root);
+  const lane = (a) => coastR(a) + FERRY_OUT;
+  const stops = piers.map((p) => p.a).sort((x, y) => x - y);
+  const ferry = { a: stops[0], stop: 0, dwell: 6, speed: 0, docked: true, onboard: false };
+  const tmpL = new THREE.Vector3();
+  const place = (a) => {
+    const r = lane(a);
+    F.boat.position.set(Math.cos(a) * r, SEA_LEVEL + 0.15, Math.sin(a) * r);
+    // heading along the lane (direction of travel = increasing angle)
+    const a2 = a + 0.002;
+    const r2 = lane(a2);
+    F.boat.rotation.y = Math.atan2(Math.cos(a2) * r2 - Math.cos(a) * r, Math.sin(a2) * r2 - Math.sin(a) * r);
+  };
+  place(ferry.a);
+  const nextStopAngle = () => {
+    const n = stops[(ferry.stop + 1) % stops.length];
+    return n <= ferry.a + 1e-6 ? n + Math.PI * 2 : n;
+  };
+  // is (x, z) on the ferry's deck? returns the deck height or null
+  const inv = new THREE.Matrix4();
+  function onFerry(x, z) {
+    F.boat.updateMatrixWorld();
+    inv.copy(F.boat.matrixWorld).invert();
+    tmpL.set(x, F.boat.position.y + 1, z).applyMatrix4(inv);
+    return Math.abs(tmpL.x) < 1.62 && tmpL.z > -3.9 && tmpL.z < 4.2 ? F.boat.position.y + 0.82 : null;
+  }
 
   // Lighthouse on a rocky point
   const la = THREE.MathUtils.degToRad(205);
@@ -415,13 +632,60 @@ export function buildCoast(scene, colliders) {
   colliders.push({ x: lx, z: lz, r: 2 });
 
   return {
-    jetty: jettyInfo,
-    update: (t, night) => {
+    jetty: piers[1],
+    piers,
+    ferry,
+    ferryBoat: F.boat,
+    onFerry,
+    // moves the ferry; carries `riderPos` along when it stands on the deck. Returns a message when the ferry docks.
+    update: (t, night, dt = 1 / 60, riderPos = null) => {
       boat.position.y = SEA_LEVEL + 0.2 + Math.sin(t * 1.1) * 0.15;
       boat.rotation.z = Math.sin(t * 0.9) * 0.05;
       boat.rotation.x = Math.sin(t * 0.7) * 0.03;
       beamPivot.rotation.y = t * 0.6;
       beam.material.opacity = 0.02 + night * 0.1;
+      // where is the rider, in the ferry's own frame, before it moves?
+      let local = null;
+      if (riderPos && onFerry(riderPos.x, riderPos.z) !== null) local = F.boat.worldToLocal(tmpL.copy(riderPos));
+      ferry.onboard = !!local;
+      let msg = null;
+      if (ferry.docked) {
+        ferry.dwell -= dt;
+        if (ferry.dwell <= 0) ferry.docked = false;
+      } else {
+        const target = nextStopAngle();
+        const left = target - ferry.a;
+        // ease out of each pier and into the next
+        const sinceLast = ferry.a - stops[ferry.stop] + (ferry.a < stops[ferry.stop] ? Math.PI * 2 : 0);
+        const ease = Math.min(1, Math.max(0.12, Math.min(left, sinceLast) / 0.12));
+        const want = 10 * ease;
+        ferry.speed = THREE.MathUtils.lerp(ferry.speed, want, Math.min(1, dt * 1.5));
+        ferry.a += (ferry.speed / lane(ferry.a)) * dt;
+        if (ferry.a >= target) {
+          ferry.stop = (ferry.stop + 1) % stops.length;
+          ferry.a = stops[ferry.stop];
+          ferry.docked = true;
+          ferry.dwell = 7;
+          ferry.speed = 0;
+          msg = piers.find((p) => p.a === stops[ferry.stop]).name;
+        }
+        if (ferry.a > Math.PI * 2) ferry.a -= Math.PI * 2;
+      }
+      place(ferry.a);
+      F.boat.position.y += Math.sin(t * 1.3) * 0.08;
+      F.boat.rotation.z = Math.sin(t * 0.9) * 0.025;
+      F.radar.rotation.y = t * 2;
+      animate(captain, 'type', t);
+      animate(rider, 'sit', t);
+      F.flag.rotation.x = Math.sin(t * 6) * 0.15;
+      F.wake.material.opacity = Math.min(0.6, ferry.speed / 12);
+      F.boat.updateMatrixWorld();
+      if (local) {
+        F.boat.localToWorld(local);
+        riderPos.x = local.x;
+        riderPos.z = local.z;
+      }
+      return msg;
     },
   };
 }

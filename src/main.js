@@ -361,7 +361,7 @@ canvas.addEventListener('pointerup', (e) => {
   if (drag && !drag.moved && (state.mode === 'walk' || state.mode === 'overview')) {
     const res = pick(e);
     if (res?.action) act(res.action);
-    else if (res?.point && (state.indoor || heightAt(res.point.x, res.point.z) > SEA_LEVEL + 0.5 || jettyAt(res.point.x, res.point.z))) {
+    else if (res?.point && (state.indoor || heightAt(res.point.x, res.point.z) > SEA_LEVEL + 0.5 || jettyAt(res.point.x, res.point.z) || coast.onFerry(res.point.x, res.point.z) !== null)) {
       state.target = res.point.clone();
       marker.visible = true;
     }
@@ -470,15 +470,18 @@ function movePlayer(dt) {
     state.pos.z = room.origin.z + THREE.MathUtils.clamp(lz, b.minZ, b.maxZ);
     ground = room.origin.y;
   } else {
+    const deckY = coast.onFerry(state.pos.x, state.pos.z);
     const onJetty = jettyAt(state.pos.x, state.pos.z);
-    if (!onJetty && heightAt(state.pos.x, state.pos.z) < SEA_LEVEL + 0.5) {
+    if (!onJetty && deckY === null && heightAt(state.pos.x, state.pos.z) < SEA_LEVEL + 0.5) {
       // the sea stops you at the water's edge
       state.pos.x = prevX;
       state.pos.z = prevZ;
       state.target = null;
       marker.visible = false;
     }
-    ground = jettyAt(state.pos.x, state.pos.z) ? coast.jetty.y : walkY(state.pos.x, state.pos.z);
+    const pier = jettyAt(state.pos.x, state.pos.z);
+    const deck = coast.onFerry(state.pos.x, state.pos.z);
+    ground = deck !== null ? deck : pier ? pier.y : walkY(state.pos.x, state.pos.z);
   }
   state.vy -= 18 * dt;
   state.air += state.vy * dt;
@@ -497,13 +500,16 @@ function movePlayer(dt) {
   }
 }
 
+// the pier under (x, z), if any
 function jettyAt(x, z) {
-  const j = coast.jetty;
-  const px = x - j.x0;
-  const pz = z - j.z0;
-  const along = px * j.dx + pz * j.dz;
-  const lateral = Math.abs(px * j.dz - pz * j.dx);
-  return along > -1 && along < j.len && lateral < j.half;
+  for (const j of coast.piers) {
+    const px = x - j.x0;
+    const pz = z - j.z0;
+    const along = px * j.dx + pz * j.dz;
+    const lateral = Math.abs(px * j.dz - pz * j.dx);
+    if (along > -1 && along < j.len && lateral < j.half) return j;
+  }
+  return null;
 }
 
 // ---------- Going indoors ----------
@@ -998,7 +1004,12 @@ function frame() {
   else for (const u of state.indoor.updaters) u.update(t, dt);
   ui.setClock(dayNight.label());
   ocean.uniforms.uTime.value = t;
-  coast.update(t, dayNight.state.night);
+  const docked = coast.update(t, dayNight.state.night, dt, state.indoor || !player.root.visible ? null : state.pos);
+  if (docked && !state.indoor) {
+    const f = coast.ferryBoat.position;
+    if (coast.ferry.onboard) ui.toast(`<b>⛴ ${docked}.</b> Step off onto the pier, or stay aboard for the next stop.`, 3500);
+    else if (Math.hypot(f.x - state.pos.x, f.z - state.pos.z) < 60) ui.toast(`<b>⛴ The ferry is in at ${docked}.</b> Walk to the end of the pier to board.`, 3500);
+  }
   updateClouds(t);
   updateRail(t);
   updateProps(t);
@@ -1015,4 +1026,4 @@ function frame() {
 requestAnimationFrame(frame);
 ui.ready();
 
-window.__shire = { state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, enterRoom, exitRoom, walkY, groundAt, THREE };
+window.__shire = { state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };
