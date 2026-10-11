@@ -47,6 +47,7 @@
         <div><b data-owner-name>Vibhor Mathur</b><span>Creative director · Razorpay</span></div>
       </div>
       <nav class="hud__nav">
+        <button id="btn-home" class="btn btn--hud" title="About me (I)"><span>🏠 Home</span><kbd>I</kbd></button>
         <button id="btn-time" class="btn btn--hud" title="Time of day (L)"><span>🔄 Auto</span><b>09:30</b><kbd>L</kbd></button>
         <button id="btn-overview" class="btn btn--hud" title="Overview (O)"><span>Overview</span><kbd>O</kbd></button>
         <button id="btn-tour-hud" class="btn btn--hud" title="Guided tour (T)"><span>Tour</span><kbd>T</kbd></button>
@@ -64,7 +65,7 @@
 
     <aside id="keys" class="keys-desktop">
       <div><kbd>WASD</kbd> walk <kbd>Shift</kbd> run <kbd>Space</kbd> jump</div>
-      <div><kbd>E</kbd> interact <kbd>F</kbd> wave <kbd>L</kbd> time <kbd>0</kbd>–<kbd>9</kbd> travel</div>
+      <div><kbd>E</kbd> interact <kbd>F</kbd> wave <kbd>I</kbd> about <kbd>L</kbd> time <kbd>0</kbd>–<kbd>9</kbd> travel</div>
     </aside>
 
     <aside id="panel" aria-live="polite"></aside>
@@ -78,7 +79,16 @@
       <button id="tour-exit" class="btn btn--hud">Explore from here</button>
     </div>
 
+    <div id="case-backdrop"></div>
     <div id="case" role="dialog" aria-modal="true" aria-label="Case study"></div>
+
+    <div id="webpop" role="dialog" aria-modal="true" aria-label="Embedded page">
+      <div class="webpop__card">
+        <div class="webpop__bar"><b id="webpop-title"></b><a id="webpop-open" target="_blank" rel="noopener">Open in a new tab ↗</a><button class="close" data-close aria-label="Close">×</button></div>
+        <div class="webpop__frame"><iframe id="webpop-frame" title="Embedded page" allow="autoplay; fullscreen; gamepad; clipboard-write; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
+        <p class="webpop__note">If the page stays blank, the site doesn’t allow embedding: use “Open in a new tab”.</p>
+      </div>
+    </div>
 
     <div id="hire" class="modal" role="dialog" aria-modal="true" aria-labelledby="hire-title">
       <div class="hire__card tilt">

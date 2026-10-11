@@ -353,7 +353,39 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     location.href = `mailto:${owner.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     status.textContent = 'Your email app should open with the message ready to send.';
   });
+  // ----- Web popup: games, films and pages inside the island instead of a new tab -----
+  const webpop = $('#webpop');
+  const webFrame = $('#webpop-frame');
+  function openWeb(url, title = '') {
+    const yt = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{6,})/);
+    webFrame.src = yt ? `https://www.youtube-nocookie.com/embed/${yt[1]}?autoplay=1&rel=0` : url;
+    $('#webpop-title').textContent = title || url.replace(/^https?:\/\//, '').split('/')[0];
+    $('#webpop-open').href = url;
+    webpop.classList.add('is-open');
+  }
+  function closeWeb() {
+    webpop.classList.remove('is-open');
+    setTimeout(() => {
+      if (!webpop.classList.contains('is-open')) webFrame.src = 'about:blank';
+    }, 300);
+  }
+  webpop.addEventListener('click', (e) => {
+    if (e.target === webpop || e.target.closest('[data-close]')) closeWeb();
+  });
+  // links that can live in a popup open there; the rest (Behance, LinkedIn…) still need a tab
+  const POPPABLE = /youtube\.com\/watch|youtu\.be\/|razorpay\.com\/m\/|\.pdf($|\?)/i;
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[href]');
+    if (!a || a.id === 'webpop-open' || !POPPABLE.test(a.href) || a.href.includes('github.com')) return;
+    e.preventDefault();
+    openWeb(a.href, a.dataset.title || a.textContent.replace('↗', '').trim());
+  });
+
   function closeOverlays() {
+    if (webpop.classList.contains('is-open')) {
+      closeWeb();
+      return true;
+    }
     if (caseStudy.isOpen()) {
       caseStudy.close();
       return true;
@@ -366,7 +398,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     }
     return false;
   }
-  const modalOpen = () => caseStudy.isOpen() || hire.classList.contains('is-open');
+  const modalOpen = () => caseStudy.isOpen() || hire.classList.contains('is-open') || webpop.classList.contains('is-open');
 
   // ----- Tour -----
   $('#tour-prev').addEventListener('click', () => onTourStep(-1));
@@ -408,6 +440,6 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
 
   return {
     placeLabel, showPlace, hidePlace, toast, toggleHire, toggleMissions, closeOverlays, modalOpen, setMode, setTourProgress,
-    ready, openProject, stepGallery, prompt, speech, thoughts, collectTrophy, visited, setClock, setTimeMode, showInfo, fade, setIndoor,
+    ready, openProject, openWeb, stepGallery, prompt, speech, thoughts, collectTrophy, visited, setClock, setTimeMode, showInfo, fade, setIndoor,
   };
 }

@@ -276,6 +276,7 @@ window.addEventListener('keydown', (e) => {
   if (k === 'o') setMode(state.mode === 'overview' ? 'walk' : 'overview');
   else if (k === 't') setMode(state.mode === 'tour' ? 'walk' : 'tour');
   else if (k === 'h') ui.toggleHire();
+  else if (k === 'i') showHome();
   else if (k === 'm') ui.toggleMissions();
   else if (k === 'l') ui.setTimeMode(dayNight.cycle());
   else if ((k === 'e' || k === 'enter') && nearThing) act(nearThing);
@@ -804,6 +805,12 @@ function waveAtNeighbours() {
   ui.toast(n ? `<b>👋 You waved.</b> ${n} ${n === 1 ? 'person waves' : 'people wave'} back.` : '<b>👋</b> Nobody close enough to wave back.', 2200);
 }
 
+// The Home button: the about-me panel, reachable from anywhere
+function showHome() {
+  ui.showPlace(PLACES.find((p) => p.id === 'home'));
+}
+document.getElementById('btn-home').addEventListener('click', showHome);
+
 function act(a) {
   if (!a) return;
   if (a.kind === 'project') ui.openProject(a.slug);
@@ -815,7 +822,7 @@ function act(a) {
   else if (a.kind === 'exit') exitRoom();
   else if (a.kind === 'toast') ui.toast(a.text, 5000);
   else if (a.kind === 'kick') a.kick(state.heading);
-  else if (a.kind === 'link') window.open(a.url, '_blank', 'noopener');
+  else if (a.kind === 'link') ui.openWeb(a.url, a.title || a.label);
   else if (a.kind === 'hire') ui.toggleHire(true);
   else if (a.kind === 'place') ui.showPlace(PLACES.find((p) => p.id === a.id));
   else if (a.kind === 'screen') ui.openProject(a.screen.userData.action.slug);
@@ -848,7 +855,7 @@ function drawMinimap() {
     mctx.save();
     mctx.clearRect(0, 0, S, S);
     mctx.beginPath();
-    mctx.roundRect(0, 0, S, S, 22);
+    mctx.rect(0, 0, S, S);
     mctx.clip();
     mctx.fillStyle = '#0f172a';
     mctx.fillRect(0, 0, S, S);
@@ -885,7 +892,7 @@ function drawMinimap() {
   mctx.save();
   mctx.clearRect(0, 0, S, S);
   mctx.beginPath();
-  mctx.roundRect(0, 0, S, S, 22);
+  mctx.rect(0, 0, S, S);
   mctx.clip();
   mctx.fillStyle = '#5fa53b';
   mctx.fillRect(0, 0, S, S);

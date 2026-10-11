@@ -416,3 +416,59 @@ figure.cs-blk { margin-top: clamp(56px, 11vh, 140px); margin-bottom: 0; }
 
 .cs-play-cta { padding: 0 var(--pad) clamp(30px, 6vh, 70px); }
 .cs-play-cta .btn { text-decoration: none; display: inline-flex; gap: .5em; }
+
+/* ==========================================================================
+   Case studies and pages as popups over the island (not full pages)
+   ========================================================================== */
+#case-backdrop, #webpop { position: fixed; inset: 0; background: rgba(4,7,16,.62); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); opacity: 0; visibility: hidden; transition: opacity .4s, visibility .4s; }
+#case-backdrop { z-index: 34; }
+#case-backdrop.is-open { opacity: 1; visibility: visible; }
+#case {
+  inset: 4vh max(3vw, calc((100vw - 1320px) / 2));
+  box-shadow: 0 60px 140px -30px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.16);
+  transform: perspective(1800px) translateY(40px) rotateX(6deg) scale(.96); opacity: 0;
+  transition: transform .55s cubic-bezier(.16,1,.3,1), opacity .35s, visibility .55s;
+}
+#case.is-open { transform: none; opacity: 1; }
+#case .cs-hero h1 { font-size: clamp(2.6rem, 7.4vw, 7.6rem); }
+
+#webpop { z-index: 40; display: grid; place-items: center; padding: 3vh 3vw; }
+#webpop.is-open { opacity: 1; visibility: visible; }
+.webpop__card { position: relative; width: min(1280px, 100%); height: min(860px, 100%); display: grid; grid-template-rows: auto 1fr auto; background: #070b17; box-shadow: 0 60px 140px -30px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.18); transform: translateY(30px) scale(.97); transition: transform .45s cubic-bezier(.16,1,.3,1); }
+#webpop.is-open .webpop__card { transform: none; }
+.webpop__bar { display: flex; align-items: center; gap: 16px; padding: 12px 64px 12px 18px; font-family: var(--mono); font-size: 12px; text-transform: uppercase; color: var(--text); border-bottom: 1px solid rgba(255,255,255,.12); }
+.webpop__bar::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: linear-gradient(100deg, #3d7bff, #00d2ff 60%, #12f0c0); }
+.webpop__bar b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.webpop__bar a { color: #8fd8ff; text-decoration: none; white-space: nowrap; }
+.webpop__bar .close { top: 6px; right: 10px; }
+.webpop__frame { position: relative; background: #000; }
+.webpop__frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.webpop__note { margin: 0; padding: 8px 18px; font-size: 12px; color: rgba(226,234,255,.55); }
+
+/* ==========================================================================
+   Sharp edges for every UI surface (round only what is meant to be a dot)
+   ========================================================================== */
+#intro *, #intro *::before, #intro *::after,
+#hud *, #hud *::before, #hud *::after,
+#missions *, #missions *::before, #missions *::after,
+#keys *, #keys *::before, #keys *::after,
+#panel *, #panel *::before, #panel *::after,
+#prompt *, #prompt *::before, #prompt *::after,
+#toast *, #toast *::before, #toast *::after,
+#indoor *, #indoor *::before, #indoor *::after,
+#tourbar *, #tourbar *::before, #tourbar *::after,
+#hire *, #hire *::before, #hire *::after,
+#case *, #case *::before, #case *::after,
+#webpop *, #webpop *::before, #webpop *::after,
+#speech *, #speech *::before, #speech *::after,
+#labels *, #labels *::before, #labels *::after,
+#thoughts *, #thoughts *::before, #thoughts *::after,
+#missions, #keys, #panel, #panel::before, #prompt, #toast, #indoor, #speech, #speech::before, #minimap, #case, .thought, .label, .intro__card, .intro__card::before, .hire__card, .hire__card::before, .webpop__card {
+  border-radius: 0 !important;
+}
+.label::before, #indoor i, .cs-play, .orbs i, .thought::after { border-radius: 50% !important; }
+@media (max-width: 1320px) {
+  .btn.btn--hud kbd { display: none; }
+  .btn.btn--hud { padding: 9px 12px; }
+  .hud__nav { gap: 6px; }
+}

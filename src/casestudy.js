@@ -360,7 +360,7 @@ export function createCaseStudy({ projects, places, onOpen }) {
     root.innerHTML = `
       <div class="cs-bar">
         <span class="cs-crumb"><i style="background:${color}"></i>${esc(place?.name || '')} · ${esc(place?.place || '')}</span>
-        <button class="cs-close" data-close>Back to the village <kbd>Esc</kbd></button>
+        <button class="cs-close" data-close>Close <kbd>Esc</kbd></button>
       </div>
       <article class="cs">
         <section class="cs-hero">
@@ -387,14 +387,17 @@ export function createCaseStudy({ projects, places, onOpen }) {
       })
     );
     root.querySelector('[data-close]').onclick = close;
+    document.getElementById('case-backdrop').onclick = close;
     root.querySelector('[data-next]').onclick = (e) => open(e.currentTarget.dataset.next);
     root.scrollTop = 0;
     root.classList.add('is-open');
+    document.getElementById('case-backdrop')?.classList.add('is-open');
     onOpen?.(slug);
   }
 
   function close() {
     root.classList.remove('is-open');
+    document.getElementById('case-backdrop')?.classList.remove('is-open');
     root.querySelectorAll('video').forEach((v) => v.pause());
     setTimeout(() => {
       if (!root.classList.contains('is-open')) root.innerHTML = '';
