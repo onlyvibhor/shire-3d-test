@@ -705,8 +705,9 @@ export function buildTrees(scene, colliders) {
     if (d < 110 && r() < 0.6) continue;
     spots.push({ x, z, s: 0.8 + r() * 0.7, kind: r() < 0.35 ? 'poplar' : 'round', rot: r() * 6, hue: r() });
   }
-  const trunkGeo = new THREE.CylinderGeometry(0.22, 0.38, 2.6, 7);
-  trunkGeo.translate(0, 1.3, 0);
+  // the trunk runs well below the ground so it meets the terrain even on a slope
+  const trunkGeo = new THREE.CylinderGeometry(0.22, 0.42, 3.6, 7);
+  trunkGeo.translate(0, 0.8, 0);
   const blobs = [];
   for (const [x, y, z, s] of [[0, 3.8, 0, 2.1], [1.2, 3.3, 0.4, 1.4], [-1.1, 3.4, -0.3, 1.5], [0.2, 4.9, -0.2, 1.4], [-0.3, 3.2, 1.1, 1.2]]) {
     const g = new THREE.IcosahedronGeometry(s, 1);

@@ -522,6 +522,19 @@ function buildHamlet(scene, h, i, ctx) {
         const band = mesh(new THREE.TorusGeometry(1.95, 0.12, 8, 32), CHROME);
         band.rotation.x = Math.PI / 2;
         b.add(env, band, mesh(new THREE.BoxGeometry(0.9, 0.6, 0.9), WOOD, 0, -3.4, 0));
+        // the skirt at the envelope's mouth, a burner, and ropes down to the basket corners
+        const skirt = mesh(new THREE.CylinderGeometry(0.75, 0.45, 0.5, 16, 1, true), new THREE.MeshStandardMaterial({ color: c, roughness: 0.6, side: THREE.DoubleSide }), 0, -2.45, 0);
+        b.add(skirt, mesh(new THREE.CylinderGeometry(0.12, 0.16, 0.2, 10), DARK, 0, -2.75, 0));
+        const top = new THREE.Vector3();
+        const bot = new THREE.Vector3();
+        for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+          top.set(sx * 0.33, -2.45, sz * 0.33);
+          bot.set(sx * 0.42, -3.1, sz * 0.42);
+          const len = top.distanceTo(bot);
+          const rope = mesh(new THREE.CylinderGeometry(0.02, 0.02, len, 4), DARK, (top.x + bot.x) / 2, (top.y + bot.y) / 2, (top.z + bot.z) / 2, false);
+          rope.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), top.clone().sub(bot).normalize());
+          b.add(rope);
+        }
         b.position.set(x, y, z);
         g.add(b);
         balloons.push({ b, y });
@@ -686,6 +699,10 @@ function buildHamlet(scene, h, i, ctx) {
         k.add(mesh(new THREE.BoxGeometry(1.8, 0.08, 0.9), WHITE_METAL, 0, 1.05, 0));
         k.add(mesh(new THREE.BoxGeometry(0.1, 1.05, 0.1), BRUSHED, 0, 0.52, 0));
         k.add(mesh(new THREE.BoxGeometry(1.6, 1.0, 0.06), DARK, 0, 1.75, -0.32));
+        // monitor stand and foot, and a base plate for the pedestal
+        k.add(mesh(new THREE.BoxGeometry(0.1, 0.18, 0.06), BRUSHED, 0, 1.17, -0.32));
+        k.add(mesh(new THREE.BoxGeometry(0.4, 0.02, 0.24), BRUSHED, 0, 1.1, -0.28));
+        k.add(mesh(new THREE.CylinderGeometry(0.32, 0.36, 0.05, 16), BRUSHED, 0, 0.025, 0));
         const screen = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.9), new THREE.MeshBasicMaterial({ map: coverTexture(`work/${img}.jpg`, 1.5 / 0.9), toneMapped: false }));
         screen.position.set(0, 1.75, -0.285);
         k.add(screen);

@@ -292,7 +292,7 @@ export function buildStreetLamps(world, colliders) {
   world.add(group, pools);
   const head = glow('#fff1c9', 1.6);
   const poolMat = lightPool('#ffd99a', 0.38);
-  const poolGeo = new THREE.PlaneGeometry(7, 7);
+  const poolGeo = new THREE.PlaneGeometry(7, 7, 8, 8); // subdivided so it can lie along a slope
   poolGeo.rotateX(-Math.PI / 2);
   for (const [ax, az, bx, bz] of PATHS) {
     const len = Math.hypot(bx - ax, bz - az);

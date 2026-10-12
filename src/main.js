@@ -24,6 +24,7 @@ import { buildGallery } from './gallery.js';
 import { declutter } from './declutter.js';
 import { buildHidden } from './hidden.js';
 import { buildPond } from './pond.js';
+import { snapshotMatrices, groundFit } from './groundfit.js';
 import galleryLayout from './content/gallery-layout.json';
 import { createQuest } from './quest.js';
 import { isTouch, stick, stickKeys, initTouch, goLandscape } from './touch.js';
@@ -1278,13 +1279,48 @@ function frame() {
   updateLabels();
   drawMinimap();
   halo.material.opacity = 0.35 + Math.sin(t * 3) * 0.2;
+  // once everything has run for a moment, fit the static pieces to the terrain
+  if (fitPending && ++fitFrames > 30 && t > 0.8) {
+    fitPending = false;
+    fitResult = groundFit(outdoor, fitSnap, groundAt);
+    fitDone();
+  }
   composer.render();
   requestAnimationFrame(frame);
 }
 await step('Waking everyone up', 0.95);
+// signboards stand where a builder put them, often at their building's floor height several metres
+// away; seat each on the highest ground under its posts (the fit then stretches the lower post)
+{
+  const box = new THREE.Box3();
+  const v = new THREE.Vector3();
+  const signs = [];
+  outdoor.traverse((o) => {
+    if (/^(belief-|career-sign-|signboard|brief-board)/.test(o.name) && !o.userData.dynamic) signs.push(o);
+  });
+  outdoor.updateMatrixWorld(true);
+  for (const o of signs) {
+    box.setFromObject(o);
+    const base = o.getWorldPosition(new THREE.Vector3());
+    let hi = -Infinity;
+    for (const [x, z] of [[box.min.x, box.min.z], [box.max.x, box.min.z], [box.min.x, box.max.z], [box.max.x, box.max.z], [base.x, base.z]]) hi = Math.max(hi, walkY(x, z));
+    if (Math.abs(hi - base.y) < 0.02) continue;
+    v.set(base.x, hi, base.z);
+    o.parent.worldToLocal(v);
+    o.position.y = v.y;
+    o.updateMatrixWorld(true);
+  }
+}
+const fitSnap = snapshotMatrices(outdoor);
+let fitPending = true;
+let fitFrames = 0;
+let fitResult = 0;
+let fitDone;
+const fitted = new Promise((r) => (fitDone = r));
 requestAnimationFrame(frame);
 await finishLoading({ renderer, scene, camera, render: () => composer.render() });
+await fitted;
 hideLoader();
 ui.ready();
 
-window.__shire = { hidden, colliders, gallery, quest, story, ride, audioDebug, state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };
+window.__shire = { fit: () => fitResult, hidden, colliders, gallery, quest, story, ride, audioDebug, state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };

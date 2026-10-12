@@ -221,6 +221,7 @@ function buildGrofers(clickables) {
   }
   carrot.position.set(-8.6, 0, 3.4);
   carrot.rotation.z = 0.25;
+  carrot.userData.onGround = true;
   g.add(carrot);
   const tomato = new THREE.Group();
   const tm = mesh(new THREE.SphereGeometry(1.15, 24, 16), solid('#d93a2b', { roughness: 0.35 }), 0, 1.05, 0);
@@ -232,12 +233,14 @@ function buildGrofers(clickables) {
     tomato.add(s);
   }
   tomato.position.set(8.4, 0, 2.8);
+  tomato.userData.onGround = true;
   g.add(tomato);
   const gourd = new THREE.Group();
   const gb = mesh(new THREE.SphereGeometry(0.9, 18, 12), solid('#7fb53a', { roughness: 0.6 }), 0, 0.85, 0);
   const gt = mesh(new THREE.SphereGeometry(0.55, 16, 10), solid('#8cc044', { roughness: 0.6 }), 0, 2.0, 0);
   gourd.add(gb, gt, mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.5, 6), solid('#6b4a2f'), 0, 2.7, 0));
   gourd.position.set(-7.6, 0, -4.8);
+  gourd.userData.onGround = true;
   g.add(gourd);
   return { g, career: C, colliders: [[-8.6, 3.4, 0.8], [8.4, 2.8, 1.2], [-7.6, -4.8, 1.0]] };
 }
@@ -357,6 +360,13 @@ export function buildHidden(scene, { colliders, interactables, clickables }) {
     const sign = careerSign(career);
     sign.position.set(0, 0, 10.5);
     g.add(sign);
+    g.updateMatrixWorld(true);
+    // the giant vegetables stand on the meadow round the plinth, not at plinth height
+    for (const c of g.children) {
+      if (!c.userData.onGround) continue;
+      const w = c.getWorldPosition(new THREE.Vector3());
+      c.position.y = groundAt(w.x, w.z) - g.position.y - 0.1;
+    }
     g.updateMatrixWorld(true);
     const v = new THREE.Vector3();
     const toWorld = (x, z) => v.set(x, 0, z).applyMatrix4(g.matrixWorld).clone();

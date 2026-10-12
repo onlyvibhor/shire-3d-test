@@ -110,7 +110,10 @@ export function windMaterial(base, { strength = 0.25 } = {}) {
 }
 
 // Merge a group's static child meshes that share a material into one mesh each (fewer draw calls).
+// ?nomerge keeps every piece separate (for auditing the scene)
+const NO_MERGE = typeof location !== 'undefined' && new URLSearchParams(location.search).has('nomerge');
 export function mergeStatic(group) {
+  if (NO_MERGE) return;
   const buckets = new Map();
   for (const child of group.children) {
     if (!child.isMesh || child.userData.dynamic || Array.isArray(child.material) || child.isInstancedMesh) continue;
@@ -128,9 +131,11 @@ export function mergeStatic(group) {
     const names = ['position', 'normal', 'uv'].filter((n) => geos.every((g) => g.attributes[n]));
     for (const g of geos) for (const n of Object.keys(g.attributes)) if (!names.includes(n)) g.deleteAttribute(n);
     const merged = mergeGeometries(geos);
+    const pieces = geos.map((g) => g.attributes.position.count);
     geos.forEach((g) => g.dispose());
     if (!merged) continue;
     const out = new THREE.Mesh(merged, material);
+    out.userData.pieces = pieces; // so the ground fit can still treat each piece on its own
     out.castShadow = meshes.some((m) => m.castShadow);
     out.receiveShadow = true;
     for (const m of meshes) group.remove(m);

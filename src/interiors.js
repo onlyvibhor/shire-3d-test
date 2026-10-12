@@ -263,6 +263,9 @@ function buildAIHub(origin) {
     room.clickables.push(screen);
     st.add(mesh(new THREE.BoxGeometry(0.2, 1.8, 0.2), BRUSHED, 0, 0.9, -0.1));
     st.add(mesh(new THREE.BoxGeometry(2.6, 0.08, 1), WHITE_METAL, 0, 1.05, 0.6));
+    // the desk's own legs, and a bracket back to the screen post
+    for (const x of [-1.2, 1.2]) st.add(mesh(new THREE.BoxGeometry(0.06, 1.01, 0.8), BRUSHED, x, 0.505, 0.6));
+    st.add(mesh(new THREE.BoxGeometry(0.2, 0.06, 0.2), BRUSHED, 0, 1.0, 0.05));
     const title = plate(4.2, 0.6, (ctx, w, h) => {
       ctx.fillStyle = '#0b1222';
       ctx.fillRect(0, 0, w, h);
@@ -1302,9 +1305,20 @@ function buildPlayhouseInterior(origin) {
     puppets.push(pu);
   }
   sm.add(mesh(new THREE.BoxGeometry(0.3, 0.2, 0.35), DARK, 0, 2.3, 0.9));
-  sm.add(mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.4, 6), DARK, 0, 1.6, 1.05));
+  // camera and light on proper floor stands, each with three splayed feet
+  const stand = (x, z, top) => {
+    sm.add(mesh(new THREE.CylinderGeometry(0.02, 0.025, top, 6), DARK, x, top / 2, z));
+    for (let k = 0; k < 3; k++) {
+      const a = (k / 3) * Math.PI * 2;
+      const leg = mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.75, 5), DARK, x + Math.cos(a) * 0.22, 0.3, z + Math.sin(a) * 0.22);
+      leg.rotation.set(Math.sin(a) * 0.75, 0, -Math.cos(a) * 0.75);
+      sm.add(leg);
+    }
+  };
+  stand(0, 1.05, 2.2);
+  stand(1.9, 0.75, 2.2);
   const soft = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.1), glow('#ffffff', 2));
-  soft.position.set(1.3, 2.4, 0.6);
+  soft.position.set(1.9, 2.45, 0.7);
   soft.rotation.x = -0.6;
   sm.add(soft);
   g.add(sm);
@@ -1608,6 +1622,42 @@ function buildHallInterior(origin) {
   return room;
 }
 
+// Box furniture (seats, sofas, stools, plinths) that was set a little above the floor, or above
+// the riser or base under it, is extended down so it stands on it instead of hovering.
+function settleFurniture(room) {
+  const g = room.group;
+  g.updateMatrixWorld(true);
+  const boxes = [];
+  g.traverse((o) => {
+    if (!o.isMesh || o.isSkinnedMesh || o.userData.dynamic) return;
+    const b = new THREE.Box3().setFromObject(o, false);
+    if (!b.isEmpty()) boxes.push({ o, b });
+  });
+  const floor = room.origin.y;
+  const e = new THREE.Euler();
+  for (const { o, b } of boxes) {
+    if (o.geometry.type !== 'BoxGeometry' || o === room.floor) continue;
+    e.setFromRotationMatrix(o.matrixWorld);
+    if (Math.abs(e.x) > 0.01 || Math.abs(e.z) > 0.01) continue;
+    // what is right underneath: the floor or the top of something it overlaps
+    let under = floor;
+    for (const c of boxes) {
+      if (c.o === o) continue;
+      const cb = c.b;
+      if (cb.max.y > b.min.y + 0.01) continue;
+      if (cb.min.x < b.max.x - 0.05 && cb.max.x > b.min.x + 0.05 && cb.min.z < b.max.z - 0.05 && cb.max.z > b.min.z + 0.05) under = Math.max(under, cb.max.y);
+    }
+    const gap = b.min.y - under;
+    if (gap < 0.03 || gap > 0.45) continue;
+    const p = o.geometry.parameters;
+    const sy = o.getWorldScale(new THREE.Vector3()).y;
+    o.geometry = new THREE.BoxGeometry(p.width, p.height + gap / sy, p.depth);
+    o.position.y -= gap / sy / 2 * o.scale.y;
+    o.updateMatrixWorld(true);
+    b.setFromObject(o, false);
+  }
+}
+
 export function buildInteriors(root) {
   const rooms = {
     ai: buildAIHub(new THREE.Vector3(3000, 0, 0)),
@@ -1616,6 +1666,7 @@ export function buildInteriors(root) {
     awards: buildHallInterior(new THREE.Vector3(3000, 0, 1200)),
   };
   for (const room of Object.values(rooms)) {
+    settleFurniture(room);
     room.group.visible = false;
     root.add(room.group);
     deepMerge(room.group);
