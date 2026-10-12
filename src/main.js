@@ -950,7 +950,6 @@ allNpcs.forEach((n, i) => {
 });
 
 function updateNpcs(t) {
-  const near = [];
   let asker = null;
   let ad = 3.4;
   for (const n of state.indoor ? state.indoor.npcs : village.npcs) {
@@ -984,40 +983,24 @@ function updateNpcs(t) {
       n.p.look = THREE.MathUtils.clamp(Math.atan2(tmpDir.x, tmpDir.z), -1.2, 1.2);
       n.p.lookW = Math.min(1, n.p.lookW + 0.08);
     } else n.p.lookW = Math.max(0, n.p.lookW - 0.05);
-    if (d < 18) near.push(n);
     if (d < ad && !n.rider) {
       ad = d;
       asker = n;
     }
   }
-  // the closest person speaks; a few others show what they're thinking about
+  // only the person you walk up to says anything: what they'd ask you, and what's on their mind
   if (asker) {
     npcPos.copy(asker.p.parts.head.getWorldPosition(npcPos));
     npcPos.y += 0.45;
     npcPos.project(camera);
     const lines = asker.lines || asker.talk.asks;
     const text = lines[(asker.i + Math.floor(elapsed / 6)) % lines.length];
-    if (npcPos.z < 1) ui.speech({ text, name: `${asker.role}${asker.deptName && !asker.lines ? ' · ' + asker.deptName : ''}`, color: asker.color, x: (npcPos.x * 0.5 + 0.5) * innerWidth, y: (-npcPos.y * 0.5 + 0.5) * innerHeight });
+    const th = asker.thoughts || asker.talk.thoughts;
+    const thought = th ? th[(asker.i * 3 + Math.floor(elapsed / 8)) % th.length] : '';
+    if (npcPos.z < 1) ui.speech({ text, thought, name: `${asker.role}${asker.deptName && !asker.lines ? ' · ' + asker.deptName : ''}`, color: asker.color, x: (npcPos.x * 0.5 + 0.5) * innerWidth, y: (-npcPos.y * 0.5 + 0.5) * innerHeight });
     else ui.speech(null);
   } else ui.speech(null);
-  near.sort((a, b) => a.d - b.d);
-  const bubbles = [];
-  for (const n of near) {
-    if (n === asker || n.d < 3 || bubbles.length >= 5) continue;
-    n.p.parts.head.getWorldPosition(npcPos);
-    npcPos.y += 0.5;
-    npcPos.project(camera);
-    if (npcPos.z > 1 || Math.abs(npcPos.x) > 0.95 || Math.abs(npcPos.y) > 0.95) continue;
-    const th = n.thoughts || n.talk.thoughts;
-    bubbles.push({
-      text: th[(n.i * 3 + Math.floor((t + n.i * 1.7) / 8)) % th.length],
-      color: n.color,
-      x: (npcPos.x * 0.5 + 0.5) * innerWidth,
-      y: (-npcPos.y * 0.5 + 0.5) * innerHeight,
-      scale: THREE.MathUtils.clamp(1.25 - n.d / 22, 0.6, 1),
-    });
-  }
-  ui.thoughts(bubbles);
+  ui.thoughts([]);
 }
 
 function waveAtNeighbours() {

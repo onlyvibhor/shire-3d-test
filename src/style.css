@@ -1258,3 +1258,6 @@ body.splash-open #intro { background: rgba(5, 10, 30, .5); backdrop-filter: blur
 }
 .sheet__main { padding-right: 52px; }
 @media (max-height: 540px) and (orientation: landscape) { .sheet__main, .sheet--wide .sheet__main { padding-right: 36px; } }
+
+/* what's on someone's mind, under what they say to you */
+.speech__thought { position: relative; display: block; margin-top: 5px; padding-top: 5px; border-top: 1px solid rgba(255,255,255,.15); font-size: .92em; font-style: italic; color: var(--muted); }

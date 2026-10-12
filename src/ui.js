@@ -419,9 +419,9 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
       speechEl.classList.remove('is-open');
       return;
     }
-    if (speechEl.dataset.text !== s.text) {
-      speechEl.dataset.text = s.text;
-      speechEl.innerHTML = `<small>${esc(s.name)}</small>${esc(s.text)}`;
+    if (speechEl.dataset.text !== s.text + (s.thought || '')) {
+      speechEl.dataset.text = s.text + (s.thought || '');
+      speechEl.innerHTML = `<small>${esc(s.name)}</small>${esc(s.text)}${s.thought && s.thought !== s.text ? `<em class="speech__thought">💭 ${esc(s.thought)}</em>` : ''}`;
       speechEl.style.setProperty('--c', s.color);
     }
     let x = s.x;

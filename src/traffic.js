@@ -247,9 +247,10 @@ export function buildTraffic(scene, ctx) {
         ctx.updaters.push({
           update: () => {
             tag.material = walker.dir > 0 ? there : back;
-            // up close their speech bubble says it; the tag would only fill the screen
+            // the tag shows only as you come up to them; right beside them the speech bubble says it
             p.root.getWorldPosition(wp);
-            tag.visible = wp.distanceTo(playerPos) > 4.5;
+            const d = wp.distanceTo(playerPos);
+            tag.visible = d > 3.4 && d < 10;
           },
         });
       }
