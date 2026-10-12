@@ -13,6 +13,7 @@ import { WHITE_METAL, BRUSHED, CHROME, GLASS, GOLD, WOOD, DARK, MOUND, WINDOW_GL
 
 // The player's position, shared so walking villagers can step aside.
 export const playerPos = new THREE.Vector3(1e6, 0, 1e6);
+const spV = new THREE.Vector3();
 const _wp = new THREE.Vector3();
 
 const loader = new THREE.TextureLoader();
@@ -334,7 +335,7 @@ function floaters(g, ctx, items, area, height = 7) {
   ctx.updaters.push({
     update: (t) => {
       g.getWorldPosition(centre);
-      const here = Math.hypot(centre.x - playerPos.x, centre.z - playerPos.z) < 20;
+      const here = Math.hypot(centre.x - playerPos.x, centre.z - playerPos.z) < 13;
       for (const f of list) {
         f.s.visible = here;
         if (!here) continue;
@@ -1768,7 +1769,12 @@ export function buildVillage(scene) {
 
   const update = (t, dt) => {
     for (const u of ctx.updaters) u.update(t, dt);
-    for (const sp of ctx.sprites) sp.s.position.y = sp.base + Math.sin(t * 1.5 + sp.ph) * 0.12;
+    // the floating numbers above billboards show only when you're near that billboard
+    for (const sp of ctx.sprites) {
+      sp.s.position.y = sp.base + Math.sin(t * 1.5 + sp.ph) * 0.12;
+      sp.s.getWorldPosition(spV);
+      sp.s.visible = Math.hypot(spV.x - playerPos.x, spV.z - playerPos.z) < 12;
+    }
     smoke(t);
   };
 

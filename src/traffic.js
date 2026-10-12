@@ -284,7 +284,10 @@ export function buildTraffic(scene, ctx) {
         f.s.position.y += Math.sin(u * Math.PI) * f.h;
         f.s.position.x += Math.sin(t * 2 + f.ph * 9) * 0.4;
         const fade = Math.min(1, u * 8, (1 - u) * 8);
-        f.s.material.opacity = fade;
+        // the org's chatter is felt around you, not painted across the whole sky
+        const far = Math.hypot(f.s.position.x - playerPos.x, f.s.position.z - playerPos.z);
+        f.s.material.opacity = fade * THREE.MathUtils.clamp((40 - far) / 15, 0, 1);
+        f.s.visible = f.s.material.opacity > 0.01;
         f.s.scale.setScalar(f.base * (0.6 + fade * 0.4) * (1 + Math.sin(t * 4 + f.ph * 20) * 0.06));
         // when one lands, it picks a new destination: the org never stops talking
         if (u < f.last) {

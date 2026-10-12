@@ -196,12 +196,13 @@ const PLACES = [
   { ...HALL, reach: 16 },
 ];
 
+// the place card and pass open only once you're properly inside a place, not on its outskirts
 function nearestPlace(x, z) {
   let best = null;
   let bd = Infinity;
   for (const p of PLACES) {
     const d = Math.hypot(x - p.x, z - p.z);
-    if (d < p.reach && d < bd) {
+    if (d < p.reach * 0.6 && d < bd) {
       bd = d;
       best = p;
     }
@@ -895,7 +896,7 @@ function updateProximity(t) {
   }
   // things to interact with: project billboards, the mailbox, the poster wall...
   let best = null;
-  let bd = 4.5;
+  let bd = 3;
   for (const pr of state.indoor ? [] : village.projects) {
     const d = Math.hypot(state.pos.x - pr.x, state.pos.z - pr.z);
     if (d < bd) {
@@ -916,7 +917,7 @@ function updateProximity(t) {
   ui.prompt(best);
   // stones
   let stone = null;
-  for (const s of village.stones) if (Math.hypot(state.pos.x - s.x, state.pos.z - s.z) < 3.4) stone = s;
+  for (const s of village.stones) if (Math.hypot(state.pos.x - s.x, state.pos.z - s.z) < 2.6) stone = s;
   if (stone !== lastStone) {
     lastStone = stone;
     if (stone) ui.toast(`<b>${stone.pillar.rune} ${stone.pillar.name}</b><br>${stone.pillar.text}`, 6000);
@@ -952,7 +953,7 @@ allNpcs.forEach((n, i) => {
 function updateNpcs(t) {
   let asker = null;
   // someone speaks only when you've stopped right beside them, as if you'd come to talk
-  let ad = state.speed < 1.5 ? 2.3 : 0;
+  let ad = state.speed < 1.5 ? 1.6 : 0;
   for (const n of state.indoor ? state.indoor.npcs : village.npcs) {
     if (!n.p.root.visible) continue; // eaten by the T-rex, back after lunch
     n.p.root.getWorldPosition(npcPos);
@@ -1061,7 +1062,7 @@ function updateLabels() {
     const visible = !state.indoor && anchor.z < 1 && Math.abs(anchor.x) < 1.1 && Math.abs(anchor.y) < 1.1 && state.mode !== 'intro';
     const near = state.mode === 'walk' && lastPlaceId === p.id;
     // walking, a place's name appears only as you approach it (the bird's-eye map still shows them all)
-    const range = state.mode === 'walk' ? 55 : 480;
+    const range = state.mode === 'walk' ? 30 : 480;
     ui.placeLabel(p.id, (anchor.x * 0.5 + 0.5) * window.innerWidth, (-anchor.y * 0.5 + 0.5) * window.innerHeight, visible && !near && dist < range, dist);
   }
 }
@@ -1218,7 +1219,7 @@ function frame() {
   if (docked && !state.indoor) {
     const f = coast.ferryBoat.position;
     if (coast.ferry.onboard) ui.toast(`<b>⛴ ${docked}.</b> Step off onto the pier, or stay aboard for the next stop.`, 3500);
-    else if (Math.hypot(f.x - state.pos.x, f.z - state.pos.z) < 60) ui.toast(`<b>⛴ The ferry is in at ${docked}.</b> Walk to the end of the pier to board.`, 3500);
+    else if (Math.hypot(f.x - state.pos.x, f.z - state.pos.z) < 25) ui.toast(`<b>⛴ The ferry is in at ${docked}.</b> Walk to the end of the pier to board.`, 3500);
   }
   updateClouds(t);
   updateRail(t);
