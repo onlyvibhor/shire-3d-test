@@ -951,7 +951,8 @@ allNpcs.forEach((n, i) => {
 
 function updateNpcs(t) {
   let asker = null;
-  let ad = 3.4;
+  // someone speaks only when you've stopped right beside them, as if you'd come to talk
+  let ad = state.speed < 1.5 ? 2.3 : 0;
   for (const n of state.indoor ? state.indoor.npcs : village.npcs) {
     if (!n.p.root.visible) continue; // eaten by the T-rex, back after lunch
     n.p.root.getWorldPosition(npcPos);
@@ -1059,7 +1060,9 @@ function updateLabels() {
     anchor.project(camera);
     const visible = !state.indoor && anchor.z < 1 && Math.abs(anchor.x) < 1.1 && Math.abs(anchor.y) < 1.1 && state.mode !== 'intro';
     const near = state.mode === 'walk' && lastPlaceId === p.id;
-    ui.placeLabel(p.id, (anchor.x * 0.5 + 0.5) * window.innerWidth, (-anchor.y * 0.5 + 0.5) * window.innerHeight, visible && !near && dist < 480, dist);
+    // walking, a place's name appears only as you approach it (the bird's-eye map still shows them all)
+    const range = state.mode === 'walk' ? 55 : 480;
+    ui.placeLabel(p.id, (anchor.x * 0.5 + 0.5) * window.innerWidth, (-anchor.y * 0.5 + 0.5) * window.innerHeight, visible && !near && dist < range, dist);
   }
 }
 

@@ -250,7 +250,7 @@ export function buildTraffic(scene, ctx) {
             // the tag shows only as you come up to them; right beside them the speech bubble says it
             p.root.getWorldPosition(wp);
             const d = wp.distanceTo(playerPos);
-            tag.visible = d > 3.4 && d < 10;
+            tag.visible = false; // what they're doing is in their speech bubble when you stop to talk
           },
         });
       }

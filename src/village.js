@@ -329,9 +329,15 @@ function floaters(g, ctx, items, area, height = 7) {
     g.add(s);
     return { s, x: area.x + (r() - 0.5) * area.w, z: area.z + (r() - 0.5) * area.d, off: k / items.length };
   });
+  // they only rise while you're in the plaza; from the road the hamlet stays quiet
+  const centre = new THREE.Vector3();
   ctx.updaters.push({
     update: (t) => {
+      g.getWorldPosition(centre);
+      const here = Math.hypot(centre.x - playerPos.x, centre.z - playerPos.z) < 20;
       for (const f of list) {
+        f.s.visible = here;
+        if (!here) continue;
         const k = (t * 0.07 + f.off) % 1;
         f.s.position.set(f.x + Math.sin(t * 0.8 + f.off * 9) * 0.4, 2 + k * height, f.z);
         f.s.material.opacity = Math.min(1, k * 5) * (1 - k);
