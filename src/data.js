@@ -1159,3 +1159,47 @@ export const CAMPAIGNS = [
     ],
   },
 ];
+
+// Two hidden places: one for each chapter of the career, found off the paths (in the woods and by the
+// sea). Every line is from the about page, its timeline and the projects of that time.
+export const CAREERS = {
+  grofers: {
+    id: 'grofers',
+    org: 'Grofers (now Blinkit)',
+    years: 'Mar 2015 — Oct 2021',
+    role: 'Associate Director, Marketing Design · Gurugram',
+    color: '#f7913a',
+    place: 'In the woods',
+    headline: 'Over six years in marketing design, and a creative team built along the way.',
+    story: [
+      'At Grofers, which became Blinkit, I spent over six years in marketing design: integrated campaigns around the app’s recurring sale events, social content, app visual identities, and the hiring and development of a creative team. I left as Associate Director in October 2021.',
+    ],
+    did: [
+      'Integrated advertising for recurring sale events, social campaigns and app visual identities.',
+      'Hired and developed the creative team and directed external production partners.',
+      'One way for every team to use the logo: the Grofers logo guidelines.',
+      'Social campaigns: a mango’s journey to the top of the app, a Valentine’s love story, winter foods knitted in wool and shot in stop motion, and a Diwali campaign that gave local potters a platform.',
+    ],
+    projects: ['grofers', 'grofery', 'afsaane', 'love-story', 'winter-foods', 'unskippable', 'diwali-2020'],
+  },
+  razorpay: {
+    id: 'razorpay',
+    org: 'Razorpay',
+    years: 'Oct 2021 — Now',
+    role: 'Communication Design Senior Manager · Bengaluru',
+    color: '#2f6bff',
+    place: 'By the sea',
+    headline: 'One visual system across Payments, RazorpayX and POS.',
+    story: [
+      'Since then I’ve led Communication Design at Razorpay across Payments, RazorpayX and POS. The work is brand films, keynote videos, landing pages, sales decks, social campaigns and product imagery, held together by one visual system and a way of telling stories that starts from data, consumer interviews and what past campaigns taught us.',
+      'A lot of that work is now AI-native. Trial of the Century, the animal-courtroom film for RazorpayX Payroll, won Generative AI at the Shorty Awards. Break To Build turned one photograph of each of thirty founders into thirty ad films. Both ran as repeatable production systems rather than one-offs, and the design team now uses four in-house AI tools on live campaigns.',
+    ],
+    did: [
+      'Leads Communication Design across Payments, RazorpayX and POS.',
+      'Established a deck design language now used across more than ten product lines and business units.',
+      'Four in-house AI tools the whole team uses on live campaigns.',
+      'ET Brand Disruption Gold 2026 for the Razorpay Creative & Design Team.',
+    ],
+    projects: ['t20', 'btb', 'ring', 'trial', 'ace', 'magic-checkout', 'money', 'passport', 'whatsapp', 'intl', 'conv', 'toolkit', 'social-gen', 'razorbae'],
+  },
+};

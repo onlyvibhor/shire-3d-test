@@ -3,8 +3,9 @@ import { cuspedArchPoints, makeChhatri } from './jaipur.js';
 import { makePerson, animate } from './characters.js';
 import { FONT, fit, fillFit } from './type.js';
 import { HAMLETS } from './data.js';
-import { groundAt, walkY, rng, distToPath, ROAD_HALF, POND, PATHS, ZONES, coastR, SEA_LEVEL, SURFACE } from './world.js';
-import { WHITE_METAL, BRUSHED, CHROME, CONCRETE, GLASS, DARK as DARK_RAIL, mesh, canvasTexture, glow, mergeStatic, lightPool, solid } from './materials.js';
+import { groundAt, walkY, rng, distToPath, ROAD_HALF, PATHS, ZONES, coastR, SEA_LEVEL, SURFACE } from './world.js';
+import { hiddenSites } from './hidden.js';
+import { WHITE_METAL, BRUSHED, CHROME, GLASS, DARK as DARK_RAIL, mesh, canvasTexture, glow, mergeStatic, lightPool, solid } from './materials.js';
 
 // White-metal monoliths, fluted columns and arches lining the roads.
 export function buildMonoliths(world, colliders) {
@@ -148,6 +149,8 @@ export function buildSkyRail(scene, colliders) {
   for (let i = 0; i < 64; i++) {
     const p = curve.getPointAt(i / 64);
     if (distToPath(p.x, p.z) < ROAD_HALF + 1.5) continue;
+    // keep the approach to the hidden pavilions open
+    if (hiddenSites().some((h) => { const L = Math.hypot(h.x, h.z); return Math.hypot(p.x - h.x * (1 - 12 / L), p.z - h.z * (1 - 12 / L)) < 9; })) continue;
     const g = groundAt(p.x, p.z);
     const hgt = p.y - g;
     const pil = mesh(pillarGeo, BRUSHED, p.x, g + hgt / 2 - 0.4, p.z);
@@ -279,14 +282,6 @@ export function buildFloatingProps(scene) {
       it.obj.rotation.z = Math.sin(t * 0.4 + it.a) * 0.08;
     }
   };
-}
-
-// Small decking + stone ring around the pond.
-export function buildPondEdge(scene) {
-  const ring = mesh(new THREE.TorusGeometry(POND.r * 1.38, 0.35, 8, 48), CONCRETE);
-  ring.rotation.x = Math.PI / 2;
-  ring.position.set(POND.x, groundAt(POND.x + POND.r * 1.38, POND.z) - 0.1, POND.z);
-  scene.add(ring);
 }
 
 // Street lamps along every road; their heads glow and pool light on the road at night.

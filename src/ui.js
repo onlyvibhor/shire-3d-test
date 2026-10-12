@@ -1,6 +1,6 @@
 import { createCaseStudy } from './casestudy.js';
 import { sfx, audioSettings, setLevel, toggleMute, onAudioChange, startAudio } from './audio.js';
-import { LEADER, LENSES, PLAYS, METHOD, PROJECTS as ALL_PROJECTS } from './data.js';
+import { LEADER, LENSES, PLAYS, METHOD, CAREERS, PROJECTS as ALL_PROJECTS } from './data.js';
 import about from './content/about.json';
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -152,9 +152,11 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     if (id) onTravel(id);
   });
   let campaigns = [0, 0];
+  let hidden = [0, 0];
   function renderMissions() {
     const rows = [
       ...(campaigns[1] ? [['Ship campaigns', campaigns[0], campaigns[1]]] : []),
+      ...(hidden[1] ? [['Find the hidden places', hidden[0], hidden[1]]] : []),
       ['Meet every department', visited.size, places.length],
       ['Open project files', viewed.size, totalProjects],
       ['Find the golden trophies', trophies.size, awards.length],
@@ -490,6 +492,53 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     }
   });
 
+  // ----- Career sheets: the hidden Grofers and Razorpay pavilions -----
+  const careerEl = document.createElement('div');
+  careerEl.id = 'career';
+  careerEl.className = 'modal';
+  careerEl.setAttribute('role', 'dialog');
+  careerEl.setAttribute('aria-modal', 'true');
+  careerEl.innerHTML = '<div class="sheet sheet--career"><button class="close" data-close aria-label="Close">×</button><aside class="sheet__side"></aside><div class="sheet__main"></div></div>';
+  document.body.appendChild(careerEl);
+  function openCareer(id) {
+    const c = CAREERS[id];
+    if (!c) return;
+    const sheet = careerEl.querySelector('.sheet');
+    sheet.style.setProperty('--c', c.color);
+    sheet.querySelector('.sheet__side').innerHTML = `
+      <div class="career__badge" style="background:${c.color}">${id === 'razorpay' ? '₹' : '🧅'}</div>
+      <p class="eyebrow">${esc(c.years)} · found ${esc(c.place.toLowerCase())}</p>
+      <h2>${esc(c.org)}</h2>
+      <p class="sheet__role">${esc(c.role)}</p>
+      <ul class="people">${c.did.map((d) => `<li>${esc(d)}</li>`).join('')}</ul>`;
+    sheet.querySelector('.sheet__main').innerHTML = `
+      <p class="sheet__tagline">${esc(c.headline)}</p>
+      <div class="sheet__body">${c.story.map((p) => `<p>${esc(p)}</p>`).join('')}</div>
+      <h3 class="sheet__h">The work from those years <span>${c.projects.length} projects</span></h3>
+      <div class="career__works">${c.projects
+        .map((slug) => {
+          const pr = ALL_PROJECTS[slug];
+          return `<button class="career__work" data-open="${slug}"><img src="${esc(pr.images[0])}" alt="" loading="lazy" /><span><em>${esc(pr.year)} · ${esc(pr.role)}</em><b>${esc(pr.title)}</b><i>${esc(pr.tagline)}</i></span></button>`;
+        })
+        .join('')}</div>`;
+    careerEl.classList.add('is-open');
+    sheet.querySelector('.sheet__main').scrollTop = 0;
+    sfx('open');
+  }
+  function closeCareer() {
+    if (!careerEl.classList.contains('is-open')) return;
+    careerEl.classList.remove('is-open');
+    sfx('close');
+  }
+  careerEl.addEventListener('click', (e) => {
+    if (e.target === careerEl || e.target.closest('[data-close]')) return closeCareer();
+    const o = e.target.closest('[data-open]');
+    if (o) {
+      closeCareer();
+      openProject(o.dataset.open);
+    }
+  });
+
   // ----- The campaign playbook -----
   const playbook = $('#playbook');
   let lensFilter = 'all';
@@ -644,6 +693,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
   });
 
   const overlays = [
+    { isOpen: () => careerEl.classList.contains('is-open'), close: closeCareer },
     { isOpen: () => playbook.classList.contains('is-open'), close: closePlaybook },
     { isOpen: () => homepop.classList.contains('is-open'), close: closeHome },
   ];
@@ -721,6 +771,11 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     addOverlay: (o) => overlays.push(o),
     openHome,
     openPlaybook,
+    openCareer,
+    onHidden: (n, total) => {
+      hidden = [n, total];
+      renderMissions();
+    },
     onCampaigns: (n, total) => {
       campaigns = [n, total];
       renderMissions();

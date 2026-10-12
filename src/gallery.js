@@ -125,7 +125,7 @@ const KEEP_OUT = () => [
   ...ZONES.map((z) => ({ x: z.x, z: z.z, r: 13 })),
   { x: 0, z: 0, r: 17 },
   { x: LAB.x, z: LAB.z, r: 9 },
-  { x: POND.x, z: POND.z, r: POND.r + 3 },
+  { x: POND.x, z: POND.z, r: POND.bank + 1 },
   { x: JANTAR.x, z: JANTAR.z, r: JANTAR.r + 3 },
   // the bazaar street: a chain of circles along it rather than one huge one
   ...[0, 0.25, 0.5, 0.75, 1].map((t) => ({ x: BAZAAR.ax + (BAZAAR.bx - BAZAAR.ax) * t, z: BAZAAR.az + (BAZAAR.bz - BAZAAR.az) * t, r: 11 })),

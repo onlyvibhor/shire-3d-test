@@ -22,6 +22,8 @@ import { createRide } from './ride.js';
 import { buildStory } from './story.js';
 import { buildGallery } from './gallery.js';
 import { declutter } from './declutter.js';
+import { buildHidden } from './hidden.js';
+import { buildPond } from './pond.js';
 import galleryLayout from './content/gallery-layout.json';
 import { createQuest } from './quest.js';
 import { isTouch, stick, stickKeys, initTouch, goLandscape } from './touch.js';
@@ -118,6 +120,7 @@ const colliders = [];
 const trees = named('trees', () => buildTrees(outdoor, colliders));
 const monoliths = named('monoliths', () => buildMonoliths(outdoor, colliders));
 const updateRail = named('skyrail', () => buildSkyRail(outdoor, colliders));
+const pond = named('pond', () => buildPond(outdoor, colliders));
 const lampSpots = named('lamps', () => buildStreetLamps(outdoor, colliders));
 await step('Building the piers', 0.38);
 const coast = named('coast', () => buildCoast(outdoor, colliders));
@@ -254,6 +257,19 @@ function travelTo(id) {
 // the brief board and the campaign threads over the island
 const story = buildStory(outdoor, { colliders, interactables: village.interactables, clickables: village.clickables, groundAt, places: PLACES });
 story.board.name = 'brief-board';
+// two hidden places, off the paths: the Grofers years in the woods, the Razorpay years by the sea
+const hidden = buildHidden(outdoor, { colliders, interactables: village.interactables, clickables: village.clickables });
+// clear the trees and monoliths standing where they were built
+for (const sp of hidden.spots) {
+  for (const it of trees.items) if (!it.out && Math.hypot(it.x - sp.x, it.z - sp.z) < 12) ((it.out = true), trees.hide(it));
+  for (const it of monoliths.items) {
+    if (it.out || Math.hypot(it.x - sp.x, it.z - sp.z) > 13) continue;
+    it.out = true;
+    for (const m of it.meshes) m.parent?.remove(m);
+    const k = colliders.indexOf(it.collider);
+    if (k >= 0) colliders.splice(k, 1);
+  }
+}
 // no tree or monolith may stand in front of a sign: once before the gallery is placed (so it has
 // room) and once after (for the gallery's own screens)
 const clutter = { trees, monoliths: { ...monoliths, colliders } };
@@ -312,6 +328,14 @@ const quest = createQuest({
 });
 ui.addOverlay({ isOpen: quest.isOpen, close: quest.closeChooser });
 ui.onCampaigns(quest.shipped(), quest.total);
+const found = (() => {
+  try {
+    return new Set(JSON.parse(localStorage.getItem('shire-found') || '[]'));
+  } catch {
+    return new Set();
+  }
+})();
+ui.onHidden(found.size, hidden.spots.length);
 document.getElementById('btn-brief').addEventListener('click', () => quest.openChooser());
 
 function setMode(mode, { snap = false } = {}) {
@@ -661,6 +685,8 @@ function movePlayer(dt) {
     const pier = jettyAt(state.pos.x, state.pos.z);
     const deck = coast.onFerry(state.pos.x, state.pos.z);
     ground = deck !== null ? deck : pier ? pier.y : walkY(state.pos.x, state.pos.z);
+    // standing on a hidden pavilion's plinth
+    for (const sp of hidden.spots) if (Math.hypot(state.pos.x - sp.x, state.pos.z - sp.z) < 7.6) ground = Math.max(ground, sp.y + 0.15);
   }
   state.vy -= 18 * dt;
   state.air += state.vy * dt;
@@ -922,6 +948,19 @@ function updateProximity(t) {
     lastStone = stone;
     if (stone) ui.toast(`<b>${stone.pillar.rune} ${stone.pillar.name}</b><br>${stone.pillar.text}`, 6000);
   }
+  // hidden places: the first time you find one
+  if (!state.indoor) {
+    for (const sp of hidden.spots) {
+      if (found.has(sp.id) || Math.hypot(state.pos.x - sp.x, state.pos.z - sp.z) > 14) continue;
+      found.add(sp.id);
+      try {
+        localStorage.setItem('shire-found', JSON.stringify([...found]));
+      } catch {}
+      sfx('trophy');
+      ui.toast(`<b>✨ You found a hidden place: ${sp.career.org}.</b><br>${sp.career.years}. Step inside and press <kbd>E</kbd>. (${found.size}/${hidden.spots.length})`, 6500);
+      ui.onHidden(found.size, hidden.spots.length);
+    }
+  }
   // trophies
   if (!state.indoor) village.trophies.forEach((tr, i) => {
     if (tr.collected) return;
@@ -1049,6 +1088,7 @@ function act(a) {
   else if (a.kind === 'screen') ui.openProject(a.screen.userData.action.slug);
   else if (['tools', 'awards', 'leadership', 'playbook'].includes(a.kind)) ui.showInfo(a.kind);
   else if (a.kind === 'briefs') quest.openChooser();
+  else if (a.kind === 'career') ui.openCareer(a.id);
 }
 
 // ---------- Labels & minimap ----------
@@ -1141,7 +1181,7 @@ function drawMinimap() {
   mctx.stroke();
   mctx.fillStyle = '#4fb4d8';
   mctx.beginPath();
-  mctx.arc(POND.x, POND.z, POND.r * 1.4, 0, Math.PI * 2);
+  mctx.arc(POND.x, POND.z, POND.r * 1.15, 0, Math.PI * 2);
   mctx.fill();
   for (const p of PLACES) {
     mctx.fillStyle = p.color;
@@ -1226,6 +1266,8 @@ function frame() {
   updateProps(t);
   updatePollen(t);
   story.update(t, quest.activeId());
+  hidden.update(t);
+  pond.update(t);
   gallery.update(t, dt, camera, !state.indoor);
   quest.update(t, dt, { pos: state.pos, indoorId: state.indoor?.id || null, mode: state.mode, blocked: ui.modalOpen() });
   playerPos.copy(state.pos);
@@ -1245,4 +1287,4 @@ await finishLoading({ renderer, scene, camera, render: () => composer.render() }
 hideLoader();
 ui.ready();
 
-window.__shire = { colliders, gallery, quest, story, ride, audioDebug, state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };
+window.__shire = { hidden, colliders, gallery, quest, story, ride, audioDebug, state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };

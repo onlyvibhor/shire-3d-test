@@ -18,7 +18,8 @@ HAMLETS.forEach((h, i) => {
 });
 
 const pondAngle = (HAMLETS[0].angle + HAMLETS[1].angle) / 2;
-export const POND = { x: Math.cos(pondAngle) * 42, z: Math.sin(pondAngle) * 42, r: 9 };
+// r is the open water; the bank runs out to POND.bank, where it meets the meadow
+export const POND = { x: Math.cos(pondAngle) * 44, z: Math.sin(pondAngle) * 44, r: 7.4, bank: 10 };
 LAB.angle = pondAngle;
 LAB.x = Math.cos(pondAngle) * 25;
 LAB.z = Math.sin(pondAngle) * 25;
@@ -115,7 +116,7 @@ LAB.y = rawHeight(LAB.x, LAB.z);
 for (const z of ZONES) z.y = rawHeight(z.x, z.z);
 JANTAR.y = rawHeight(JANTAR.x, JANTAR.z);
 
-export function heightAt(x, z) {
+function baseHeight(x, z) {
   let h = rawHeight(x, z);
   h = THREE.MathUtils.lerp(CENTER_LEVEL, h, smooth(9, 17, Math.hypot(x, z)));
   for (const p of PADS) h = THREE.MathUtils.lerp(p.y, h, smooth(p.r, p.r + 5, Math.hypot(x - p.x, z - p.z)));
@@ -123,9 +124,58 @@ export function heightAt(x, z) {
   h = THREE.MathUtils.lerp(LAB.y, h, smooth(7, 12, Math.hypot(x - LAB.x, z - LAB.z)));
   for (const zn of ZONES) h = THREE.MathUtils.lerp(zn.y, h, smooth(14, 22, Math.hypot(x - zn.x, z - zn.z)));
   h = THREE.MathUtils.lerp(JANTAR.y, h, smooth(JANTAR.r + 1, JANTAR.r + 8, Math.hypot(x - JANTAR.x, z - JANTAR.z)));
-  const pdist = Math.hypot(x - POND.x, z - POND.z);
-  h -= 6.5 * (1 - smooth(0, POND.r * 1.3, pdist));
   return h;
+}
+
+// The pond sits on a level terrace (POND.y) with its water a little below. The terrain itself is
+// scooped out well under the bank, and the bank and water are their own fine meshes on top, so
+// the shore is a clean circle instead of the terrain grid's 2.5 m steps.
+{
+  let sum = 0;
+  for (let k = 0; k < 16; k++) {
+    const a = (k / 16) * Math.PI * 2;
+    sum += baseHeight(POND.x + Math.cos(a) * (POND.bank + 2), POND.z + Math.sin(a) * (POND.bank + 2));
+  }
+  POND.y = sum / 16;
+  POND.water = POND.y - 0.45;
+  // the ghat steps face the Lab and the island centre
+  POND.ghat = Math.atan2(-POND.z, -POND.x);
+}
+const GHAT_HALF = 2.4;
+const GHAT_IN = POND.r - 0.4;
+const GHAT_OUT = POND.bank - 0.3;
+// meadow level on the terrace (before the scoop); the Lab's own pad next door keeps its level
+function terrace(x, z, d) {
+  const w = (1 - smooth(POND.bank - 1, POND.bank + 4.5, d)) * smooth(7.5, 10, Math.hypot(x - LAB.x, z - LAB.z));
+  return THREE.MathUtils.lerp(baseHeight(x, z), POND.y, w);
+}
+// height of the bank (and the ghat steps) at a point, or -Infinity off the pond's ground
+export function pondBank(x, z) {
+  const dx = x - POND.x;
+  const dz = z - POND.z;
+  const d = Math.hypot(dx, dz);
+  if (d > POND.bank + 0.5) return -Infinity;
+  const top = terrace(x, z, d) + 0.03;
+  const t = smooth(POND.r - 0.5, POND.bank - 1.5, d);
+  let y = THREE.MathUtils.lerp(POND.water - 0.35, top, Math.pow(t, 0.7));
+  const ga = Math.cos(POND.ghat);
+  const gb = Math.sin(POND.ghat);
+  const along = dx * ga + dz * gb;
+  const side = -dx * gb + dz * ga;
+  if (Math.abs(side) < GHAT_HALF && along > GHAT_IN && along < GHAT_OUT) {
+    // four steps down to the water
+    const k = Math.min(3, Math.floor(((GHAT_OUT - along) / (GHAT_OUT - GHAT_IN)) * 4));
+    y = POND.y + 0.12 - k * 0.2;
+  }
+  return y;
+}
+export const GHAT = { half: GHAT_HALF, inner: GHAT_IN, outer: GHAT_OUT };
+
+export function heightAt(x, z) {
+  const d = Math.hypot(x - POND.x, z - POND.z);
+  if (d > POND.bank + 5) return baseHeight(x, z);
+  // terrace, then scoop under the bank
+  return terrace(x, z, d) - 3 * (1 - smooth(POND.r + 1, POND.bank - 0.5, d));
 }
 
 export function rng(seed = 7) {
@@ -146,6 +196,10 @@ const GRID = { size: 640, n: 256, heights: null };
 export const SURFACE = 0.03; // roads and plazas sit this far above the grass
 
 export function groundAt(x, z) {
+  if (Math.abs(x - POND.x) < POND.bank + 1 && Math.abs(z - POND.z) < POND.bank + 1) return Math.max(gridAt(x, z), pondBank(x, z));
+  return gridAt(x, z);
+}
+function gridAt(x, z) {
   const H = GRID.heights;
   if (!H) return heightAt(x, z);
   const s = GRID.size / GRID.n;
@@ -185,7 +239,7 @@ function isClearing(x, z, pad = 0) {
   if (Math.hypot(x, z) < 10 + pad) return true;
   if (Math.hypot(x - LAB.x, z - LAB.z) < 7 + pad) return true;
   for (const zn of ZONES) if (Math.hypot(x - zn.x, z - zn.z) < 13 + pad) return true;
-  if (Math.hypot(x - POND.x, z - POND.z) < POND.r + 1.5 + pad) return true;
+  if (Math.hypot(x - POND.x, z - POND.z) < POND.bank + 1 + pad) return true;
   for (const h of HAMLETS) if (Math.hypot(x - h.x, z - h.z) < 9 + pad) return true;
   if (Math.hypot(x - JANTAR.x, z - JANTAR.z) < JANTAR.r + 2 + pad) return true;
   if (distToSegment(x, z, [BAZAAR.ax, BAZAAR.az, BAZAAR.bx, BAZAAR.bz]) < 11 + pad) return true;
@@ -295,6 +349,22 @@ export function buildClouds(scene) {
 
 // ---------- Ground ----------
 
+const G_DEEP = new THREE.Color('#3f8a2c');
+const G_SAND = new THREE.Color('#ecdcb0');
+const G_WET = new THREE.Color('#bfa77a');
+const G_LUSH = new THREE.Color('#5fae38');
+const G_SUNNY = new THREE.Color('#9ccf4c');
+// the meadow's colour at a point (shared with anything that has to blend into it, like the pond bank)
+export function groundColor(x, z, y, c) {
+  const n = 0.5 + 0.5 * Math.sin(x * 0.11 + Math.cos(z * 0.09) * 2.0) * Math.cos(z * 0.07);
+  c.copy(G_DEEP).lerp(G_LUSH, 0.45 + n * 0.45);
+  c.lerp(G_SUNNY, Math.max(0, Math.sin(x * 0.03 + 2) * Math.sin(z * 0.025 + 1)) * 0.45 + Math.max(0, y - 6) * 0.015);
+  // sandy beaches and wet sand under the shallows
+  c.lerp(G_SAND, 1 - smooth(SEA_LEVEL + 0.9, SEA_LEVEL + 2.2, y));
+  c.lerp(G_WET, 1 - smooth(SEA_LEVEL - 1.5, SEA_LEVEL + 0.2, y));
+  return c;
+}
+
 export function buildTerrain(scene) {
   const size = 640;
   const geo = new THREE.PlaneGeometry(size, size, 256, 256);
@@ -304,23 +374,13 @@ export function buildTerrain(scene) {
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position;
   const colors = new Float32Array(pos.count * 3);
-  const deep = new THREE.Color('#3f8a2c');
-  const sand = new THREE.Color('#ecdcb0');
-  const wetSand = new THREE.Color('#bfa77a');
-  const lush = new THREE.Color('#5fae38');
-  const sunny = new THREE.Color('#9ccf4c');
   const c = new THREE.Color();
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i);
     const z = pos.getZ(i);
     const y = heightAt(x, z);
     pos.setY(i, y);
-    const n = 0.5 + 0.5 * Math.sin(x * 0.11 + Math.cos(z * 0.09) * 2.0) * Math.cos(z * 0.07);
-    c.copy(deep).lerp(lush, 0.45 + n * 0.45);
-    c.lerp(sunny, Math.max(0, Math.sin(x * 0.03 + 2) * Math.sin(z * 0.025 + 1)) * 0.45 + Math.max(0, y - 6) * 0.015);
-    // sandy beaches and wet sand under the shallows
-    c.lerp(sand, 1 - smooth(SEA_LEVEL + 0.9, SEA_LEVEL + 2.2, y));
-    c.lerp(wetSand, 1 - smooth(SEA_LEVEL - 1.5, SEA_LEVEL + 0.2, y));
+    groundColor(x, z, y, c);
     colors.set([c.r, c.g, c.b], i * 3);
   }
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
