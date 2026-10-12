@@ -1,5 +1,5 @@
-// Two hidden places, off every path: the Grofers years in the woods (an orange pavilion under an
-// onion dome, the vegetable and the Jaipur roofline in one) and the Razorpay years by the sea (a
+// Two hidden places, off every path: the Grofers years in the woods (an orange pavilion with a
+// giant grocery bag on its roof) and the Razorpay years by the sea (a
 // white pavilion with a giant ₹ coin turning above it). Each is an open ring of columns with that
 // era's work on screens inside, a signboard, and a career sheet you open at its centre.
 import * as THREE from 'three';
@@ -121,39 +121,95 @@ function careerSign(career) {
   return makeSignboard({ name: `career-sign-${career.id}`, color: career.color, W: 3.6, H: 2.2, front, back });
 }
 
-// ---------- Grofers: orange, an onion dome, vegetables growing round the plinth ----------
+// ---------- Grofers: orange, a giant grocery bag on top, vegetables round the plinth ----------
 function buildGrofers(clickables) {
   const C = CAREERS.grofers;
   const orange = solid('#f7913a', { roughness: 0.75, emissive: '#f7913a', emissiveIntensity: 0.12 });
   const deep = solid('#e06f1c', { roughness: 0.8 });
   const g = pavilion({ career: C, columnMat: orange, ringMat: deep, plinthMat: solid('#f3e3c4', { roughness: 0.9 }), accent: C.color, clickables });
-  // the onion dome: a lathe with the bulb and the pointed neck of an onion, striped like its skins
-  const prof = [];
-  for (let i = 0; i <= 28; i++) {
-    const t = i / 28;
-    const y = t * 6.2;
-    const r = Math.max(0.02, 4.6 * Math.sin(Math.PI * Math.min(1, t * 1.25)) ** 0.75 * (1 - t * 0.35) + (t < 0.08 ? 1.6 * (1 - t / 0.08) : 0));
-    prof.push(new THREE.Vector2(t > 0.96 ? 0.02 : r, y));
-  }
-  const skins = canvasTexture(512, 64, (c, w, h) => {
-    for (let k = 0; k < 16; k++) {
-      c.fillStyle = k % 2 ? '#b2366b' : '#c94a7c';
-      c.fillRect((k / 16) * w, 0, w / 16 + 1, h);
-      c.fillStyle = 'rgba(255,230,240,0.35)';
-      c.fillRect((k / 16) * w + w / 32, 0, 2, h);
-    }
-  });
-  const dome = new THREE.Mesh(new THREE.LatheGeometry(prof, 48), new THREE.MeshStandardMaterial({ map: skins, roughness: 0.45, emissive: '#7a1f48', emissiveIntensity: 0.15 }));
-  dome.position.y = 5.5;
-  dome.castShadow = true;
-  g.add(dome);
-  // green shoots from the tip
+  // a giant grocery bag on the roof: kraft paper with an orange band, rope handles and the week's
+  // shopping poking out of the top
   const leaf = solid('#4f9a33', { roughness: 0.7 });
-  for (let k = 0; k < 4; k++) {
-    const s = mesh(new THREE.ConeGeometry(0.16, 2.2, 6), leaf, Math.cos(k * 1.6) * 0.25, 12.4, Math.sin(k * 1.6) * 0.25);
-    s.rotation.set(Math.sin(k * 1.6) * 0.35, 0, Math.cos(k * 1.6) * 0.35);
-    g.add(s);
+  const kraft = solid('#ecc48c', { roughness: 0.85, emissive: '#5a3a14', emissiveIntensity: 0.25 });
+  const kraftDark = solid('#d4a468', { roughness: 0.85, emissive: '#5a3a14', emissiveIntensity: 0.2 });
+  const print = canvasTexture(512, 360, (c, w, h) => {
+    c.fillStyle = '#ecc48c';
+    c.fillRect(0, 0, w, h);
+    // paper fibres
+    for (let k = 0; k < 220; k++) {
+      c.fillStyle = `rgba(120,85,40,${0.04 + Math.random() * 0.06})`;
+      c.fillRect(Math.random() * w, Math.random() * h, 1 + Math.random() * 30, 1);
+    }
+    c.fillStyle = '#ff7f1f';
+    c.fillRect(0, h * 0.42, w, h * 0.3);
+    c.fillStyle = '#ffffff';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.font = `800 92px ${FONT.display}`;
+    c.fillText('grofers', w / 2, h * 0.57);
+  });
+  const printMat = new THREE.MeshStandardMaterial({ map: print, roughness: 0.85, emissive: '#ffffff', emissiveMap: print, emissiveIntensity: 0.22 });
+  const BW = 6.6;
+  const BD = 4.2;
+  const BH = 4.6;
+  const bagGeo = new THREE.BoxGeometry(BW, BH, BD, 1, 4, 1);
+  // a slight flare towards the top, like a filled paper bag
+  const bp = bagGeo.attributes.position;
+  for (let i = 0; i < bp.count; i++) {
+    const t = (bp.getY(i) + BH / 2) / BH;
+    const f = 0.94 + 0.08 * t;
+    bp.setX(i, bp.getX(i) * f);
+    bp.setZ(i, bp.getZ(i) * f);
   }
+  bagGeo.computeVertexNormals();
+  const inside = solid('#5a4126', { roughness: 1 });
+  const bag = new THREE.Mesh(bagGeo, [kraft, kraft, inside, kraft, printMat, printMat]);
+  bag.position.y = 5.3 + BH / 2;
+  bag.castShadow = true;
+  g.add(bag);
+  const top = 5.3 + BH;
+  // folded rim
+  g.add(mesh(new THREE.BoxGeometry(BW * 1.03, 0.28, BD * 1.03), kraftDark, 0, top - 0.14, 0));
+  // rope handles on the two long faces
+  const rope = solid('#7a5634', { roughness: 0.8 });
+  for (const sz of [-1, 1]) {
+    const h = mesh(new THREE.TorusGeometry(1.1, 0.08, 8, 24, Math.PI), rope, 0, top - 0.05, sz * (BD * 0.51 + 0.02));
+    g.add(h);
+  }
+  // the shopping: leafy greens, carrots, a milk bottle and a bunch of bananas
+  for (let k = 0; k < 7; k++) {
+    const l = mesh(new THREE.SphereGeometry(0.7, 10, 8), k % 2 ? leaf : solid('#62ad3d', { roughness: 0.7 }), -1.8 + (k % 4) * 0.5, top + 0.35 + (k % 3) * 0.2, -0.9 + Math.floor(k / 4) * 0.9);
+    l.scale.set(1, 0.7, 0.9);
+    g.add(l);
+  }
+  for (const [x, z, rz] of [[0.6, -0.8, -0.35], [1.1, -0.4, -0.55]]) {
+    const ct = new THREE.Group();
+    const body = mesh(new THREE.ConeGeometry(0.28, 2.2, 10), solid('#f26a1b', { roughness: 0.6 }), 0, 0, 0);
+    body.rotation.x = Math.PI;
+    ct.add(body);
+    for (let k = 0; k < 4; k++) {
+      const l = mesh(new THREE.ConeGeometry(0.07, 0.8, 5), leaf, Math.cos(k * 1.6) * 0.08, 1.45, Math.sin(k * 1.6) * 0.08);
+      l.rotation.set(Math.sin(k * 1.6) * 0.4, 0, Math.cos(k * 1.6) * 0.4);
+      ct.add(l);
+    }
+    ct.position.set(x, top + 0.6, z);
+    ct.rotation.z = rz;
+    g.add(ct);
+  }
+  const milk = new THREE.Group();
+  milk.add(mesh(new THREE.CylinderGeometry(0.42, 0.45, 1.8, 16), solid('#f7f7f2', { roughness: 0.4 }), 0, 0, 0));
+  milk.add(mesh(new THREE.CylinderGeometry(0.26, 0.4, 0.35, 16), solid('#f7f7f2', { roughness: 0.4 }), 0, 1.07, 0));
+  milk.add(mesh(new THREE.CylinderGeometry(0.27, 0.27, 0.18, 16), solid('#2f6bff', { roughness: 0.5 }), 0, 1.33, 0));
+  milk.position.set(1.9, top + 0.3, 0.7);
+  milk.rotation.z = -0.15;
+  g.add(milk);
+  const banana = solid('#f4d23c', { roughness: 0.55 });
+  for (let k = 0; k < 4; k++) {
+    const b = mesh(new THREE.TorusGeometry(0.75, 0.16, 8, 16, Math.PI * 0.75), banana, -0.4 + k * 0.12, top + 0.55, 0.9 + k * 0.08);
+    b.rotation.set(0.3, 0.4 + k * 0.12, 0.6 + k * 0.1);
+    g.add(b);
+  }
+
   // giant vegetables planted round the plinth
   const carrot = new THREE.Group();
   carrot.add(mesh(new THREE.ConeGeometry(0.55, 3.2, 10), solid('#f26a1b', { roughness: 0.6 }), 0, 1.0, 0));

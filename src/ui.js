@@ -506,7 +506,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     const sheet = careerEl.querySelector('.sheet');
     sheet.style.setProperty('--c', c.color);
     sheet.querySelector('.sheet__side').innerHTML = `
-      <div class="career__badge" style="background:${c.color}">${id === 'razorpay' ? '₹' : '🧅'}</div>
+      <div class="career__badge" style="background:${c.color}">${id === 'razorpay' ? '₹' : '🛍️'}</div>
       <p class="eyebrow">${esc(c.years)} · found ${esc(c.place.toLowerCase())}</p>
       <h2>${esc(c.org)}</h2>
       <p class="sheet__role">${esc(c.role)}</p>
