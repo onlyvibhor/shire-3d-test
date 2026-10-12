@@ -1216,6 +1216,29 @@ function buildHome(scene, ctx) {
     w.position.set(x, 0.9, -3.47);
     g.add(w);
   }
+  // the back and the two sides are finished too: arched windows on both floors with cream sills,
+  // and cream pilasters at the corners
+  const sideWin = (x, y, z, ry, w, h) => {
+    const win = archWindow(w, h, WINDOW_GLOW);
+    win.position.set(x, y, z);
+    win.rotation.y = ry;
+    g.add(win);
+    const sill = mesh(new THREE.BoxGeometry(w + 0.4, 0.14, 0.3), CREAM, 0, y - 0.07, 0, false);
+    sill.position.set(x + Math.sin(ry) * 0.12, y - 0.07, z + Math.cos(ry) * 0.12);
+    sill.rotation.y = ry;
+    g.add(sill);
+  };
+  for (const x of [-4.2, 0, 4.2]) {
+    sideWin(x, 0.9, -10.52, Math.PI, 1.5, 2);
+    sideWin(x, 4.45, -10.52, Math.PI, 1.3, 1.7);
+  }
+  for (const sx of [-1, 1])
+    for (const z of [-5.3, -8.7]) {
+      sideWin(sx * 6.52, 0.9, z, (sx * Math.PI) / 2, 1.3, 2);
+      sideWin(sx * 6.52, 4.45, z, (sx * Math.PI) / 2, 1.2, 1.7);
+    }
+  for (const sx of [-1, 1]) for (const z of [-3.5, -10.5]) g.add(mesh(new THREE.BoxGeometry(0.55, 7, 0.55), CREAM, sx * 6.5, 3.5, z));
+
   // rooftop: a modern white dome between two chhatris
   const top = makeDome(2.6, H.color);
   top.position.set(0, 7.4, -8);
