@@ -7,6 +7,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import './style.css';
+import './theme.css';
 import { OWNER, PILLARS, CENTER, HAMLETS, LAB, HOME, FUN, AIHUB, HALL, PROJECTS, AWARDS, ASSETS, NPC_TALK, CONTACT, FAVOURITES, TOOLS, AWARD_LIST } from './data.js';
 import {
   buildSky, makeSkyMaterial, buildClouds, buildTerrain, buildGrass, buildLavender, buildFlowers, buildMountains, buildTrees, buildPollen,

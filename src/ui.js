@@ -19,6 +19,20 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
   document.querySelectorAll('[data-owner-tagline]').forEach((el) => (el.textContent = owner.tagline));
   document.querySelectorAll('[data-owner-intro]').forEach((el) => (el.textContent = owner.intro));
   document.querySelectorAll('[data-owner-portrait]').forEach((el) => (el.src = owner.portrait));
+  document.querySelectorAll('[data-owner-short]').forEach((el) => (el.textContent = owner.short));
+
+  // ----- Hero: three facts from the work, as stat cards over the island -----
+  {
+    const [years, lines] = owner.numbers;
+    const films = LEADER.impact.find((n) => /TV films/.test(n.label)) || LEADER.impact[0];
+    $('#hero-n1').textContent = years.value;
+    $('#hero-l1').textContent = years.label;
+    $('#hero-n2').textContent = films.value;
+    $('#hero-l2').textContent = films.label;
+    $('#hero-n3').textContent = lines.value;
+    $('#hero-l3').textContent = lines.label;
+    $('#hero-ticks').innerHTML = '<i></i>'.repeat(12);
+  }
 
   // ----- Intro -----
   $('#intro-legend').innerHTML = places
@@ -46,16 +60,13 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
 
   // The splash card doubles as the about-me card: the name chip in the HUD reopens it over the game.
   const enterBtn = $('#btn-enter');
-  const enterLabel = enterBtn.textContent;
   const splashOpen = () => document.body.classList.contains('splash-open');
   function openSplash() {
     sfx('open');
     document.body.classList.add('splash-open');
-    enterBtn.textContent = 'Back to the island';
   }
   function closeSplash() {
     document.body.classList.remove('splash-open');
-    enterBtn.textContent = enterLabel;
   }
   enterBtn.addEventListener('click', () => (splashOpen() ? closeSplash() : onEnter()));
   $('#btn-tour').addEventListener('click', () => {
@@ -63,6 +74,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     onTour();
   });
   $('#splash-close').addEventListener('click', closeSplash);
+  $('#btn-about-intro').addEventListener('click', openSplash);
   $('#btn-brief-intro').addEventListener('click', () => {
     if (splashOpen()) closeSplash();
     else onEnter();
@@ -164,10 +176,19 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     $('#mission-list').innerHTML = rows
       .map(([label, n, total]) => `<li class="${n >= total ? 'is-done' : ''}"><span>${label}</span><b>${n}/${total}</b><i style="--p:${n / total}"></i></li>`)
       .join('');
+    // the stat cards: departments met, files opened, and the whole journey as one ring
+    $('#stat-places').textContent = visited.size;
+    $('#stat-projects').textContent = viewed.size;
+    const pct = Math.round((rows.reduce((a, [, n, t]) => a + Math.min(1, n / t), 0) / rows.length) * 100);
+    $('#journey-pct').textContent = `${pct}%`;
+    $('#journey-arc').style.strokeDasharray = `${pct} 100`;
+    const done = rows.filter(([, n, t]) => n >= t).length;
+    $('#missions-sum').textContent = `${done}/${rows.length} done`;
   }
   renderMissions();
   function toggleMissions(force) {
     $('#missions').classList.toggle('is-collapsed', force === undefined ? undefined : !force);
+    $('#missions-toggle').setAttribute('aria-expanded', String(!$('#missions').classList.contains('is-collapsed')));
   }
 
   // ----- Labels -----
@@ -208,9 +229,10 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
         </button>`;
       })
       .join('');
-    renderPass(p);
+    hidePass();
     panel.innerHTML = `
       <button class="close" aria-label="Close">×</button>
+      ${placeHead(p)}
       <div class="card-head"><b>${{ hq: 'What I do', lab: 'What happens here', home: 'About me', fun: 'After hours' }[p.id] || 'How I work with this team'}</b></div>
       <ul>${p.how.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
       ${p.makes ? `<div class="chips">${p.makes.map((m) => `<span class="chip">${esc(m)}</span>`).join('')}</div>` : ''}
@@ -237,6 +259,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     panel.querySelectorAll('[data-project]').forEach((b) => b.addEventListener('click', () => openProject(b.dataset.project)));
     panel.scrollTop = 0;
     panel.classList.add('is-open');
+    document.body.classList.add('panel-open');
     markVisited(p.id);
   }
   function funExtra() {
@@ -269,6 +292,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     panel.querySelector('.close').onclick = () => hidePlace();
     panel.scrollTop = 0;
     panel.classList.add('is-open');
+    document.body.classList.add('panel-open');
   }
 
   // Fade to black and back, for doors.
@@ -305,6 +329,21 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
   // The place "pass": a ticket with the department's name, numbers and a colour stub
   const passEl = $('#pass');
   const GLYPH = { hq: '🌳', brand: '🎬', pmm: '🚀', product: '🧩', social: '📣', copy: '✍️', design: '🎨', lab: '🌙', fun: '🍿', home: '🏡', ai: '🤖', awards: '🏆' };
+  // the head of a place card: its name, where it is and what it is, then the numbers, all in one block
+  function placeHead(p) {
+    const kind = { hq: 'Island pass', home: 'Home pass', fun: 'Playhouse pass', lab: 'Studio pass', ai: 'Hub pass', awards: 'Hall pass' }[p.id] || 'Department pass';
+    const makes = p.makes || [];
+    return `<header class="place">
+      <div class="place__top"><i class="place__glyph">${GLYPH[p.id] || '📍'}</i><span class="place__kind">${kind}<em>${esc(p.place)}</em></span></div>
+      <h2>${esc(p.name)}</h2>
+      <p class="place__lead">${esc(p.lead)}</p>
+      <ul class="place__stats">
+        <li><b>${p.projects.length}</b><span>${p.projects.length === 1 ? 'project' : 'projects'}</span></li>
+        ${makes[0] ? `<li><b>${esc(makes[0])}</b><span>${esc(makes[1] || 'craft')}</span></li>` : ''}
+        <li><b>${visited.has(p.id) ? 'Again' : 'New'}</b><span>visit</span></li>
+      </ul>
+    </header>`;
+  }
   function renderPass(p) {
     const kind = { hq: 'Island pass', home: 'Home pass', fun: 'Playhouse pass', lab: 'Studio pass', ai: 'Hub pass', awards: 'Hall pass' }[p.id] || 'Department pass';
     const makes = p.makes || [];
@@ -338,6 +377,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     if (panel.classList.contains('is-open')) sfx('close');
     hidePass();
     panel.classList.remove('is-open');
+    document.body.classList.remove('panel-open');
   }
   function markVisited(id) {
     if (visited.has(id)) return;
