@@ -55,7 +55,7 @@ export const ZONES = [HOME, FUN, AIHUB, HALL];
   GALLERY.angle = a;
   GALLERY.x = Math.cos(a) * PLAN.gallery[1];
   GALLERY.z = Math.sin(a) * PLAN.gallery[1];
-  GALLERY.r = 13;
+  GALLERY.r = 15;
 }
 export { GALLERY };
 

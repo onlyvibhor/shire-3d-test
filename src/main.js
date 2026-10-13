@@ -208,7 +208,7 @@ const PLACES = [
   { ...HOME, reach: 16 },
   { ...AIHUB, reach: 17 },
   { ...HALL, reach: 16 },
-  { ...GALLERY, reach: 17 },
+  { ...GALLERY, reach: 19 },
 ];
 
 // Level 3 wayfinding: fingerposts at the tree, at the piers and at the Gallery's lane
@@ -269,7 +269,7 @@ story.board.name = 'brief-board';
 // two hidden places, off the paths: the Grofers years in the woods, the Razorpay years by the sea
 const hidden = buildHidden(outdoor, { colliders, interactables: village.interactables, clickables: village.clickables });
 // clear the trees and monoliths standing where they were built (the Gallery courtyard too)
-for (const sp of [...hidden.spots, { x: GALLERY.x, z: GALLERY.z, clear: 17 }]) {
+for (const sp of [...hidden.spots, { x: GALLERY.x, z: GALLERY.z, clear: 19 }]) {
   for (const it of trees.items) if (!it.out && Math.hypot(it.x - sp.x, it.z - sp.z) < (sp.clear ?? 12)) ((it.out = true), trees.hide(it));
   for (const it of monoliths.items) {
     if (it.out || Math.hypot(it.x - sp.x, it.z - sp.z) > (sp.clear ?? 13)) continue;
