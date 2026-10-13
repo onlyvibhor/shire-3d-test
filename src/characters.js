@@ -54,10 +54,27 @@ export function giveProp(person, kind, color = '#1c1f26') {
     m.position.set(-0.25, 0.15, 0.32);
     person.parts.chest.add(m);
     return;
+  } else if (kind === 'book') {
+    m = new THREE.Group();
+    const cover = new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
+    const paper = new THREE.MeshStandardMaterial({ color: '#f6f1e6', roughness: 0.9 });
+    for (const sx of [-1, 1]) {
+      const half = new THREE.Group();
+      half.rotation.z = sx * 0.35;
+      const c = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.006, 0.17), cover);
+      c.position.x = sx * 0.062;
+      const pg = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.012, 0.16), paper);
+      pg.position.set(sx * 0.06, 0.008, 0);
+      half.add(c, pg);
+      m.add(half);
+    }
+    m.position.set(-0.08, -0.36, 0.1);
+    m.rotation.x = -0.9;
   }
   m.traverse((o) => (o.castShadow = true));
   hand.add(m);
   person.gripR = true;
+  return m;
 }
 
 /** Pose a person for an action at time t, then layer look-at and physical reactions on top. */
@@ -407,6 +424,20 @@ function pose(p, action, t, speed = 0) {
       armL.elbow.rotation.x = armR.elbow.rotation.x = -0.9;
       chest.rotation.x = -0.12;
       head.rotation.y = Math.sin(ph * 0.3) * 0.15;
+      break;
+    case 'read':
+      // sitting, a book held open in both hands, eyes down on the page
+      hips.position.y = 0.5;
+      legL.hip.rotation.set(-1.3, 0, -0.12);
+      legR.hip.rotation.set(-1.25, 0.15, 0.1);
+      legL.knee.rotation.x = 1.2;
+      legR.knee.rotation.x = 1.3;
+      chest.rotation.x = 0.06;
+      head.rotation.x = 0.38 + Math.sin(ph * 0.2) * 0.03;
+      head.rotation.y = Math.sin(ph * 0.5) * 0.08;
+      armL.shoulder.rotation.set(-0.55, 0, 0.3);
+      armR.shoulder.rotation.set(-0.55, 0, -0.3);
+      armL.elbow.rotation.x = armR.elbow.rotation.x = -1.2;
       break;
     case 'game': {
       // sitting, controller in both hands, leaning into the boss fight

@@ -30,6 +30,9 @@ import { buildWayfinding } from './arena.js';
 import { snapshotMatrices, groundFit } from './groundfit.js';
 import galleryLayout from './content/gallery-layout.json';
 import { createQuest } from './quest.js';
+import { createNav } from './nav.js';
+import { buildGrid, findPath } from './pathfind.js';
+import { createMapView } from './mapview.js';
 import { isTouch, stick, stickKeys, initTouch, goLandscape } from './touch.js';
 
 // ---------- Renderer, scene, light ----------
@@ -135,7 +138,7 @@ const village = buildVillage(outdoor);
 const dayNight = createDayNight({ scene, root: outdoor, sun, hemi, sky, renderer, bloom, ocean: ocean });
 await step('Furnishing the rooms', 0.78);
 const rooms = buildInteriors(scene);
-for (const room of Object.values(rooms)) room.interactables.push({ kind: 'exit', label: 'Back to the island', verb: 'Exit', x: room.origin.x + room.exit.x, z: room.origin.z + room.exit.z });
+for (const room of Object.values(rooms)) room.interactables.push({ kind: 'exit', label: 'Back to the island', verb: 'Exit', reach: 1.4, x: room.origin.x + room.exit.x, z: room.origin.z + room.exit.z });
 colliders.push(...village.colliders);
 
 // ---------- Player: Vibhor ----------
@@ -222,14 +225,7 @@ function nearestPlace(x, z) {
 }
 
 function leaveRoomNow() {
-  if (!state.indoor) return;
-  state.indoor.group.visible = false;
-  outdoor.visible = true;
-  state.indoor = null;
-  scene.fog = savedFog;
-  scene.background = null;
-  hemi.groundColor.set('#4f7d32');
-  ui.setIndoor(null);
+  nav.leaveNow();
 }
 
 function travelTo(id) {
@@ -258,8 +254,8 @@ function travelTo(id) {
   state.yaw = Math.atan2(-dx, -dz);
   state.pitch = camPreset.pitch;
   state.dist = camPreset.dist;
-  state.target = null;
-  marker.visible = false;
+  clearRoute();
+  nav.guard = null;
   setMode('walk', { snap: true });
 }
 
@@ -317,7 +313,9 @@ const ui = createUI({
     if (state.indoor) act({ kind: 'ride-out' });
     else ride.bring();
   },
-  onOverview: () => setMode(state.mode === 'overview' ? 'walk' : 'overview'),
+  onOverview: () => openMap(),
+  onExitRoom: () => exitRoom(),
+  onPlan: () => mapView.open('plan'),
   onTravel: (id) => travelTo(id),
   onTourStep: (d) => tourStep(d),
   onExitTour: () => travelTo(PLACES[state.tourIndex].id),
@@ -339,6 +337,65 @@ const quest = createQuest({
   openWeb: (url, title) => ui.openWeb(url, title),
 });
 ui.addOverlay({ isOpen: quest.isOpen, close: quest.closeChooser });
+
+// ---------- Navigation: where you are, and the only way in and out of the buildings ----------
+const nav = createNav({
+  state, rooms, places: PLACES, scene, hemi, outdoor, ui, sfx, dayNight, walkY, setShadowRange,
+  applyIndoorLight: (room) => applyIndoorLight(room),
+  now: () => elapsed,
+  beforeTransition: () => {
+    keys.clear();
+    marker.visible = false;
+  },
+  afterTransition: (dir, room) => {
+    lastPlaceId = null;
+    snapCamera = true;
+    marker.visible = false;
+    if (dir === 'in') {
+      state.pitch = Math.min(camPreset.pitch, 0.5);
+      state.dist = Math.min(camPreset.dist, 5.5);
+      ui.setIndoor(PLACES.find((p) => p.id === room.id));
+    } else ui.setIndoor(null);
+  },
+});
+nav.register(village.interactables);
+
+// the map card: presentation only. Indoors it opens on the floor plan; it never moves you.
+const zoneAt = (room, lx, lz) => room.plan?.zones?.find((z) => lx >= z.x0 && lx <= z.x1 && lz >= z.z0 && lz <= z.z1) || null;
+const mapView = createMapView({
+  places: PLACES,
+  paths: PATHS,
+  pond: POND,
+  coastR,
+  rooms,
+  getState: () => {
+    const room = state.indoor;
+    const lx = room ? state.pos.x - room.origin.x : 0;
+    const lz = room ? state.pos.z - room.origin.z : 0;
+    const zn = room ? zoneAt(room, lx, lz) : null;
+    return {
+      room, lx, lz, x: state.pos.x, z: state.pos.z, heading: state.heading,
+      zone: zn?.id, zoneName: zn?.name,
+      door: room ? nav.entry(room.id)?.door : null,
+      people: room ? (room.residents || []).map((r) => ({ x: r.pos.x - room.origin.x, z: r.pos.z - room.origin.z, color: r.color })) : [],
+    };
+  },
+  onTravel: (id) => {
+    if (state.indoor?.id === id) return;
+    travelTo(id);
+  },
+  onWalkTo: (x, z, name) => {
+    if (state.mode !== 'walk') setMode('walk');
+    if (goTo(x, z).length) ui.toast(`<b>Walking to ${name}.</b>`, 1800, { quiet: true });
+  },
+  onOpen: () => nav.setPresentation('map'),
+  onClose: () => nav.setPresentation('play'),
+});
+ui.addOverlay({ isOpen: mapView.isOpen, close: mapView.close });
+function openMap() {
+  if (state.indoor) return mapView.isOpen() ? mapView.close() : mapView.open('plan');
+  setMode(state.mode === 'overview' ? 'walk' : 'overview');
+}
 ui.onCampaigns(quest.shipped(), quest.total);
 const found = (() => {
   try {
@@ -353,7 +410,10 @@ document.getElementById('btn-brief').addEventListener('click', () => quest.openC
 function setMode(mode, { snap = false } = {}) {
   const prev = state.mode;
   if (mode !== 'walk' && ride.active) ride.dismount();
-  if (mode === 'overview' || mode === 'tour') leaveRoomNow();
+  // the bird's-eye view is of the island: from inside a building, the map card opens instead and
+  // you stay exactly where you are
+  if (mode === 'overview' && state.indoor) return mapView.open('island');
+  if (mode === 'tour') leaveRoomNow();
   state.mode = mode;
   ui.setMode(mode);
   setShadowRange(mode === 'walk' ? 50 : 150);
@@ -384,8 +444,9 @@ for (const ev of ['pointerdown', 'keydown', 'touchstart', 'touchend', 'click']) 
   const at = (room, x, z) => ({ x: room.origin.x + x, z: room.origin.z + z });
   addFilm({ url: 'audio/lab-time.m4a', pos: { x: LAB.x, z: LAB.z }, radius: 18, gain: 0.7 });
   addFilm({ url: 'audio/ai-creator.m4a', room: 'ai', pos: at(rooms.ai, 0, -8), radius: 16, gain: 0.55 });
-  addFilm({ url: 'audio/ring-game.m4a', room: 'fun', pos: at(rooms.fun, -13.8, 7.1), radius: 8, gain: 0.8 });
-  addFilm({ url: 'audio/power.m4a', room: 'fun', pos: at(rooms.fun, 13, -4), radius: 7, gain: 2.2 });
+  const fs = rooms.fun.sounds || { ring: [-13.8, 7.1], power: [13, -4] };
+  addFilm({ url: 'audio/ring-game.m4a', room: 'fun', pos: at(rooms.fun, ...fs.ring), radius: 8, gain: 0.8 });
+  addFilm({ url: 'audio/power.m4a', room: 'fun', pos: at(rooms.fun, ...fs.power), radius: 9, gain: 2.2 });
 }
 const rideSpeedEl = document.getElementById('ride-speed');
 const audioState = { pos: new THREE.Vector3(), yaw: 0, room: null, night: 0, speed: 0, running: false, surface: 'grass', coastDist: 100, crowd: 0, woods: 0, droneDist: 999, mode: 'intro', air: 0 };
@@ -435,7 +496,7 @@ window.addEventListener('keydown', (e) => {
     if (k === 'enter' || k === ' ') setMode('walk');
     return;
   }
-  if (k === 'o') setMode(state.mode === 'overview' ? 'walk' : 'overview');
+  if (k === 'o') openMap();
   else if (k === 't') setMode(state.mode === 'tour' ? 'walk' : 'tour');
   else if (k === 'h') ui.toggleHire();
   else if (k === 'i') showHome();
@@ -533,15 +594,35 @@ const ndc = new THREE.Vector2();
 function pick(e) {
   ndc.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
   raycaster.setFromCamera(ndc, camera);
-  const h = raycaster.intersectObjects(state.indoor ? state.indoor.clickables : village.clickables, false)[0];
-  const ground = raycaster.intersectObject(state.indoor ? state.indoor.floor : terrain)[0];
+  // inside, walls stop the pick: you can't click through one to something in the next room
+  const wall = state.indoor?.blockers?.length ? raycaster.intersectObjects(state.indoor.blockers, false)[0] : null;
+  const wd = wall ? wall.distance : Infinity;
+  let h = raycaster.intersectObjects(state.indoor ? state.indoor.clickables : village.clickables, false)[0];
+  let ground = raycaster.intersectObject(state.indoor ? state.indoor.floor : terrain)[0];
+  if (h && h.distance > wd) h = null;
+  if (ground && ground.distance > wd) ground = null;
   if (h && (!ground || h.distance < ground.distance)) {
     const ud = h.object.userData;
-    return { action: ud.action || { kind: 'project', slug: ud.slug } };
+    return { action: ud.action || { kind: 'project', slug: ud.slug }, at: h.point };
   }
   return ground ? { point: ground.point } : null;
 }
 let lastHover = 0;
+// clicking a thing: if you're beside it, use it; otherwise walk up to it first, then turn and use it
+function useFromAfar(action, at) {
+  if (!at || state.mode !== 'walk' || ride.active || action.kind === 'exit') return act(action);
+  const d = Math.hypot(at.x - state.pos.x, at.z - state.pos.z);
+  const reach = action.kind === 'enter' ? 1.6 : 2.6;
+  if (d < reach + 0.4) {
+    state.heading = Math.atan2(at.x - state.pos.x, at.z - state.pos.z);
+    return act(action);
+  }
+  // doors: walk to the doorway itself, so you go in the way you would on foot
+  const door = action.kind === 'enter' ? nav.entry(action.room)?.door : null;
+  const tx = door ? door.x : at.x;
+  const tz = door ? door.z : at.z;
+  goTo(tx, tz, { action, x: tx, z: tz, reach });
+}
 function hover(e) {
   const now = performance.now();
   if (now - lastHover < 80 || state.mode === 'intro') return;
@@ -552,10 +633,9 @@ canvas.addEventListener('pointerup', (e) => {
   pointers.delete(e.pointerId);
   if (drag && !drag.moved && (state.mode === 'walk' || state.mode === 'overview')) {
     const res = pick(e);
-    if (res?.action) act(res.action);
+    if (res?.action) useFromAfar(res.action, res.at);
     else if (res?.point && (state.indoor || heightAt(res.point.x, res.point.z) > SEA_LEVEL + 0.5 || jettyAt(res.point.x, res.point.z) || coast.onFerry(res.point.x, res.point.z) !== null)) {
-      state.target = res.point.clone();
-      marker.visible = true;
+      goTo(res.point.x, res.point.z);
     }
   }
   if (pointers.size === 0) drag = null;
@@ -587,6 +667,48 @@ window.visualViewport?.addEventListener('resize', resize);
 
 const PLAYER_R = 0.45;
 const dir = new THREE.Vector2();
+
+// ----- Routes: click somewhere and walk there; click something and walk up to it, then use it -----
+let routeStall = 0;
+let routeBest = Infinity;
+const grids = {};
+const gridFor = (room) => (grids[room.id] ||= buildGrid(room, PLAYER_R - 0.04));
+function clearRoute() {
+  state.path = null;
+  state.target = null;
+  state.pending = null;
+  marker.visible = false;
+}
+// walk to (x, z); indoors the route goes round walls and furniture, through the open passages
+function goTo(x, z, pending = null) {
+  let path = [{ x, z }];
+  if (state.indoor) path = findPath(gridFor(state.indoor), state.pos.x, state.pos.z, x, z) || [];
+  state.path = path;
+  state.pending = pending;
+  routeStall = 0;
+  routeBest = Infinity;
+  const end = path[path.length - 1];
+  state.target = end ? new THREE.Vector3(end.x, 0, end.z) : null;
+  marker.visible = !!end && !pending;
+  if (!end && pending) arrive();
+  return path;
+}
+function arrive(stuck = false) {
+  const p = state.pending;
+  state.path = null;
+  state.target = null;
+  marker.visible = false;
+  if (!p) return;
+  state.pending = null;
+  // only use it if you actually got there (or near enough that it's plainly what you meant)
+  const d = Math.hypot(p.x - state.pos.x, p.z - state.pos.z);
+  if (stuck && d > p.reach + 2.5) {
+    ui.toast('<b>Can’t get any closer.</b> Walk round, or press <kbd>E</kbd> when you’re beside it.', 2400, { quiet: true });
+    return;
+  }
+  state.heading = Math.atan2(p.x - state.pos.x, p.z - state.pos.z);
+  act(p.action);
+}
 function movePlayer(dt) {
   let rideKeys = ui.modalOpen() || state.mode !== 'walk' ? new Set() : stickKeys(keys);
   if (touchHop) {
@@ -617,27 +739,59 @@ function movePlayer(dt) {
       iz = stick.y;
     }
   }
+  if (state.seat) {
+    if (ix || iz || state.path?.length || state.mode !== 'walk') {
+      // up you get, a step forward off the seat
+      state.pos.x += Math.sin(state.heading) * 0.7;
+      state.pos.z += Math.cos(state.heading) * 0.7;
+      state.seat = null;
+      state.forcePose = null;
+    } else {
+      state.pos.x = state.seat.x;
+      state.pos.z = state.seat.z;
+      state.heading = state.seat.heading;
+      state.speed = 0;
+      state.pos.y = (state.indoor ? state.indoor.origin.y : walkY(state.pos.x, state.pos.z)) + (state.seat.y || 0);
+      player.root.position.copy(state.pos);
+      player.root.rotation.y = state.heading;
+      animate(player, state.forcePose, elapsed, 0);
+      halo.visible = false;
+      return;
+    }
+  }
   const stickMag = stick.active ? Math.min(1, Math.hypot(stick.x, stick.y)) : 1;
   const yaw = state.mode === 'overview' ? state.ovYaw : state.yaw;
   let moving = false;
   if (ix || iz) {
-    state.target = null;
-    marker.visible = false;
+    clearRoute();
     dir.set(-Math.sin(yaw) * iz + Math.cos(yaw) * ix, -Math.cos(yaw) * iz - Math.sin(yaw) * ix).normalize();
     moving = true;
-  } else if (state.target) {
-    const dx = state.target.x - state.pos.x;
-    const dz = state.target.z - state.pos.z;
+  } else if (state.path?.length) {
+    // following a route: through the open passages, one waypoint at a time
+    const wp = state.path[0];
+    const dx = wp.x - state.pos.x;
+    const dz = wp.z - state.pos.z;
     const d = Math.hypot(dx, dz);
-    if (d < 0.4) {
-      state.target = null;
-      marker.visible = false;
+    const last = state.path.length === 1;
+    if (d < (last ? 0.35 : 0.55)) {
+      state.path.shift();
+      routeStall = 0;
+      if (!state.path.length) arrive();
     } else {
       dir.set(dx / d, dz / d);
       moving = true;
+      // stuck against something the route didn't know about (a person, a bike): give up gracefully
+      if (d > routeBest - 0.02) routeStall += dt;
+      else {
+        routeBest = d;
+        routeStall = 0;
+      }
+      if (routeStall > 0.9) arrive(true);
     }
   }
-  const running = keys.has('shift') || (stick.active && stickMag > 0.93) || (state.target && Math.hypot(state.target.x - state.pos.x, state.target.z - state.pos.z) > 18);
+  // close enough to what you clicked: turn to it and use it
+  if (state.pending && Math.hypot(state.pending.x - state.pos.x, state.pending.z - state.pos.z) < state.pending.reach) arrive();
+  const running = keys.has('shift') || (stick.active && stickMag > 0.93) || (state.target && !state.indoor && Math.hypot(state.target.x - state.pos.x, state.target.z - state.pos.z) > 18);
   const want = moving ? (running ? 9 : 4.2 * Math.max(0.35, stickMag)) : 0;
   state.speed = THREE.MathUtils.lerp(state.speed, want, Math.min(1, dt * 7));
   if (moving) {
@@ -680,7 +834,9 @@ function movePlayer(dt) {
     const lx = state.pos.x - room.origin.x;
     const lz = state.pos.z - room.origin.z;
     // walking out through the door takes you back outside
-    if (lz > b.maxZ && Math.abs(lx) < 1.4 && state.speed > 0.5 && Math.cos(state.heading) > 0.3) exitRoom();
+    if (nav.walkedOut(lx, lz)) exitRoom();
+    // the exit may already have happened (no fade to wait for): you're outside now, leave it be
+    if (state.indoor !== room) return;
     state.pos.x = room.origin.x + THREE.MathUtils.clamp(lx, b.minX, b.maxX);
     state.pos.z = room.origin.z + THREE.MathUtils.clamp(lz, b.minZ, b.maxZ);
     ground = room.origin.y;
@@ -691,8 +847,7 @@ function movePlayer(dt) {
       // the sea stops you at the water's edge
       state.pos.x = prevX;
       state.pos.z = prevZ;
-      state.target = null;
-      marker.visible = false;
+      clearRoute();
     }
     const pier = jettyAt(state.pos.x, state.pos.z);
     const deck = coast.onFerry(state.pos.x, state.pos.z);
@@ -732,7 +887,6 @@ function jettyAt(x, z) {
 
 // ---------- Going indoors ----------
 
-const savedFog = scene.fog;
 const INDOOR = {
   ai: { bg: '#060b16', hemi: ['#cfe9ff', '#24315a', 1.45], sun: ['#e6f4ff', 1.9], exp: 1.08, bloom: [0.28, 0.84] },
   home: { bg: '#f4e9db', hemi: ['#fff1de', '#8a6a4a', 1.35], sun: ['#ffe6c4', 2.2], exp: 1.0, bloom: [0.12, 0.95] },
@@ -758,54 +912,11 @@ function applyIndoorLight(room) {
 
 function enterRoom(id) {
   if (ride.active) ride.dismount();
-  sfx('enter');
-  const room = rooms[id];
-  if (!room || state.indoor) return;
-  ui.fade(() => {
-    state.outdoorReturn = { x: state.pos.x, z: state.pos.z, heading: state.heading + Math.PI, yaw: state.yaw + Math.PI };
-    state.indoor = room;
-    outdoor.visible = false;
-    room.group.visible = true;
-    state.pos.set(room.origin.x + room.spawn.x, room.origin.y, room.origin.z + room.spawn.z);
-    state.heading = room.spawn.heading;
-    state.yaw = 0;
-    state.pitch = Math.min(camPreset.pitch, 0.5);
-    state.dist = Math.min(camPreset.dist, 5.5);
-    state.target = null;
-    marker.visible = false;
-    setShadowRange(24);
-    applyIndoorLight(room);
-    lastPlaceId = null;
-    snapCamera = true;
-    const place = PLACES.find((p) => p.id === id);
-    ui.setIndoor(place);
-  });
+  nav.enter(id);
 }
 
 function exitRoom() {
-  sfx('exit');
-  const room = state.indoor;
-  if (!room) return;
-  ui.fade(() => {
-    room.group.visible = false;
-    outdoor.visible = true;
-    state.indoor = null;
-    scene.fog = savedFog;
-    scene.background = null;
-    hemi.groundColor.set('#4f7d32');
-    const back = state.outdoorReturn;
-    if (back) {
-      // step out a little from the door, facing away from it
-      state.pos.set(back.x + Math.sin(back.heading) * 1.5, 0, back.z + Math.cos(back.heading) * 1.5);
-      state.heading = back.heading;
-      state.yaw = back.yaw;
-    }
-    state.pos.y = walkY(state.pos.x, state.pos.z);
-    setShadowRange(50);
-    lastPlaceId = null;
-    snapCamera = true;
-    ui.setIndoor(null);
-  });
+  nav.exit();
 }
 
 // ---------- Camera ----------
@@ -813,6 +924,8 @@ function exitRoom() {
 const camPos = new THREE.Vector3(140, 100, 140);
 const camLook = new THREE.Vector3();
 let snapCamera = false;
+const camRay = new THREE.Raycaster();
+const camDirV = new THREE.Vector3();
 const desiredPos = new THREE.Vector3();
 const desiredLook = new THREE.Vector3();
 // Three camera presets, cycled with C or the HUD camera button
@@ -878,6 +991,13 @@ function updateCamera(dt, t) {
       desiredPos.x = R.origin.x + THREE.MathUtils.clamp(desiredPos.x - R.origin.x, -R.w / 2 + 0.4, R.w / 2 - 0.4);
       desiredPos.z = R.origin.z + THREE.MathUtils.clamp(desiredPos.z - R.origin.z, -R.d / 2 + 0.4, R.d / 2 - 0.4);
       desiredPos.y = THREE.MathUtils.clamp(desiredPos.y, R.origin.y + 0.6, R.origin.y + R.h - 0.5);
+      // inner walls: never let one come between the camera and you; pull in in front of it instead
+      if (R.blockers?.length) {
+        camRay.set(desiredLook, camDirV.subVectors(desiredPos, desiredLook).normalize());
+        camRay.far = desiredPos.distanceTo(desiredLook);
+        const hitWall = camRay.intersectObjects(R.blockers, false)[0];
+        if (hitWall) desiredPos.copy(desiredLook).addScaledVector(camDirV, Math.max(0.6, hitWall.distance - 0.35));
+      }
     } else {
       const ground = groundAt(desiredPos.x, desiredPos.z) + 0.8;
       if (desiredPos.y < ground) desiredPos.y = ground;
@@ -945,14 +1065,14 @@ function updateProximity(t) {
   }
   for (const it of state.indoor ? state.indoor.interactables : village.interactables) {
     const d = Math.hypot(state.pos.x - it.x, state.pos.z - it.z);
-    if (d < bd) {
+    if (d < (it.reach ? Math.min(bd, it.reach) : bd)) {
       bd = d;
       best = it;
     }
   }
   nearThing = best;
   // walking right up to a door takes you inside
-  if (best?.kind === 'enter' && bd < 1.0 && state.speed > 0.5) enterRoom(best.room);
+  if (nav.shouldWalkIn(best, bd)) enterRoom(best.room);
   ui.prompt(best);
   // stones
   let stone = null;
@@ -1075,6 +1195,19 @@ function showHome() {
 }
 document.getElementById('btn-home').addEventListener('click', showHome);
 
+// sitting down somewhere (beside Nikita on the sofa): any move gets you up again
+function sitDown(seat) {
+  if (!seat) return;
+  clearRoute();
+  state.seat = seat;
+  state.pos.set(seat.x, state.pos.y, seat.z);
+  state.heading = seat.heading;
+  state.yaw = seat.heading + Math.PI;
+  state.speed = 0;
+  state.forcePose = seat.pose || 'sit';
+  ui.toast('<b>You sit down.</b> Move to get up again.', 2200, { quiet: true });
+}
+
 function act(a) {
   if (!a) return;
   if (a.kind !== 'enter' && a.kind !== 'exit' && a.kind !== 'project') sfx('interact');
@@ -1094,6 +1227,8 @@ function act(a) {
   else if (a.kind === 'enter') enterRoom(a.room);
   else if (a.kind === 'exit') exitRoom();
   else if (a.kind === 'toast') ui.toast(a.text, 5000);
+  else if (a.kind === 'call') a.fn?.();
+  else if (a.kind === 'sit') sitDown(a.seat);
   else if (a.kind === 'kick') a.kick(state.heading);
   else if (a.kind === 'link') ui.openWeb(a.url, a.title || a.label);
   else if (a.kind === 'hire') ui.toggleHire(true);
@@ -1141,13 +1276,34 @@ function drawMinimap() {
     mctx.strokeStyle = 'rgba(255,255,255,0.6)';
     mctx.lineWidth = 2;
     mctx.fillRect((-R.w / 2) * sc, (-R.d / 2) * sc, R.w * sc, R.d * sc);
+    // the rooms, the one you're in lit up, and the walls between them
+    const lx = state.pos.x - R.origin.x;
+    const lz = state.pos.z - R.origin.z;
+    for (const zn of R.plan?.zones || []) {
+      const here = lx >= zn.x0 && lx <= zn.x1 && lz >= zn.z0 && lz <= zn.z1;
+      mctx.fillStyle = here ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.04)';
+      mctx.fillRect(zn.x0 * sc, zn.z0 * sc, (zn.x1 - zn.x0) * sc, (zn.z1 - zn.z0) * sc);
+    }
     mctx.strokeRect((-R.w / 2) * sc, (-R.d / 2) * sc, R.w * sc, R.d * sc);
+    mctx.beginPath();
+    for (const [ax, az, bx, bz] of R.plan?.walls || []) {
+      mctx.moveTo(ax * sc, az * sc);
+      mctx.lineTo(bx * sc, bz * sc);
+    }
+    mctx.stroke();
+    for (const res of R.residents || []) {
+      mctx.fillStyle = res.color || '#f4c95d';
+      mctx.beginPath();
+      mctx.arc((res.pos.x - R.origin.x) * sc, (res.pos.z - R.origin.z) * sc, 4, 0, Math.PI * 2);
+      mctx.fill();
+    }
     mctx.fillStyle = '#4ade80';
     mctx.fillRect(-1.5 * sc, (R.d / 2) * sc - 3, 3 * sc, 6);
     for (const it of R.interactables) {
+      if (it.kind === 'call' || it.kind === 'sit' || it.kind === 'kick') continue;
       mctx.fillStyle = it.kind === 'exit' ? '#4ade80' : PLACES.find((p) => p.id === R.id)?.color || '#fff';
       mctx.beginPath();
-      mctx.arc((it.x - R.origin.x) * sc, (it.z - R.origin.z) * sc, 3.5, 0, Math.PI * 2);
+      mctx.arc((it.x - R.origin.x) * sc, (it.z - R.origin.z) * sc, 2.5, 0, Math.PI * 2);
       mctx.fill();
     }
     mctx.translate((state.pos.x - R.origin.x) * sc, (state.pos.z - R.origin.z) * sc);
@@ -1253,6 +1409,7 @@ function drawMinimap() {
 const timer = new THREE.Timer();
 timer.connect(document);
 let elapsed = 0;
+let mapDrawn = 0;
 function frame() {
   timer.update();
   const dt = Math.min(timer.getDelta(), 0.05);
@@ -1296,7 +1453,13 @@ function frame() {
   updateProximity(t);
   updateLabels();
   drawMinimap();
-  halo.material.opacity = 0.35 + Math.sin(t * 3) * 0.2;
+  // the map card follows along while it's open (Nikita moves; so might you, along a route)
+  if (mapView.isOpen() && t - mapDrawn > 0.3) {
+    mapDrawn = t;
+    mapView.render();
+  }
+  halo.material.opacity = state.indoor ? 0.22 + Math.sin(t * 3) * 0.08 : 0.35 + Math.sin(t * 3) * 0.2;
+  halo.scale.setScalar(state.indoor ? 0.62 : 1);
   // once everything has run for a moment, fit the static pieces to the terrain
   if (fitPending && ++fitFrames > 30 && t > 0.8) {
     fitPending = false;
@@ -1341,4 +1504,4 @@ await fitted;
 hideLoader();
 ui.ready();
 
-window.__shire = { distToPath, PATHS, fit: () => fitResult, hidden, colliders, gallery, quest, story, ride, audioDebug, state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };
+window.__shire = { sitDown, elapsed: () => elapsed, keys, nav, mapView, goTo, distToPath, PATHS, fit: () => fitResult, hidden, colliders, gallery, quest, story, ride, audioDebug, state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };

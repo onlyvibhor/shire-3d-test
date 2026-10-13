@@ -5,7 +5,7 @@ import about from './content/about.json';
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-export function createUI({ owner, pillars, places, projects, awards, contact, favourites, tools = [], awardList = [], onEnter, onTour, onOverview, onTravel, onTourStep, onExitTour, onTime, onWalk, onRide, onPromptTap, onBriefs, onHomeVisit }) {
+export function createUI({ owner, pillars, places, projects, awards, contact, favourites, tools = [], awardList = [], onEnter, onTour, onOverview, onTravel, onTourStep, onExitTour, onTime, onWalk, onRide, onPromptTap, onBriefs, onHomeVisit, onExitRoom, onPlan }) {
   const visited = new Set();
   const viewed = new Set();
   const trophies = new Set();
@@ -299,7 +299,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
   const fader = $('#fader');
   let fading = false;
   function fade(cb) {
-    if (fading) return;
+    if (fading) return false;
     fading = true;
     fader.classList.add('is-on');
     setTimeout(() => {
@@ -309,8 +309,13 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
         fading = false;
       }, 120);
     }, 380);
+    return true;
   }
   const indoorEl = $('#indoor');
+  indoorEl.addEventListener('click', (e) => {
+    if (e.target.closest('[data-exit]')) onExitRoom?.();
+    else if (e.target.closest('[data-plan]')) onPlan?.();
+  });
   // ----- Room guide: the room's story as chapters, following you round -----
   const guideEl = document.createElement('aside');
   guideEl.id = 'guide';
@@ -343,10 +348,10 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     }
     if (place) {
       indoorEl.style.setProperty('--c', place.color);
-      indoorEl.innerHTML = `<i></i><span>Inside</span><b>${esc(place.name)}</b><em>Walk out the door or press <kbd>Esc</kbd> to leave</em>`;
+      indoorEl.innerHTML = `<i></i><span>Inside</span><b>${esc(place.name)}</b><button class="indoor__btn" data-plan title="Floor plan (O)">Floor plan</button><button class="indoor__btn indoor__btn--exit" data-exit title="Leave by the front door (Esc)">Exit to island</button>`;
       $('#map-title').textContent = place.name;
       $('#map-sub').textContent = 'Inside · floor plan';
-      toast(`<b>Welcome to ${esc(place.name)}.</b> Follow the numbered markers on the floor; press <kbd>E</kbd> at any exhibit to open it.`, 4500);
+      toast(`<b>Welcome to ${esc(place.name)}.</b> Walk through the rooms, tap anything to walk up to it, or open the floor plan.`, 4500);
     }
   }
 

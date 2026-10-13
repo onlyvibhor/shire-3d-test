@@ -632,6 +632,13 @@ export function makePerson(opts = {}) {
         H('curl', () => new THREE.IcosahedronGeometry(0.022, LITE ? 0 : 1), Math.sin(a) * (rr[1] + 0.006) * Math.min(1, t * 1.1) * narrow, y + 0.012, rr[3] + Math.cos(a) * (rr[2] + 0.006) * Math.min(1, t * 1.1) * narrow);
       }
       break;
+    case 'bob':
+      // a chin-length bob: the hair falls straight to the jaw all round, framing the face, with a
+      // soft side-swept fringe
+      shell(0.011, -0.105, 1.0, 0.06, 'bob');
+      H('bobfringe', () => new THREE.SphereGeometry(0.06, 14, 10), 0.012, 0.1, 0.05, { s: [1.3, 0.42, 0.9], r: [-0.25, 0, 0.12] });
+      for (const sx of [-1, 1]) H('bobend' + sx, () => new THREE.SphereGeometry(0.03, 10, 8), sx * 0.088, -0.085, -0.005, { s: [0.8, 0.7, 1.4] });
+      break;
     case 'long':
     case 'wavy':
     case 'bun':

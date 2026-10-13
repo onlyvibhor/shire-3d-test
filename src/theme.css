@@ -563,3 +563,40 @@ body.is-indoor #missions { display: none; }
   .guide__dots li { width: 20px; height: 20px; font-size: 10px; }
   .guide__next { font-size: 10.5px; padding-top: 6px; }
 }
+
+/* ----- Indoors: the building pill with its permanent way out ----- */
+body.is-indoor #indoor { pointer-events: auto; }
+#indoor b { margin-right: 4px; }
+.indoor__btn { appearance: none; border: 0; border-radius: 999px; padding: 6px 12px; font: 600 12px/1 var(--sans); color: var(--text); background: rgba(255, 255, 255, 0.1); cursor: pointer; transition: background 0.2s; }
+.indoor__btn:hover { background: rgba(255, 255, 255, 0.2); }
+.indoor__btn--exit { background: var(--accent); color: var(--accent-ink); }
+.indoor__btn--exit:hover { background: #5ee08a; }
+
+/* ----- The map card: floor plan and island, presentation only ----- */
+#mapview { z-index: 40; }
+.mapview__card { width: min(980px, 100%); max-height: calc(100vh - 32px); display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: var(--r-xl); background: var(--carbon); color: var(--text); box-shadow: var(--depth); overflow: hidden; }
+.mapview__head { display: flex; align-items: center; gap: 14px; }
+.mapview__head > div:first-child { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mapview__head b { font: 600 22px/1.1 var(--display); letter-spacing: -0.02em; }
+.mapview__head span { color: var(--muted); font-size: 13px; }
+.mapview__head .close { position: static; }
+.mapview__tabs { display: flex; gap: 6px; padding: 4px; border-radius: 999px; background: var(--carbon-2); }
+.mapview__tabs .pill { padding: 7px 14px; font-size: 13px; background: transparent; color: var(--muted); border: 0; }
+.mapview__tabs .pill.is-active { background: #fff; color: var(--ink); }
+.mapview__tabs .pill:disabled { opacity: 0.35; cursor: default; }
+.mapview__body { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 14px; min-height: 0; }
+#mv-canvas { width: 100%; height: auto; border-radius: var(--r-lg); background: #15181b; cursor: pointer; }
+.mapview__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; overflow: auto; max-height: 520px; }
+.mapview__list button { width: 100%; display: grid; grid-template-columns: 10px 1fr; column-gap: 10px; align-items: center; text-align: left; padding: 10px 12px; border: 0; border-radius: var(--r-md); background: var(--carbon-2); color: var(--text); cursor: pointer; font: 600 14px/1.2 var(--sans); }
+.mapview__list button:hover, .mapview__list button.is-here { background: var(--carbon-3); }
+.mapview__list button.is-here span::after { content: ' · you’re here'; color: var(--accent); font-weight: 500; }
+.mapview__list i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); grid-row: span 2; }
+.mapview__list em { font-style: normal; font-weight: 400; font-size: 12px; color: var(--muted); grid-column: 2; }
+.mapview__foot { margin: 0; font-size: 13px; color: var(--muted); }
+@media (max-width: 760px) {
+  .mapview__card { padding: 14px; }
+  .mapview__body { grid-template-columns: 1fr; }
+  .mapview__list { max-height: 30vh; }
+  .mapview__head { flex-wrap: wrap; }
+  #indoor .indoor__btn[data-plan] { display: none; }
+}
