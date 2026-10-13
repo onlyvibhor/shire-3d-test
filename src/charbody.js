@@ -637,7 +637,6 @@ export function makePerson(opts = {}) {
       // soft side-swept fringe
       shell(0.011, -0.105, 1.0, 0.06, 'bob');
       H('bobfringe', () => new THREE.SphereGeometry(0.06, 14, 10), 0.012, 0.1, 0.05, { s: [1.3, 0.42, 0.9], r: [-0.25, 0, 0.12] });
-      for (const sx of [-1, 1]) H('bobend' + sx, () => new THREE.SphereGeometry(0.03, 10, 8), sx * 0.088, -0.085, -0.005, { s: [0.8, 0.7, 1.4] });
       break;
     case 'long':
     case 'wavy':

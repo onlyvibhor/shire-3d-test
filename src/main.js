@@ -723,6 +723,7 @@ function arrive(stuck = false) {
     return;
   }
   state.heading = Math.atan2((p.fx ?? p.x) - state.pos.x, (p.fz ?? p.z) - state.pos.z);
+  state.speed = 0; // stop, turn to it, use it
   act(p.action);
 }
 function movePlayer(dt) {
@@ -803,11 +804,17 @@ function movePlayer(dt) {
         routeBest = d;
         routeStall = 0;
       }
-      if (routeStall > 0.9) arrive(true);
+      if (routeStall > 0.9) {
+        arrive(true);
+        moving = false;
+      }
     }
   }
   // close enough to what you clicked: turn to it and use it
-  if (state.pending && Math.hypot(state.pending.x - state.pos.x, state.pending.z - state.pos.z) < state.pending.reach) arrive();
+  if (state.pending && Math.hypot(state.pending.x - state.pos.x, state.pending.z - state.pos.z) < state.pending.reach) {
+    arrive();
+    moving = false;
+  }
   const running = keys.has('shift') || (stick.active && stickMag > 0.93) || (state.target && !state.indoor && Math.hypot(state.target.x - state.pos.x, state.target.z - state.pos.z) > 18);
   const want = moving ? (running ? 9 : 4.2 * Math.max(0.35, stickMag)) : 0;
   state.speed = THREE.MathUtils.lerp(state.speed, want, Math.min(1, dt * 7));
