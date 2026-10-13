@@ -3,22 +3,21 @@
 // reached breathes gently; a guide card on screen follows along. All text comes from the
 // portfolio's own content.
 import * as THREE from 'three';
-import { AWARD_LIST } from './data.js';
 import { canvasTexture } from './materials.js';
 import { FONT } from './type.js';
 
 // [x, z] are in room coordinates (origin at the room's centre, the door at +z)
 export const STORIES = {
   ai: {
-    title: 'Inside the AI Hub',
+    title: 'Inside the AI Lab',
     intro: 'How the studio turns AI into tools the whole team uses.',
     chapters: [
       { at: [0, 11.4], title: 'Three principles', line: 'Prompts are inputs. Tools are modules. Systems create consistency.' },
       { at: [-14.6, 9.0], title: 'One photo in, a library out', line: 'The image-generation lab: Founder Image Generator, Product Image Generator, Advanced Image Editor.' },
       { at: [13.4, 12.6], title: 'The T20 pipeline', line: '81 TV films and 200+ posts from one automated pipeline.' },
       { at: [-14.5, -1.6], title: 'The stack', line: 'Every tool the studio builds with, sorted by what it’s for.' },
-      { at: [15.2, -2.4], title: 'The sandbox', line: 'Lenses and grades from the Cinematography Tool, and AI Works.' },
-      { at: [0, -14.6], title: 'Teaching it', line: 'AI design workshops: the methods, shared with the community.' },
+      { at: [15.2, -2.4], title: 'The sandbox', line: 'Lenses and grades from the Cinematography Tool, and Rajasthan in Midjourney.' },
+      { at: [0, -14.6], title: 'The AI films', line: 'Undying Light, Khwaab and Houseparty, on the big screen.' },
     ],
   },
   home: {
@@ -35,27 +34,15 @@ export const STORIES = {
     ],
   },
   fun: {
-    title: 'The Playhouse',
-    intro: 'Films, stop motion, found objects and a game: the work made for fun.',
+    title: 'The Playground',
+    intro: 'Stop motion, found objects and the art series: the work made for fun.',
     chapters: [
       { at: [1.6, 14.4], title: 'The lobby', line: 'Popcorn first. The cinema is through the arch under the neon sign.' },
-      { at: [-1, 3.4], title: 'Now showing', line: 'Pick a film at the selector and it goes up on the big screen. Take a seat.' },
+      { at: [-1, 3.4], title: 'Now showing', line: 'The stop-motion films: pick one at the selector and it goes up on the big screen.' },
       { at: [9, 4.6], title: 'Modern Junkyard', line: 'The stop-motion studio: puppets that move one frame at a time.' },
       { at: [11, -8.4], title: 'Power', line: 'Found-object art: sockets, switches and wires, as courage and instinct.' },
-      { at: [14.4, 15.2], title: 'The arcade', line: 'Back in the Ring, the Netbanking game: playable at the cabinet.' },
+      { at: [14.4, 15.2], title: 'The art series', line: 'Eyes, Birds, Power and All Things A, one cabinet each.' },
       { at: [-14.6, 14.8], title: 'Films & references', line: 'The films and stories that shaped the work, in the lounge.' },
-    ],
-  },
-  awards: {
-    title: 'The Hall of Fame',
-    intro: `${AWARD_LIST.length} awards in 2026, for the work and for the team.`,
-    chapters: [
-      { at: [0, 15.6], title: 'The Golden Gallery', line: 'Every award here was won by the studio, on real briefs, in 2026.' },
-      { at: [0, 3.4], title: 'For the team', line: 'ET Brand Disruption Awards, Gold: Most Disruptive Creative & Design Team.' },
-      { at: [-13.4, 1], title: 'The Shorty Awards', line: 'Winner for Generative AI, Gold Honor for Financial Services, Finalist for Community Engagement.' },
-      { at: [13.4, 1], title: 'Kyoorius and ET Brand Disruption', line: 'First List for Film Craft and for Use of Technology & AI; Silver for Most Disruptive B2B Campaign.' },
-      { at: [0, -13.6], title: 'Trial of the Century', line: 'The animal courtroom behind six of the seven awards, on the big screen.' },
-      { at: [12.6, 14.6], title: 'The nights', line: 'On stage and at the awards, framed on the photography wall.' },
     ],
   },
 };

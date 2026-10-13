@@ -1,11 +1,11 @@
-// The AI Hub: how the studio turns AI into tools the whole team uses. Six connected rooms around a
+// The AI Lab: how the studio turns AI into tools the whole team uses, and the AI films and images. Six connected rooms around a
 // tall holographic atrium:
 //   Atrium — the studio's AI core, its three principles, a little studio bot
 //   Image-generation lab — Founder Image Generator (one photo in, a library out), Product Image
 //                          Generator and the Advanced Image Editor, input → tool → output
 //   Automation workshop — the T20 pipeline on a conveyor, and Social Content Gen
 //   Tools collection — the studio's stack, sorted into what each tool is for
-//   Demonstration theatre — the AI design workshops, on stage
+//   Screening room — the AI films: Undying Light, Khwaab and Houseparty
 //   Experimental sandbox — the Cinematography Tool's lenses and grades, and AI Works
 import * as THREE from 'three';
 import { PROJECTS, TOOLS, AIHUB } from '../data.js';
@@ -95,13 +95,13 @@ export function buildAIHub(origin) {
   partition(room, { axis: 'z', at: 9, from: -8, to: 20, h: PH, mat: WALL, trim: TRIM, openings: [{ at: 13, w: 3.2, style: 'round', ...sign({ neg: 'Automation workshop' }) }, { at: -1, w: 3.2, style: 'round', ...sign({ neg: 'Experimental sandbox' }) }] });
   partition(room, { axis: 'x', at: 6, from: -19, to: -9, h: PH, mat: WALL, trim: TRIM, openings: [{ at: -10.45, w: 2.3, style: 'round' }] });
   partition(room, { axis: 'x', at: 6, from: 9, to: 19, h: PH, mat: WALL, trim: TRIM, openings: [{ at: 14, w: 3, style: 'round' }] });
-  partition(room, { axis: 'x', at: -8, from: -19, to: 19, h: PH, mat: WALL, trim: TRIM, openings: [{ at: 0, w: 6, style: 'round', ...sign({ pos: 'Demonstration theatre' }) }, { at: 17.2, w: 2.8, style: 'round' }] });
+  partition(room, { axis: 'x', at: -8, from: -19, to: 19, h: PH, mat: WALL, trim: TRIM, openings: [{ at: 0, w: 6, style: 'round', ...sign({ pos: 'Screening room' }) }, { at: 17.2, w: 2.8, style: 'round' }] });
   zone(room, 'atrium', 'Atrium', -9, -8, 9, 20, [0, 11], 'The AI core');
   zone(room, 'imagelab', 'Image-generation lab', -19, 6, -9, 20, [-14, 12], 'Input → tool → output');
   zone(room, 'tools', 'Tools collection', -19, -8, -9, 6, [-13.5, -1], 'The stack, by what it’s for');
   zone(room, 'automation', 'Automation workshop', 9, 6, 19, 20, [13.5, 12], 'The T20 pipeline');
   zone(room, 'sandbox', 'Experimental sandbox', 9, -8, 19, 6, [13.5, -1], 'Lenses, grades, AI films');
-  zone(room, 'theatre', 'Demonstration theatre', -19, -20, 19, -8, [0, -10], 'Workshops on stage');
+  zone(room, 'theatre', 'Screening room', -19, -20, 19, -8, [0, -10], 'The AI films');
 
   // ===== Atrium: the core =====
   const core = new THREE.Group();
@@ -145,7 +145,7 @@ export function buildAIHub(origin) {
       coreLabel.lookAt(room.origin.x, 6.4, room.origin.z + 30);
     },
   });
-  addThing(room, 0, 7.4, { kind: 'place', id: 'ai', label: 'The AI Hub', verb: 'About this lab' });
+  addThing(room, 0, 7.4, { kind: 'place', id: 'ai', label: 'The AI Lab', verb: 'About this lab' });
   // the three principles, floating over the way in
   ['Prompts are inputs', 'Tools are modules', 'Systems create consistency'].forEach((text, k) => {
     const panel = new THREE.Group();
@@ -322,7 +322,7 @@ export function buildAIHub(origin) {
   g.add(t20panel);
   clickable(room, t20panel, { kind: 'project', slug: 't20' });
   addThing(room, 14, 13.4, { kind: 'project', slug: 't20', label: 'The T20 pipeline: 81 films, 200+ posts', verb: 'See it in action' });
-  addThing(room, 10.6, 17.8, { kind: 'project', slug: 'social-gen', label: 'Social Content Gen: a founder photo in, a post out', verb: 'Open' });
+  addThing(room, 10.6, 17.8, { kind: 'project', slug: 'toolkit', label: 'Founder Image Generator: a founder photo in, a post out', verb: 'Open' });
   addNpc(room, person({ seed: r(), style: 'techwear', accent: C }), 12.2, 13.2, faceTo(12.2, 13.2, 14, 15.6), 'present', 'ai', { name: 'Pipeline engineer', lines: ['One photo per founder. Three lighting set-ups per match slot. The belt never stops.', '200+ posts came off this line, including founders who never appeared on TV.'] });
   lamp(room, 14, 5, 13, '#bfefff', 5, 10);
 
@@ -410,11 +410,11 @@ export function buildAIHub(origin) {
   clickable(room, cine.pic, { kind: 'project', slug: 'toolkit' });
   addThing(room, 16.6, -1, { kind: 'project', slug: 'toolkit', label: 'Cinematography Tool: lenses and grades', verb: 'Open tool' });
   // AI Works: the Rajasthan series and the films, on a curved screen
-  PROJECTS['ai-works'].images.forEach((src, k) => {
+  PROJECTS['jaipur-ai'].images.slice(0, 3).forEach((src, k) => {
     const f = framed(room, 10.4 + k * 2.1, 3.2, -7.82, 0, 1.9, 1.3, screenMat(src, 1.9 / 1.3), { frame: V, border: 0.04 });
-    clickable(room, f.pic, { kind: 'project', slug: 'ai-works' });
+    clickable(room, f.pic, { kind: 'project', slug: 'jaipur-ai' });
   });
-  addThing(room, 12.5, -5.6, { kind: 'project', slug: 'ai-works', label: 'AI Works: Rajasthan in Midjourney, and short films', verb: 'Open' });
+  addThing(room, 12.5, -5.6, { kind: 'project', slug: 'jaipur-ai', label: 'Rajasthan in Midjourney', verb: 'Open' });
   // a holo table in the middle, with a hovering model turning over it
   const holo = new THREE.Group();
   holo.position.set(12.6, 0, 0.6);
@@ -435,34 +435,42 @@ export function buildAIHub(origin) {
   g.add(mesh(new THREE.BoxGeometry(14, 0.4, 3.0), solid('#16223d'), 0, 0.2, -18.4));
   g.add(mesh(new THREE.BoxGeometry(14.04, 0.04, 0.06), glow(C, 1.6), 0, 0.4, -16.9, false));
   addBox(room, -7, -20, 7, -16.9);
-  const talk = bigScreen(room, 0, 4.4, -D / 2 + 0.1, 0, 10.4, 5.85, screenMat('work/talk-growthschool.jpg', 16 / 9));
-  clickable(room, talk.screen, { kind: 'project', slug: 'mentor' });
-  const mentor = PROJECTS.mentor;
-  const talkInfo = plate(4.6, 2.6, (c, w, h) => {
-    c.fillStyle = '#0b1222';
-    c.fillRect(0, 0, w, h);
-    c.fillStyle = C;
-    c.font = `600 ${h * 0.07}px ${FONT.mono}`;
-    c.fillText('AI DESIGN WORKSHOPS', 32, h * 0.14);
-    c.fillStyle = '#ffffff';
-    c.font = `600 ${h * 0.075}px ${FONT.sans}`;
-    wrap(c, '“Revolutionizing Design Workflows with AI: Razorpay’s Success Story”, for GrowthSchool and Designland.', w - 64, 4).forEach((l, k) => c.fillText(l, 32, h * 0.3 + k * h * 0.1));
-    mentor.metrics.forEach(([v, l], k) => {
+  // the AI films: Houseparty plays on the big screen, the other two hang either side
+  const LITE = new URLSearchParams(location.search).has('lite');
+  let filmMat = screenMat(PROJECTS.houseparty.images[0], 16 / 9);
+  if (!LITE) {
+    const v = document.createElement('video');
+    v.src = PROJECTS.houseparty.video;
+    v.muted = true;
+    v.loop = true;
+    v.playsInline = true;
+    v.preload = 'none';
+    const tex = new THREE.VideoTexture(v);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const videoMat = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false });
+    v.addEventListener('playing', () => (talk.screen.material = videoMat), { once: true });
+    room.updaters.push({ update: () => v.paused && v.play().catch(() => {}) });
+    room.onLeave = () => v.pause();
+  }
+  const talk = bigScreen(room, 0, 4.4, -D / 2 + 0.1, 0, 10.4, 5.85, filmMat);
+  clickable(room, talk.screen, { kind: 'project', slug: 'houseparty' });
+  for (const [slug, x] of [['undying-light', -11], ['khwaab', 11]]) {
+    const f = framed(room, x, 3.6, -D / 2 + 0.1, 0, 4.4, 2.475, screenMat(PROJECTS[slug].images[0], 16 / 9), { frame: C, border: 0.04 });
+    clickable(room, f.pic, { kind: 'project', slug });
+    const cap = plate(4.4, 0.42, (c, w, h) => {
+      c.fillStyle = '#0b1222';
+      c.fillRect(0, 0, w, h);
       c.fillStyle = '#ffffff';
-      c.font = `800 ${h * 0.16}px ${FONT.display}`;
-      c.fillText(v, 32 + k * (w / 2), h * 0.82);
-      c.fillStyle = '#8fb3d9';
-      c.font = `500 ${h * 0.06}px ${FONT.sans}`;
-      c.fillText(l, 32 + k * (w / 2), h * 0.93);
+      c.font = `700 ${h * 0.42}px ${FONT.sans}`;
+      c.textBaseline = 'middle';
+      fillFit(c, `${PROJECTS[slug].title} · ${PROJECTS[slug].tagline}`, 20, h / 2 + 1, w - 40);
     });
-  });
-  talkInfo.position.set(-11, 3.6, -D / 2 + 0.12);
-  g.add(talkInfo);
-  clickable(room, talkInfo, { kind: 'project', slug: 'mentor' });
-  const room2 = framed(room, 11, 3.6, -D / 2 + 0.1, 0, 4.4, 2.6, screenMat('work/talk-room.jpg', 4.4 / 2.6), { frame: C, border: 0.04 });
-  clickable(room, room2.pic, { kind: 'project', slug: 'mentor' });
-  addNpc(room, person({ seed: r(), style: 'blazer', accent: C }), -2.4, -18.0, 0.25, 'present', 'ai', { y: 0.4, lines: AIHUB.quotes, name: 'Workshop lead' });
-  addThing(room, 0, -14.4, { kind: 'project', slug: 'mentor', label: 'AI design workshops', verb: 'Open' });
+    cap.position.set(x, 2.05, -D / 2 + 0.14);
+    g.add(cap);
+    addThing(room, x, -15.6, { kind: 'project', slug, label: PROJECTS[slug].title, verb: 'Watch' });
+  }
+  addNpc(room, person({ seed: r(), style: 'blazer', accent: C }), -2.4, -18.0, 0.25, 'present', 'ai', { y: 0.4, lines: AIHUB.quotes, name: 'Lab lead' });
+  addThing(room, 0, -14.4, { kind: 'project', slug: 'houseparty', label: 'Houseparty: an abstract AI short', verb: 'Watch' });
   // the audience: three rows of chairs
   for (let row = 0; row < 3; row++) {
     for (let k = 0; k < 8; k++) {

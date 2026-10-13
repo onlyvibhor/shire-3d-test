@@ -506,6 +506,23 @@ export const ARENAS = {
     // a formal court: low walls closing the back on either side of the bench
     walls: [[152, 17.6, 6], [208, 17.6, 6]],
   },
+  mentorship: {
+    gate: { variant: 'pylon', w: 11.4, h: 9.5, a: 2.5, spring: 3.7, depth: 2.4, stone: 'blush' },
+    hero: [122, 13.8],
+    boards: [[238, 13.8]],
+    landmark: [0, 0, 0],
+    dome: [180, 21.5],
+    work: { wall: [94, 16], desk: [86, 12] },
+    homes: [[142, 21], [218, 21]],
+    lead: [3, 6.8],
+    walk: [[-6.5, 5.5], [-9, 0.5], [-7, -5.5]],
+    belief: [30, 18.5],
+    beds: [[122, 11.8, 5.4, 1.1, 'warm'], [238, 11.8, 4, 1.1, 'warm'], [40, 12.5, 3, 1.3, 'warm', true], [320, 12.5, 3, 1.3, 'white', true]],
+    lamps: [[36, 10.3], [324, 10.3], [160, 10.5], [200, 10.5]],
+    benches: [[214, 8.8]],
+    // a formal court: low walls closing the back on either side of the bench
+    walls: [[152, 17.6, 6], [208, 17.6, 6]],
+  },
   design: {
     gate: { variant: 'bastion', w: 10.2, h: 9, a: 2.4, spring: 3.4, depth: 2, stone: 'ochre' },
     hero: [206, 15.4],
@@ -628,7 +645,7 @@ export function buildWayfinding(scene, { places, piers, colliders, groundAt }) {
     colliders.push({ x, z, r: 0.35 });
   };
   const depts = places.filter((p) => p.angle !== undefined && p.reach === 22);
-  const pockets = places.filter((p) => ['fun', 'awards', 'home', 'ai', 'lab'].includes(p.id));
+  const pockets = places.filter((p) => ['fun', 'home', 'ai', 'lab'].includes(p.id));
   for (const d of depts) {
     const a = d.angle;
     // 12.5 m out along the spoke, 4 m to its right

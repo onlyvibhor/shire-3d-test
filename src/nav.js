@@ -139,6 +139,7 @@ export function createNav(d) {
     if (!quiet) sfx('exit');
     say(`exit ${id}`);
     const go = () => {
+      room.onLeave?.();
       room.group.visible = false;
       outdoor.visible = true;
       state.indoor = null;

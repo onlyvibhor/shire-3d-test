@@ -205,13 +205,12 @@ function routeBetween(a, b, lane) {
 export function buildTraffic(scene, ctx) {
   const r = rng(4242);
   const H = HAMLETS;
+  // errands between the four departments (slots 0 Brand, 1 Product Launches, 3 Social, 4 Mentorship)
   const jobs = [
-    ['brief', 4, 0], // Content & Copy → Brand
-    ['brief', 2, 5], // Product → Design
-    ['brief', 1, 3], // PMM → Social
-    ['approval', 5, 1], // Design → PMM
-    ['approval', 3, 2], // Social → Product
-    ['approval', 0, 4], // Brand → Content & Copy
+    ['brief', 0, 3], // Brand → Social
+    ['brief', 1, 3], // Product Launches → Social
+    ['approval', 3, 0], // Social → Brand
+    ['approval', 0, 1], // Brand → Product Launches
     ['collab', 0, 1],
     ['collab', 3, 4],
   ];

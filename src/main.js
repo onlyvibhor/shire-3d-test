@@ -9,10 +9,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import './style.css';
 import './theme.css';
-import { OWNER, PILLARS, CENTER, HAMLETS, LAB, HOME, FUN, AIHUB, HALL, PROJECTS, AWARDS, ASSETS, NPC_TALK, CONTACT, FAVOURITES, TOOLS, AWARD_LIST } from './data.js';
+import { OWNER, PILLARS, CENTER, HAMLETS, DEPARTMENTS, LAB, HOME, FUN, AIHUB, PROJECTS, AWARDS, ASSETS, NPC_TALK, CONTACT, FAVOURITES, TOOLS, AWARD_LIST } from './data.js';
 import {
   buildSky, makeSkyMaterial, buildClouds, buildTerrain, buildGrass, buildLavender, buildFlowers, buildMountains, buildTrees, buildPollen,
-  heightAt, groundAt, walkY, POND, PATHS, WORLD_RADIUS, buildOcean, SEA_LEVEL, coastR, onPaving, BAZAAR, distToPath, GALLERY,
+  heightAt, groundAt, walkY, POND, PATHS, WORLD_RADIUS, buildOcean, SEA_LEVEL, coastR, onPaving, BAZAAR, distToPath,
 } from './world.js';
 import { buildMonoliths, buildSkyRail, buildFloatingProps, buildStreetLamps, buildCoast, PIERS } from './landmarks.js';
 import { buildInteriors } from './interiors.js';
@@ -26,7 +26,6 @@ import { buildGallery } from './gallery.js';
 import { declutter } from './declutter.js';
 import { buildHidden } from './hidden.js';
 import { buildPond } from './pond.js';
-import { buildChitrashala } from './chitrashala.js';
 import { buildWayfinding } from './arena.js';
 import { snapshotMatrices, groundFit } from './groundfit.js';
 import galleryLayout from './content/gallery-layout.json';
@@ -202,13 +201,11 @@ village.interactables.push(ride.interact);
 
 const PLACES = [
   { ...CENTER, x: 0, z: 0, y: heightAt(0, 0), reach: 16 },
-  ...HAMLETS.map((h) => ({ ...h, reach: 22 })),
+  ...DEPARTMENTS.map((h) => ({ ...h, reach: 22 })),
   { ...LAB, reach: 9 },
   { ...FUN, reach: 16 },
   { ...HOME, reach: 16 },
   { ...AIHUB, reach: 17 },
-  { ...HALL, reach: 16 },
-  { ...GALLERY, reach: 19 },
 ];
 
 // Level 3 wayfinding: fingerposts at the tree, at the piers and at the Gallery's lane
@@ -241,7 +238,7 @@ function travelTo(id) {
   if (p.id === 'hq') {
     x = 0;
     z = 15;
-  } else if (['lab', 'home', 'fun', 'ai', 'awards', 'gallery'].includes(p.id)) {
+  } else if (['lab', 'home', 'fun', 'ai'].includes(p.id)) {
     // arrive on the place's own lane, a few steps short of its front
     const back = p.id === 'lab' ? 7 : p.id === 'home' ? 14 : p.id === 'gallery' ? 17 : 20;
     const f = p.facing ?? Math.atan2(-p.x, -p.z);
@@ -269,7 +266,7 @@ story.board.name = 'brief-board';
 // two hidden places, off the paths: the Grofers years in the woods, the Razorpay years by the sea
 const hidden = buildHidden(outdoor, { colliders, interactables: village.interactables, clickables: village.clickables });
 // clear the trees and monoliths standing where they were built (the Gallery courtyard too)
-for (const sp of [...hidden.spots, { x: GALLERY.x, z: GALLERY.z, clear: 19 }]) {
+for (const sp of hidden.spots) {
   for (const it of trees.items) if (!it.out && Math.hypot(it.x - sp.x, it.z - sp.z) < (sp.clear ?? 12)) ((it.out = true), trees.hide(it));
   for (const it of monoliths.items) {
     if (it.out || Math.hypot(it.x - sp.x, it.z - sp.z) > (sp.clear ?? 13)) continue;
@@ -288,7 +285,6 @@ declutter(outdoor, clutter, { merge: false });
 // The roadside screens, rotating towers and lamp banners have moved into the Gallery courtyard;
 // what stays out on the island is the pair of hill boards seen from across it.
 const gallery = buildGallery(outdoor, { colliders, lamps: lampSpots, clickables: village.clickables, layout: galleryLayout.filter((it) => it.type === 'hill'), solve: new URLSearchParams(location.search).has('solve') });
-const court = named('gallery-court', () => buildChitrashala(outdoor, { gallery, colliders, npcs: village.npcs }));
 declutter(outdoor, clutter);
 
 // ---------- UI ----------
@@ -495,6 +491,17 @@ window.addEventListener('keydown', (e) => {
   if (ui.modalOpen()) {
     if (k === 'escape') ui.closeOverlays();
     else if (k === 'arrowright' || k === 'arrowleft') ui.stepGallery(k === 'arrowright' ? 1 : -1);
+    return;
+  }
+  // seated in front of the art: ← → move between the works, E opens the one in view
+  const focus = state.seat?.focus;
+  if (focus && (k === 'arrowleft' || k === 'arrowright' || k === 'e' || k === 'enter')) {
+    if (k === 'e' || k === 'enter') ui.openProject(focus.targets[focus.index].slug);
+    else {
+      focus.index = (focus.index + (k === 'arrowright' ? 1 : -1) + focus.targets.length) % focus.targets.length;
+      showFocus(focus);
+    }
+    e.preventDefault();
     return;
   }
   keys.add(k);
@@ -1029,6 +1036,13 @@ function updateCamera(dt, t) {
     }
     k = 7;
   }
+  // seated in front of the art: the camera settles on one work at a time
+  if (state.seat?.focus && state.mode === 'walk') {
+    const ft = state.seat.focus.targets[state.seat.focus.index];
+    desiredPos.fromArray(ft.pos);
+    desiredLook.fromArray(ft.look);
+    k = 2.2;
+  }
   // a fixed shot, for screenshots and debugging: __shire.state.shot = { pos: [x, y, z], look: [x, y, z] }
   if (state.shot) {
     desiredPos.fromArray(state.shot.pos);
@@ -1230,7 +1244,12 @@ function sitDown(seat) {
   state.yaw = seat.heading + Math.PI;
   state.speed = 0;
   state.forcePose = seat.pose || 'sit';
-  ui.toast('<b>You sit down.</b> Move to get up again.', 2200, { quiet: true });
+  if (seat.focus) showFocus(seat.focus);
+  else ui.toast('<b>You sit down.</b> Move to get up again.', 2200, { quiet: true });
+}
+function showFocus(focus) {
+  const t = focus.targets[focus.index];
+  ui.toast(`<b>${t.title}</b><br>${focus.index + 1} of ${focus.targets.length} · <kbd>←</kbd> <kbd>→</kbd> next · <kbd>E</kbd> open · <kbd>W</kbd> get up`, 6000, { quiet: true });
 }
 
 function act(a) {
@@ -1468,7 +1487,6 @@ function frame() {
   story.update(t, quest.activeId());
   hidden.update(t);
   pond.update(t);
-  court.update(t);
   gallery.update(t, dt, camera, !state.indoor);
   quest.update(t, dt, { pos: state.pos, indoorId: state.indoor?.id || null, mode: state.mode, blocked: ui.modalOpen() });
   playerPos.copy(state.pos);

@@ -5,13 +5,13 @@
 // posts set back from the roads, and every spot is checked against roads, buildings and the sea.
 import * as THREE from 'three';
 import manifest from './content/billboards.json';
-import { PROJECTS, CENTER, HAMLETS, LAB, FUN, HOME, AIHUB, HALL } from './data.js';
+import { PROJECTS, CENTER, DEPARTMENTS, HAMLETS, LAB, FUN, HOME, AIHUB } from './data.js';
 import { PATHS, ROAD_HALF, SEA_LEVEL, groundAt, distToSegment, ZONES, POND, JANTAR, BAZAAR } from './world.js';
 import { WHITE_METAL, DARK, mesh, glow } from './materials.js';
 import { projectPlateTexture } from './type.js';
 
 const LITE = new URLSearchParams(location.search).has('lite') || matchMedia('(hover: none)').matches;
-const PLACES = [CENTER, ...HAMLETS, LAB, FUN, HOME, AIHUB, HALL];
+const PLACES = [CENTER, ...DEPARTMENTS, LAB, FUN, HOME, AIHUB];
 const colorOf = (slug) => PLACES.find((p) => p.projects?.includes(slug))?.color || CENTER.color;
 
 // ---------- textures: loaded on demand, the least recently shown dropped when there are too many ----------
@@ -124,7 +124,7 @@ const KEEP_OUT = () => [
   ...HAMLETS.map((h) => ({ x: h.x, z: h.z, r: 15 })),
   ...ZONES.map((z) => ({ x: z.x, z: z.z, r: 13 })),
   { x: 0, z: 0, r: 17 },
-  { x: LAB.x, z: LAB.z, r: 9 },
+  { x: LAB.x, z: LAB.z, r: 11 },
   { x: POND.x, z: POND.z, r: POND.bank + 1 },
   { x: JANTAR.x, z: JANTAR.z, r: JANTAR.r + 3 },
   // the bazaar street: a chain of circles along it rather than one huge one

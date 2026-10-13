@@ -225,10 +225,6 @@
    "src": "assets/img/bb/L-whatsapp-2.jpg"
   },
   {
-   "slug": "intl",
-   "src": "assets/img/bb/L-intl-1.jpg"
-  },
-  {
    "slug": "toolkit",
    "src": "assets/img/bb/L-toolkit-1.jpg"
   },
@@ -253,66 +249,6 @@
    "src": "assets/img/bb/L-toolkit-6.jpg"
   },
   {
-   "slug": "social-gen",
-   "src": "assets/img/bb/L-social-gen-1.jpg"
-  },
-  {
-   "slug": "social-gen",
-   "src": "assets/img/bb/L-social-gen-2.jpg"
-  },
-  {
-   "slug": "social-gen",
-   "src": "assets/img/bb/L-social-gen-3.jpg"
-  },
-  {
-   "slug": "ai-works",
-   "src": "assets/img/bb/L-ai-works-1.jpg"
-  },
-  {
-   "slug": "ai-works",
-   "src": "assets/img/bb/L-ai-works-2.jpg"
-  },
-  {
-   "slug": "ai-works",
-   "src": "assets/img/bb/L-ai-works-3.jpg"
-  },
-  {
-   "slug": "ai-works",
-   "src": "assets/img/bb/L-ai-works-4.jpg"
-  },
-  {
-   "slug": "ai-works",
-   "src": "assets/img/bb/L-ai-works-5.jpg"
-  },
-  {
-   "slug": "ai-works",
-   "src": "assets/img/bb/L-ai-works-6.jpg"
-  },
-  {
-   "slug": "ai-works",
-   "src": "assets/img/bb/L-ai-works-7.jpg"
-  },
-  {
-   "slug": "ai-works",
-   "src": "assets/img/bb/L-ai-works-8.jpg"
-  },
-  {
-   "slug": "ai-works",
-   "src": "assets/img/bb/L-ai-works-9.jpg"
-  },
-  {
-   "slug": "ai-works",
-   "src": "assets/img/bb/L-ai-works-10.jpg"
-  },
-  {
-   "slug": "ai-works",
-   "src": "assets/img/bb/L-ai-works-11.jpg"
-  },
-  {
-   "slug": "ai-works",
-   "src": "assets/img/bb/L-ai-works-12.jpg"
-  },
-  {
    "slug": "love-story",
    "src": "assets/img/bb/L-love-story-1.jpg"
   },
@@ -333,86 +269,278 @@
    "src": "assets/img/bb/L-diwali-2020-1.jpg"
   },
   {
-   "slug": "afsaane",
-   "src": "assets/img/bb/L-afsaane-1.jpg"
-  },
-  {
-   "slug": "unskippable",
-   "src": "assets/img/bb/L-unskippable-1.jpg"
-  },
-  {
    "slug": "grofery",
    "src": "assets/img/bb/L-grofery-1.jpg"
   },
   {
-   "slug": "grofers",
-   "src": "assets/img/bb/L-grofers-1.jpg"
+   "slug": "mentor",
+   "src": "assets/img/bb/L-mentor-1.jpg"
+  },
+  {
+   "slug": "grofers-brand-films",
+   "src": "assets/img/bb/L-grofers-brand-films-1.jpg"
+  },
+  {
+   "slug": "moms-priceless",
+   "src": "assets/img/bb/L-moms-priceless-1.jpg"
+  },
+  {
+   "slug": "timeformom",
+   "src": "assets/img/bb/L-timeformom-1.jpg"
+  },
+  {
+   "slug": "grofers-corporate",
+   "src": "assets/img/bb/L-grofers-corporate-1.jpg"
+  },
+  {
+   "slug": "ace",
+   "src": "assets/img/bb/L-ace-4.jpg"
+  },
+  {
+   "slug": "passport",
+   "src": "assets/img/bb/L-passport-3.jpg"
+  },
+  {
+   "slug": "passport",
+   "src": "assets/img/bb/L-passport-4.jpg"
+  },
+  {
+   "slug": "whatsapp",
+   "src": "assets/img/bb/L-whatsapp-3.jpg"
+  },
+  {
+   "slug": "whatsapp",
+   "src": "assets/img/bb/L-whatsapp-4.jpg"
+  },
+  {
+   "slug": "money",
+   "src": "assets/img/bb/L-money-3.jpg"
+  },
+  {
+   "slug": "money",
+   "src": "assets/img/bb/L-money-4.jpg"
+  },
+  {
+   "slug": "rakhi",
+   "src": "assets/img/bb/L-rakhi-1.jpg"
+  },
+  {
+   "slug": "rakhi",
+   "src": "assets/img/bb/L-rakhi-2.jpg"
+  },
+  {
+   "slug": "winter-foods",
+   "src": "assets/img/bb/L-winter-foods-2.jpg"
+  },
+  {
+   "slug": "winter-foods",
+   "src": "assets/img/bb/L-winter-foods-3.jpg"
+  },
+  {
+   "slug": "winter-foods",
+   "src": "assets/img/bb/L-winter-foods-4.jpg"
+  },
+  {
+   "slug": "emotions-stickers",
+   "src": "assets/img/bb/L-emotions-stickers-1.jpg"
+  },
+  {
+   "slug": "emotions-stickers",
+   "src": "assets/img/bb/L-emotions-stickers-2.jpg"
+  },
+  {
+   "slug": "emotions-stickers",
+   "src": "assets/img/bb/L-emotions-stickers-3.jpg"
+  },
+  {
+   "slug": "emotions-stickers",
+   "src": "assets/img/bb/L-emotions-stickers-4.jpg"
+  },
+  {
+   "slug": "love-story",
+   "src": "assets/img/bb/L-love-story-4.jpg"
+  },
+  {
+   "slug": "diwali-2020",
+   "src": "assets/img/bb/L-diwali-2020-2.jpg"
+  },
+  {
+   "slug": "diwali-2020",
+   "src": "assets/img/bb/L-diwali-2020-3.jpg"
+  },
+  {
+   "slug": "diwali-2020",
+   "src": "assets/img/bb/L-diwali-2020-4.jpg"
+  },
+  {
+   "slug": "diwali-recipes",
+   "src": "assets/img/bb/L-diwali-recipes-1.jpg"
+  },
+  {
+   "slug": "diwali-recipes",
+   "src": "assets/img/bb/L-diwali-recipes-2.jpg"
+  },
+  {
+   "slug": "grofery",
+   "src": "assets/img/bb/L-grofery-2.jpg"
+  },
+  {
+   "slug": "grofery",
+   "src": "assets/img/bb/L-grofery-3.jpg"
+  },
+  {
+   "slug": "grofery",
+   "src": "assets/img/bb/L-grofery-4.jpg"
   },
   {
    "slug": "mentor",
-   "src": "assets/img/bb/L-mentor-1.jpg"
+   "src": "assets/img/bb/L-mentor-2.jpg"
+  },
+  {
+   "slug": "mentor",
+   "src": "assets/img/bb/L-mentor-3.jpg"
+  },
+  {
+   "slug": "mentor-samanvaya",
+   "src": "assets/img/bb/L-mentor-samanvaya-1.jpg"
+  },
+  {
+   "slug": "mentor-samanvaya",
+   "src": "assets/img/bb/L-mentor-samanvaya-2.jpg"
+  },
+  {
+   "slug": "mentor-samanvaya",
+   "src": "assets/img/bb/L-mentor-samanvaya-3.jpg"
+  },
+  {
+   "slug": "mentor-growthschool",
+   "src": "assets/img/bb/L-mentor-growthschool-1.jpg"
+  },
+  {
+   "slug": "mentor-growthschool",
+   "src": "assets/img/bb/L-mentor-growthschool-2.jpg"
+  },
+  {
+   "slug": "mentor-iiitd",
+   "src": "assets/img/bb/L-mentor-iiitd-1.jpg"
+  },
+  {
+   "slug": "mentor-iiitd",
+   "src": "assets/img/bb/L-mentor-iiitd-2.jpg"
+  },
+  {
+   "slug": "mentor-iiitd",
+   "src": "assets/img/bb/L-mentor-iiitd-3.jpg"
+  },
+  {
+   "slug": "mentor-designland",
+   "src": "assets/img/bb/L-mentor-designland-1.jpg"
+  },
+  {
+   "slug": "mentor-designland",
+   "src": "assets/img/bb/L-mentor-designland-2.jpg"
+  },
+  {
+   "slug": "mentor-xtended",
+   "src": "assets/img/bb/L-mentor-xtended-1.jpg"
+  },
+  {
+   "slug": "mentor-designtank",
+   "src": "assets/img/bb/L-mentor-designtank-1.jpg"
+  },
+  {
+   "slug": "mentor-groundbreakin",
+   "src": "assets/img/bb/L-mentor-groundbreakin-1.jpg"
+  },
+  {
+   "slug": "mentor-groundbreakin",
+   "src": "assets/img/bb/L-mentor-groundbreakin-2.jpg"
+  },
+  {
+   "slug": "power",
+   "src": "assets/img/bb/L-power-1.jpg"
+  },
+  {
+   "slug": "power",
+   "src": "assets/img/bb/L-power-2.jpg"
+  },
+  {
+   "slug": "power",
+   "src": "assets/img/bb/L-power-3.jpg"
+  },
+  {
+   "slug": "eyes",
+   "src": "assets/img/bb/L-eyes-1.jpg"
+  },
+  {
+   "slug": "birds",
+   "src": "assets/img/bb/L-birds-1.jpg"
+  },
+  {
+   "slug": "birds",
+   "src": "assets/img/bb/L-birds-2.jpg"
+  },
+  {
+   "slug": "birds",
+   "src": "assets/img/bb/L-birds-3.jpg"
+  },
+  {
+   "slug": "khwaab",
+   "src": "assets/img/bb/L-khwaab-1.jpg"
+  },
+  {
+   "slug": "houseparty",
+   "src": "assets/img/bb/L-houseparty-1.jpg"
+  },
+  {
+   "slug": "houseparty",
+   "src": "assets/img/bb/L-houseparty-2.jpg"
+  },
+  {
+   "slug": "undying-light",
+   "src": "assets/img/bb/L-undying-light-1.jpg"
+  },
+  {
+   "slug": "urbanclap",
+   "src": "assets/img/bb/L-urbanclap-1.jpg"
+  },
+  {
+   "slug": "modern-junkyard",
+   "src": "assets/img/bb/L-modern-junkyard-1.jpg"
+  },
+  {
+   "slug": "veggie-people",
+   "src": "assets/img/bb/L-veggie-people-1.jpg"
+  },
+  {
+   "slug": "holi-stop-motion",
+   "src": "assets/img/bb/L-holi-stop-motion-1.jpg"
+  },
+  {
+   "slug": "valentines-week",
+   "src": "assets/img/bb/L-valentines-week-1.jpg"
+  },
+  {
+   "slug": "jaipur-ai",
+   "src": "assets/img/bb/L-jaipur-ai-1.jpg"
+  },
+  {
+   "slug": "jaipur-ai",
+   "src": "assets/img/bb/L-jaipur-ai-2.jpg"
+  },
+  {
+   "slug": "jaipur-ai",
+   "src": "assets/img/bb/L-jaipur-ai-3.jpg"
+  },
+  {
+   "slug": "jaipur-ai",
+   "src": "assets/img/bb/L-jaipur-ai-4.jpg"
   }
  ],
  "port": [
   {
-   "slug": "grofers",
-   "src": "assets/img/bb/P-grofers-1.jpg"
-  },
-  {
-   "slug": "grofers",
-   "src": "assets/img/bb/P-grofers-2.jpg"
-  },
-  {
-   "slug": "grofers",
-   "src": "assets/img/bb/P-grofers-3.jpg"
-  },
-  {
-   "slug": "grofers",
-   "src": "assets/img/bb/P-grofers-4.jpg"
-  },
-  {
-   "slug": "grofers",
-   "src": "assets/img/bb/P-grofers-5.jpg"
-  },
-  {
-   "slug": "grofers",
-   "src": "assets/img/bb/P-grofers-6.jpg"
-  },
-  {
    "slug": "btb",
    "src": "assets/img/bb/P-btb-1.jpg"
-  },
-  {
-   "slug": "absolut",
-   "src": "assets/img/bb/P-absolut-1.jpg"
-  },
-  {
-   "slug": "absolut",
-   "src": "assets/img/bb/P-absolut-2.jpg"
-  },
-  {
-   "slug": "absolut",
-   "src": "assets/img/bb/P-absolut-3.jpg"
-  },
-  {
-   "slug": "absolut",
-   "src": "assets/img/bb/P-absolut-4.jpg"
-  },
-  {
-   "slug": "absolut",
-   "src": "assets/img/bb/P-absolut-5.jpg"
-  },
-  {
-   "slug": "absolut",
-   "src": "assets/img/bb/P-absolut-6.jpg"
-  },
-  {
-   "slug": "absolut",
-   "src": "assets/img/bb/P-absolut-7.jpg"
-  },
-  {
-   "slug": "absolut",
-   "src": "assets/img/bb/P-absolut-8.jpg"
   },
   {
    "slug": "birds",
@@ -479,42 +607,6 @@
    "src": "assets/img/bb/P-eyes-8.jpg"
   },
   {
-   "slug": "habitats",
-   "src": "assets/img/bb/P-habitats-1.jpg"
-  },
-  {
-   "slug": "habitats",
-   "src": "assets/img/bb/P-habitats-2.jpg"
-  },
-  {
-   "slug": "habitats",
-   "src": "assets/img/bb/P-habitats-3.jpg"
-  },
-  {
-   "slug": "habitats",
-   "src": "assets/img/bb/P-habitats-4.jpg"
-  },
-  {
-   "slug": "habitats",
-   "src": "assets/img/bb/P-habitats-5.jpg"
-  },
-  {
-   "slug": "habitats",
-   "src": "assets/img/bb/P-habitats-6.jpg"
-  },
-  {
-   "slug": "habitats",
-   "src": "assets/img/bb/P-habitats-7.jpg"
-  },
-  {
-   "slug": "habitats",
-   "src": "assets/img/bb/P-habitats-8.jpg"
-  },
-  {
-   "slug": "ai-works",
-   "src": "assets/img/bb/P-ai-works-1.jpg"
-  },
-  {
    "slug": "mentor",
    "src": "assets/img/bb/P-mentor-1.jpg"
   },
@@ -525,6 +617,258 @@
   {
    "slug": "magic-checkout",
    "src": "assets/img/bb/P-magic-checkout-1.jpg"
+  },
+  {
+   "slug": "btb",
+   "src": "assets/img/bb/P-btb-2.jpg"
+  },
+  {
+   "slug": "t20",
+   "src": "assets/img/bb/P-t20-1.jpg"
+  },
+  {
+   "slug": "t20",
+   "src": "assets/img/bb/P-t20-2.jpg"
+  },
+  {
+   "slug": "grofers-brand-films",
+   "src": "assets/img/bb/P-grofers-brand-films-1.jpg"
+  },
+  {
+   "slug": "moms-priceless",
+   "src": "assets/img/bb/P-moms-priceless-1.jpg"
+  },
+  {
+   "slug": "timeformom",
+   "src": "assets/img/bb/P-timeformom-1.jpg"
+  },
+  {
+   "slug": "grofers-corporate",
+   "src": "assets/img/bb/P-grofers-corporate-1.jpg"
+  },
+  {
+   "slug": "ring",
+   "src": "assets/img/bb/P-ring-1.jpg"
+  },
+  {
+   "slug": "ring",
+   "src": "assets/img/bb/P-ring-2.jpg"
+  },
+  {
+   "slug": "magic-checkout",
+   "src": "assets/img/bb/P-magic-checkout-2.jpg"
+  },
+  {
+   "slug": "ace",
+   "src": "assets/img/bb/P-ace-1.jpg"
+  },
+  {
+   "slug": "ace",
+   "src": "assets/img/bb/P-ace-2.jpg"
+  },
+  {
+   "slug": "trial",
+   "src": "assets/img/bb/P-trial-1.jpg"
+  },
+  {
+   "slug": "trial",
+   "src": "assets/img/bb/P-trial-2.jpg"
+  },
+  {
+   "slug": "passport",
+   "src": "assets/img/bb/P-passport-1.jpg"
+  },
+  {
+   "slug": "passport",
+   "src": "assets/img/bb/P-passport-2.jpg"
+  },
+  {
+   "slug": "whatsapp",
+   "src": "assets/img/bb/P-whatsapp-2.jpg"
+  },
+  {
+   "slug": "money",
+   "src": "assets/img/bb/P-money-1.jpg"
+  },
+  {
+   "slug": "money",
+   "src": "assets/img/bb/P-money-2.jpg"
+  },
+  {
+   "slug": "rakhi",
+   "src": "assets/img/bb/P-rakhi-1.jpg"
+  },
+  {
+   "slug": "rakhi",
+   "src": "assets/img/bb/P-rakhi-2.jpg"
+  },
+  {
+   "slug": "winter-foods",
+   "src": "assets/img/bb/P-winter-foods-1.jpg"
+  },
+  {
+   "slug": "winter-foods",
+   "src": "assets/img/bb/P-winter-foods-2.jpg"
+  },
+  {
+   "slug": "emotions-stickers",
+   "src": "assets/img/bb/P-emotions-stickers-1.jpg"
+  },
+  {
+   "slug": "emotions-stickers",
+   "src": "assets/img/bb/P-emotions-stickers-2.jpg"
+  },
+  {
+   "slug": "love-story",
+   "src": "assets/img/bb/P-love-story-1.jpg"
+  },
+  {
+   "slug": "love-story",
+   "src": "assets/img/bb/P-love-story-2.jpg"
+  },
+  {
+   "slug": "diwali-2020",
+   "src": "assets/img/bb/P-diwali-2020-1.jpg"
+  },
+  {
+   "slug": "diwali-2020",
+   "src": "assets/img/bb/P-diwali-2020-2.jpg"
+  },
+  {
+   "slug": "diwali-recipes",
+   "src": "assets/img/bb/P-diwali-recipes-1.jpg"
+  },
+  {
+   "slug": "diwali-recipes",
+   "src": "assets/img/bb/P-diwali-recipes-2.jpg"
+  },
+  {
+   "slug": "grofery",
+   "src": "assets/img/bb/P-grofery-1.jpg"
+  },
+  {
+   "slug": "grofery",
+   "src": "assets/img/bb/P-grofery-2.jpg"
+  },
+  {
+   "slug": "conv",
+   "src": "assets/img/bb/P-conv-1.jpg"
+  },
+  {
+   "slug": "conv",
+   "src": "assets/img/bb/P-conv-2.jpg"
+  },
+  {
+   "slug": "mentor",
+   "src": "assets/img/bb/P-mentor-2.jpg"
+  },
+  {
+   "slug": "mentor-samanvaya",
+   "src": "assets/img/bb/P-mentor-samanvaya-1.jpg"
+  },
+  {
+   "slug": "mentor-samanvaya",
+   "src": "assets/img/bb/P-mentor-samanvaya-2.jpg"
+  },
+  {
+   "slug": "mentor-growthschool",
+   "src": "assets/img/bb/P-mentor-growthschool-1.jpg"
+  },
+  {
+   "slug": "mentor-growthschool",
+   "src": "assets/img/bb/P-mentor-growthschool-2.jpg"
+  },
+  {
+   "slug": "mentor-iiitd",
+   "src": "assets/img/bb/P-mentor-iiitd-1.jpg"
+  },
+  {
+   "slug": "mentor-iiitd",
+   "src": "assets/img/bb/P-mentor-iiitd-2.jpg"
+  },
+  {
+   "slug": "mentor-designland",
+   "src": "assets/img/bb/P-mentor-designland-1.jpg"
+  },
+  {
+   "slug": "mentor-designland",
+   "src": "assets/img/bb/P-mentor-designland-2.jpg"
+  },
+  {
+   "slug": "mentor-xtended",
+   "src": "assets/img/bb/P-mentor-xtended-1.jpg"
+  },
+  {
+   "slug": "mentor-designtank",
+   "src": "assets/img/bb/P-mentor-designtank-1.jpg"
+  },
+  {
+   "slug": "mentor-groundbreakin",
+   "src": "assets/img/bb/P-mentor-groundbreakin-1.jpg"
+  },
+  {
+   "slug": "mentor-groundbreakin",
+   "src": "assets/img/bb/P-mentor-groundbreakin-2.jpg"
+  },
+  {
+   "slug": "power",
+   "src": "assets/img/bb/P-power-1.jpg"
+  },
+  {
+   "slug": "power",
+   "src": "assets/img/bb/P-power-2.jpg"
+  },
+  {
+   "slug": "khwaab",
+   "src": "assets/img/bb/P-khwaab-1.jpg"
+  },
+  {
+   "slug": "houseparty",
+   "src": "assets/img/bb/P-houseparty-1.jpg"
+  },
+  {
+   "slug": "houseparty",
+   "src": "assets/img/bb/P-houseparty-2.jpg"
+  },
+  {
+   "slug": "undying-light",
+   "src": "assets/img/bb/P-undying-light-1.jpg"
+  },
+  {
+   "slug": "urbanclap",
+   "src": "assets/img/bb/P-urbanclap-1.jpg"
+  },
+  {
+   "slug": "modern-junkyard",
+   "src": "assets/img/bb/P-modern-junkyard-1.jpg"
+  },
+  {
+   "slug": "veggie-people",
+   "src": "assets/img/bb/P-veggie-people-1.jpg"
+  },
+  {
+   "slug": "holi-stop-motion",
+   "src": "assets/img/bb/P-holi-stop-motion-1.jpg"
+  },
+  {
+   "slug": "valentines-week",
+   "src": "assets/img/bb/P-valentines-week-1.jpg"
+  },
+  {
+   "slug": "toolkit",
+   "src": "assets/img/bb/P-toolkit-1.jpg"
+  },
+  {
+   "slug": "toolkit",
+   "src": "assets/img/bb/P-toolkit-2.jpg"
+  },
+  {
+   "slug": "jaipur-ai",
+   "src": "assets/img/bb/P-jaipur-ai-1.jpg"
+  },
+  {
+   "slug": "jaipur-ai",
+   "src": "assets/img/bb/P-jaipur-ai-2.jpg"
   }
  ]
 }

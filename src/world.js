@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { HAMLETS, LAB, HOME, FUN, AIHUB, HALL, GALLERY } from './data.js';
+import { HAMLETS, LAB, HOME, FUN, AIHUB } from './data.js';
 import { windMaterial, canvasTexture } from './materials.js';
 
 // ---------- Layout ----------
@@ -11,17 +11,14 @@ export const WATER_LEVEL = -1.0;
 export const ROAD_HALF = 2.6;
 
 // ---------- Master plan ----------
-// The jamun tree is the origin. The six departments sit on a loose hexagon of spokes, each at its
-// own distance (the ceremonial Arena and the Beacon a little further out, the working courts a
-// little closer in), so the ring reads as a planned village rather than a compass drawing.
-// Secondary places take the pockets between the spokes where their character fits: the Hall of
-// Fame close to HQ on a processional approach, Home pulled off-axis into a quiet garden, the
-// Playhouse on the lively side between Product and Social. The Gallery sits just past the ring
-// road beside the Jantar Mantar: the island's art quarter.
+// The jamun tree is the origin: Creative Direction & Culture. Six spokes leave it on a loose
+// hexagon: four departments (Brand, Product Launches, Social, Mentorship), each at its own
+// distance so the ring reads as a planned village, and two gardens where departments used to be.
+// Secondary places take the pockets between the spokes: Home pulled off-axis into a quiet garden,
+// the Playground on the lively side between the Rose Garden and Social, the AI Lab past the bazaar.
 export const PLAN = {
-  departments: { brand: 75, pmm: 70, product: 72, social: 76, copy: 70, design: 73 },
-  zones: { fun: [60, 43], awards: [120, 36], home: [187, 45], ai: [238, 39] }, // degrees, metres
-  gallery: [0, 88],
+  departments: { brand: 75, pmm: 70, product: 66, social: 76, mentorship: 70, design: 66 },
+  zones: { fun: [60, 43], home: [187, 45], ai: [238, 39] }, // degrees, metres
   // half-widths: main spokes from the tree, the ring road between departments, lanes to places
   roads: { spoke: 2.3, ring: 1.85, lane: 1.35 },
 };
@@ -42,22 +39,14 @@ LAB.x = Math.cos(pondAngle) * 25;
 LAB.z = Math.sin(pondAngle) * 25;
 
 // Home, the Playhouse, the Hall of Fame and the AI Hub sit inside the ring, between spokes.
-for (const place of [FUN, HALL, HOME, AIHUB]) {
+for (const place of [FUN, HOME, AIHUB]) {
   const [deg, r] = PLAN.zones[place.id];
   const a = THREE.MathUtils.degToRad(deg);
   place.angle = a;
   place.x = Math.cos(a) * r;
   place.z = Math.sin(a) * r;
 }
-export const ZONES = [HOME, FUN, AIHUB, HALL];
-{
-  const a = THREE.MathUtils.degToRad(PLAN.gallery[0]);
-  GALLERY.angle = a;
-  GALLERY.x = Math.cos(a) * PLAN.gallery[1];
-  GALLERY.z = Math.sin(a) * PLAN.gallery[1];
-  GALLERY.r = 15;
-}
-export { GALLERY };
+export const ZONES = [HOME, FUN, AIHUB];
 
 // Jaipur on the island: Jantar Mantar in the free slot between the Lab and the Playhouse,
 // and the old-city bazaar along the ring road past Home.
@@ -78,7 +67,7 @@ HAMLETS.forEach((h, i) => {
   PATHS.push([h.x, h.z, n.x, n.z, PLAN.roads.ring, 'ring']);
 });
 // Branch paths from the nearest spoke into each inner zone, keeping the centre plaza clear.
-for (const [z, i, r, edge] of [[FUN, 2, 32, 11], [HALL, 3, 32, 11], [HOME, 4, 32, 11], [AIHUB, 5, 32, 11], [LAB, 1, 19, 5.5]]) {
+for (const [z, i, r, edge] of [[FUN, 2, 32, 11], [HOME, 4, 32, 11], [AIHUB, 5, 32, 11], [LAB, 1, 19, 7.4]]) {
   const a = HAMLETS[i].angle;
   const sx = Math.cos(a) * r;
   const sz = Math.sin(a) * r;
@@ -89,21 +78,6 @@ for (const [z, i, r, edge] of [[FUN, 2, 32, 11], [HALL, 3, 32, 11], [HOME, 4, 32
   // each place's front turns to where its lane arrives from, not blindly to the tree
   z.facing = Math.atan2(sx - z.x, sz - z.z);
 }
-// the Gallery's lane leaves the ring road where it crosses the Gallery's bearing
-{
-  const [i, j] = [1, 2]; // the ring road between Product Marketing and Product & Web
-  const a = HAMLETS[i];
-  const b = HAMLETS[j];
-  const t = 0.5;
-  const sx = a.x + (b.x - a.x) * t;
-  const sz = a.z + (b.z - a.z) * t;
-  const dx = GALLERY.x - sx;
-  const dz = GALLERY.z - sz;
-  const l = Math.hypot(dx, dz);
-  PATHS.push([sx, sz, GALLERY.x - (dx / l) * (GALLERY.r - 1), GALLERY.z - (dz / l) * (GALLERY.r - 1), PLAN.roads.lane, 'lane']);
-  GALLERY.facing = Math.atan2(sx - GALLERY.x, sz - GALLERY.z);
-}
-
 export function distToSegment(px, pz, [ax, az, bx, bz]) {
   const dx = bx - ax;
   const dz = bz - az;
@@ -157,7 +131,6 @@ export const PADS = [
   { x: Math.cos((120 * Math.PI) / 180) * 15.5, z: Math.sin((120 * Math.PI) / 180) * 15.5, r: 4.5 },
 ].map((p) => ({ ...p, y: rawHeight(p.x, p.z) }));
 HAMLETS.forEach((h) => (h.y = rawHeight(h.x, h.z)));
-GALLERY.y = rawHeight(GALLERY.x, GALLERY.z);
 LAB.y = rawHeight(LAB.x, LAB.z);
 for (const z of ZONES) z.y = rawHeight(z.x, z.z);
 JANTAR.y = rawHeight(JANTAR.x, JANTAR.z);
@@ -167,9 +140,8 @@ function baseHeight(x, z) {
   h = THREE.MathUtils.lerp(CENTER_LEVEL, h, smooth(9, 17, Math.hypot(x, z)));
   for (const p of PADS) h = THREE.MathUtils.lerp(p.y, h, smooth(p.r, p.r + 5, Math.hypot(x - p.x, z - p.z)));
   for (const hm of HAMLETS) h = THREE.MathUtils.lerp(hm.y, h, smooth(16, 28, Math.hypot(x - hm.x, z - hm.z)));
-  h = THREE.MathUtils.lerp(LAB.y, h, smooth(7, 12, Math.hypot(x - LAB.x, z - LAB.z)));
+  h = THREE.MathUtils.lerp(LAB.y, h, smooth(9, 14, Math.hypot(x - LAB.x, z - LAB.z)));
   for (const zn of ZONES) h = THREE.MathUtils.lerp(zn.y, h, smooth(14, 22, Math.hypot(x - zn.x, z - zn.z)));
-  h = THREE.MathUtils.lerp(GALLERY.y, h, smooth(GALLERY.r + 2, GALLERY.r + 10, Math.hypot(x - GALLERY.x, z - GALLERY.z)));
   h = THREE.MathUtils.lerp(JANTAR.y, h, smooth(JANTAR.r + 1, JANTAR.r + 8, Math.hypot(x - JANTAR.x, z - JANTAR.z)));
   return h;
 }
@@ -193,7 +165,7 @@ const GHAT_IN = POND.r - 0.4;
 const GHAT_OUT = POND.bank - 0.3;
 // meadow level on the terrace (before the scoop); the Lab's own pad next door keeps its level
 function terrace(x, z, d) {
-  const w = (1 - smooth(POND.bank - 1, POND.bank + 4.5, d)) * smooth(7.5, 10, Math.hypot(x - LAB.x, z - LAB.z));
+  const w = (1 - smooth(POND.bank - 1, POND.bank + 4.5, d)) * smooth(9.4, 11.5, Math.hypot(x - LAB.x, z - LAB.z));
   return THREE.MathUtils.lerp(baseHeight(x, z), POND.y, w);
 }
 // height of the bank (and the ghat steps) at a point, or -Infinity off the pond's ground
@@ -270,10 +242,9 @@ function gridAt(x, z) {
 export function onPaving(x, z) {
   if (distToPath(x, z) < ROAD_HALF) return true;
   if (Math.hypot(x, z) < 9.2) return true;
-  if (Math.hypot(x - LAB.x, z - LAB.z) < 6.6) return true;
+  if (Math.hypot(x - LAB.x, z - LAB.z) < 8.4) return true;
   for (const h of HAMLETS) if (Math.hypot(x - h.x, z - h.z) < 9.4) return true;
   for (const zn of ZONES) if (Math.hypot(x - zn.x, z - zn.z) < 12.5) return true;
-  if (Math.hypot(x - GALLERY.x, z - GALLERY.z) < GALLERY.r - 1) return true;
   return false;
 }
 
@@ -285,9 +256,8 @@ export function walkY(x, z) {
 // Places where nothing should grow (plazas, roads, water).
 function isClearing(x, z, pad = 0) {
   if (Math.hypot(x, z) < 10 + pad) return true;
-  if (Math.hypot(x - LAB.x, z - LAB.z) < 7 + pad) return true;
+  if (Math.hypot(x - LAB.x, z - LAB.z) < 8.8 + pad) return true;
   for (const zn of ZONES) if (Math.hypot(x - zn.x, z - zn.z) < 13 + pad) return true;
-  if (Math.hypot(x - GALLERY.x, z - GALLERY.z) < GALLERY.r + 2 + pad) return true;
   if (Math.hypot(x - POND.x, z - POND.z) < POND.bank + 1 + pad) return true;
   for (const h of HAMLETS) if (Math.hypot(x - h.x, z - h.z) < 9 + pad) return true;
   if (Math.hypot(x - JANTAR.x, z - JANTAR.z) < JANTAR.r + 2 + pad) return true;
@@ -492,9 +462,8 @@ export function buildTerrain(scene) {
   };
   for (const h of HAMLETS) plaza(h.x, h.z, 9.4, h.y);
   plaza(0, 0, 9.2, heightAt(0, 0));
-  plaza(LAB.x, LAB.z, 6.6, LAB.y);
+  plaza(LAB.x, LAB.z, 8.4, LAB.y);
   for (const zn of ZONES) plaza(zn.x, zn.z, 12.5, zn.y);
-  plaza(GALLERY.x, GALLERY.z, GALLERY.r - 1, GALLERY.y);
   const flat = (list) => mergeGeometries(list.map((g) => { if (g.attributes.uv) g.deleteAttribute('uv'); if (g.attributes.normal && !g.index) return g; return g.index ? g.toNonIndexed() : g; }));
   for (const [kind, list] of Object.entries(byKind)) {
     if (!list.length) continue;

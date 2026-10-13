@@ -1,4 +1,4 @@
-// The Playhouse: the work made for fun, as one continuous building of six connected rooms.
+// The Playground: the work made for fun, as one continuous building of six connected rooms.
 //   Lobby — the popcorn counter and its host, the neon sign, the way into everything
 //   Cinema — tiered seats in the dark and a big screen; pick the film at the selector by the door
 //   Stop-motion workshop — Modern Junkyard: a miniature set, puppets, a camera on its tripod
@@ -102,13 +102,13 @@ export function buildPlayhouse(origin) {
   // ----- the plan -----
   const sg = (t) => ({ signColor: '#ffd08a', signs: t });
   partition(room, { axis: 'z', at: -7, from: 8, to: 20, h: PH, mat: WALL, trim: TRIM, openings: [{ at: 14, w: 3.2, style: 'round', ...sg({ pos: 'Creative lounge' }) }] });
-  partition(room, { axis: 'z', at: 7, from: 8, to: 20, h: PH, mat: WALL, trim: TRIM, openings: [{ at: 14, w: 3.2, style: 'round', ...sg({ neg: 'Arcade' }) }] });
+  partition(room, { axis: 'z', at: 7, from: 8, to: 20, h: PH, mat: WALL, trim: TRIM, openings: [{ at: 14, w: 3.2, style: 'round', ...sg({ neg: 'Art series' }) }] });
   partition(room, { axis: 'x', at: 8, from: -18, to: 18, h: PH, mat: WALL, trim: TRIM, openings: [{ at: -3, w: 3.4, style: 'round' }, { at: -12.5, w: 3, style: 'round', ...sg({ pos: 'Cinema' }) }, { at: 12, w: 3, style: 'round', ...sg({ pos: 'Stop-motion workshop' }) }] });
   partition(room, { axis: 'z', at: 4, from: -20, to: 8, h: PH, mat: WALL, trim: TRIM, openings: [{ at: 1, w: 3, style: 'round', ...sg({ neg: 'Workshop', pos: 'Cinema' }) }, { at: -14, w: 3, style: 'round', ...sg({ neg: 'Found-object art' }) }] });
   partition(room, { axis: 'x', at: -6, from: 4, to: 18, h: PH, mat: WALL, trim: TRIM, openings: [{ at: 11, w: 3, style: 'round', ...sg({ pos: 'Power: found objects', neg: 'Workshop' }) }] });
   zone(room, 'lobby', 'Lobby', -7, 8, 7, 20, [0, 15.5], 'Popcorn and the way in');
   zone(room, 'lounge', 'Creative lounge', -18, 8, -7, 20, [-12.5, 13], 'Films and references');
-  zone(room, 'arcade', 'Arcade', 7, 8, 18, 20, [12, 14], 'Back in the Ring: play it');
+  zone(room, 'arcade', 'Art series', 7, 8, 18, 20, [12, 14], 'Eyes, Birds, Power, All Things A');
   zone(room, 'cinema', 'Cinema', -18, -20, 4, 8, [-1, 4.4], 'Take a seat; pick a film');
   zone(room, 'workshop', 'Stop-motion workshop', 4, -6, 18, 8, [9, 1.5], 'Modern Junkyard');
   zone(room, 'objects', 'Found-object art', 4, -20, 18, -6, [11, -9.5], 'Power');
@@ -123,7 +123,7 @@ export function buildPlayhouse(origin) {
     c.font = `800 ${h * 0.66}px ${FONT.display}`;
     c.textAlign = 'center';
     c.textBaseline = 'middle';
-    c.fillText('PLAYHOUSE', w / 2, h / 2 + 4);
+    c.fillText('PLAYGROUND', w / 2, h / 2 + 4);
   }, { transparent: true });
   neon.position.set(-3, 5.55, 8.18);
   g.add(neon);
@@ -155,7 +155,7 @@ export function buildPlayhouse(origin) {
   pop.position.set(3.6 - 0.56, 2.7, 12.6);
   pop.rotation.y = -Math.PI / 2;
   g.add(pop);
-  addNpc(room, person({ seed: r(), top: '#d64545', accent: C }), 5.0, 12.6, -Math.PI / 2, 'talk', 'fun', { lines: FUN.quotes, name: 'Playhouse host' });
+  addNpc(room, person({ seed: r(), top: '#d64545', accent: C }), 5.0, 12.6, -Math.PI / 2, 'talk', 'fun', { lines: FUN.quotes, name: 'Playground host' });
   addThing(room, 2.2, 12.6, { kind: 'toast', label: 'Popcorn', verb: 'Grab some', text: '<b>🍿 Popcorn!</b> Best enjoyed in the cinema, through the arch with the neon sign.' });
   for (const x of [-5.8, 5.8]) plant(room, x, 19, { s: 1.1, pot: '#36254a', leaf: '#5aa04a' });
   lamp(room, 0, 5.2, 14, '#ffd9a8', 7, 11);
@@ -163,7 +163,7 @@ export function buildPlayhouse(origin) {
   // ===== Cinema =====
   // dark walls, a big screen at the back, four tiers of seats
   floorPatch(room, -7, -6, 22, 28, solid('#1a0f22', { roughness: 1 }), 0.01);
-  const films = ['trial', 'ring', 'btb', 'ace', 't20', 'magic-checkout'];
+  const films = ['urbanclap', 'modern-junkyard', 'veggie-people', 'holi-stop-motion', 'valentines-week', 'winter-foods'];
   const mats = films.map((s) => screenMat(PROJECTS[s].images[0], 16 / 9));
   const scr = bigScreen(room, -7, 4.4, -D / 2 + 0.1, 0, 14.4, 8.1, mats[0], { bezel: '#07060a' });
   let current = 0;
@@ -425,20 +425,20 @@ export function buildPlayhouse(origin) {
 
   // ===== Arcade =====
   floorPatch(room, 12.5, 14, 10.6, 11.6, new THREE.MeshStandardMaterial({ map: (() => { const t = tileTexture('#151a3a', '#1d1240', 10, 'rgba(0,229,255,0.35)'); t.repeat.set(2, 2); return t; })(), roughness: 0.4, emissive: '#1a0f3a', emissiveIntensity: 0.4 }));
-  const ring = PROJECTS.ring;
-  cabinet(room, 17.2, 16.5, -Math.PI / 2, { body: '#3a1d4f', art: PINK, marquee: 'BACK IN THE RING', img: 'work/ring-cover.jpg', action: { kind: 'link', url: ring.play.url, title: ring.play.label } });
-  cabinet(room, 17.2, 14.9, -Math.PI / 2, { body: '#1d2b4f', art: '#00e5ff', marquee: 'BACK IN THE RING', img: ring.images[1], action: { kind: 'link', url: ring.play.url, title: ring.play.label } });
-  cabinet(room, 17.2, 13.3, -Math.PI / 2, { body: '#1d4f3a', art: '#ffd84a', marquee: 'TRIAL', img: 'work/trial-1.jpg', action: { kind: 'project', slug: 'trial' } });
-  cabinet(room, 17.2, 11.7, -Math.PI / 2, { body: '#4f1d2b', art: '#ff9f1c', marquee: 'MAGIC CHECKOUT', img: 'work/magic-cover.jpg', action: { kind: 'project', slug: 'magic-checkout' } });
-  addThing(room, 15.7, 15.7, { kind: 'link', url: ring.play.url, title: ring.play.label, label: 'Arcade: Back in the Ring, the Netbanking game', verb: 'Play the game' });
-  addThing(room, 15.7, 13.3, { kind: 'project', slug: 'trial', label: 'Trial of the Century', verb: 'Open' });
-  addThing(room, 15.7, 11.7, { kind: 'project', slug: 'magic-checkout', label: 'Magic Checkout', verb: 'Open' });
-  // the ring poster and the case study on the front wall
-  const rp = framed(room, 12.2, 3.2, D / 2 - 0.08, Math.PI, 2.2, 3.1, screenMat(ring.images[1], 2.2 / 3.1), { frame: PINK, border: 0.07 });
-  clickable(room, rp.pic, { kind: 'project', slug: 'ring' });
-  addThing(room, 12.2, 18.2, { kind: 'project', slug: 'ring', label: 'Back in the Ring: the case study', verb: 'Open' });
+  // the art series as cabinets you can stand at: each screen plays the series, frame by frame
+  cabinet(room, 17.2, 16.5, -Math.PI / 2, { body: '#3a1d4f', art: PINK, marquee: 'EYES', img: PROJECTS.eyes.images[0], action: { kind: 'project', slug: 'eyes' } });
+  cabinet(room, 17.2, 14.9, -Math.PI / 2, { body: '#1d2b4f', art: '#00e5ff', marquee: 'BIRDS', img: PROJECTS.birds.images[0], action: { kind: 'project', slug: 'birds' } });
+  cabinet(room, 17.2, 13.3, -Math.PI / 2, { body: '#1d4f3a', art: '#ffd84a', marquee: 'POWER', img: PROJECTS.power.images[0], action: { kind: 'project', slug: 'power' } });
+  cabinet(room, 17.2, 11.7, -Math.PI / 2, { body: '#4f1d2b', art: '#ff9f1c', marquee: 'ALL THINGS A', img: PROJECTS.urbanclap.images[0], action: { kind: 'project', slug: 'urbanclap' } });
+  addThing(room, 15.7, 16.5, { kind: 'project', slug: 'eyes', label: 'Eyes: the art series', verb: 'Open' });
+  addThing(room, 15.7, 14.9, { kind: 'project', slug: 'birds', label: 'Birds: the art series', verb: 'Open' });
+  addThing(room, 15.7, 13.3, { kind: 'project', slug: 'power', label: 'Power: found-object art', verb: 'Open' });
+  addThing(room, 15.7, 11.7, { kind: 'project', slug: 'urbanclap', label: 'All Things A, for UrbanClap', verb: 'Open' });
+  // a big Eyes print on the front wall
+  const rp = framed(room, 12.2, 3.2, D / 2 - 0.08, Math.PI, 2.6, 2.6, screenMat(PROJECTS.eyes.images[0], 1), { frame: PINK, border: 0.07 });
+  clickable(room, rp.pic, { kind: 'project', slug: 'eyes' });
   const gamer = person({ seed: r(), style: 'streetwear', accent: C });
-  addNpc(room, gamer, 16.1, 13.3, Math.PI / 2, 'type', 'fun', { name: 'Arcade regular', lines: ['Every opponent you beat unlocks a Netbanking feature. I’m on round four.', 'The Back in the Ring cabinets open the real game. Press E at one.'] });
+  addNpc(room, gamer, 16.1, 13.3, Math.PI / 2, 'think', 'fun', { name: 'Regular', lines: ['Every one of these started as a frame. Then another.', 'Eyes and Birds look different every time you come back.'] });
   for (let k = 0; k < 2; k++) stool(room, 14.6, 16.5 - k * 3.2, { color: PINK });
   for (const [x, col] of [[8.2, PINK], [9.4, '#00e5ff']]) g.add(mesh(new THREE.BoxGeometry(0.06, 5.4, 0.06), glow(col, 2.4), x, 2.9, 19.9, false));
   lamp(room, 12.5, 4.6, 14.5, '#b07bff', 6, 10);
