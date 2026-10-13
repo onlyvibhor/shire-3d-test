@@ -120,8 +120,8 @@ export function makeGateway({ name, sub = '', color = '#2f6bff', variant = 'bast
   // the name on the frieze, both faces
   // a cusped arch peaks at about spring + 1.33a; the frieze starts above the coloured reveal
   const revealTop = spring + 0.24 + (a + 0.6) * 1.36;
-  const plH = Math.max(0.6, Math.min(1.2, h - revealTop - 0.25));
-  const plW = Math.min(w - 1.6, plH * 6.2);
+  const plH = Math.max(0.7, Math.min(1.45, h - revealTop - 0.15));
+  const plW = Math.min(w - 1.2, plH * 6.6);
   const tex = plaqueTexture(name, sub, color);
   for (const side of [1, -1]) {
     const pl = new THREE.Mesh(new THREE.PlaneGeometry(plW, plH), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.7 }));
@@ -239,6 +239,64 @@ export function makeExhibitFrame(W, H, lift, color, stone = 'pink') {
   return g;
 }
 
+// ---------- the plaza floor ----------
+// A chowk inlay in the department's colour: a sandstone ring, a lime band, radiating petals and a
+// small central star. It breaks up the bright paving and gives each plaza its own floor.
+const inlayCache = {};
+export function inlayTexture(color) {
+  return (inlayCache[color] ||= canvasTexture(1024, 1024, (c, w) => {
+    const cx = w / 2;
+    c.clearRect(0, 0, w, w);
+    const ring = (r0, r1, fill) => {
+      c.beginPath();
+      c.arc(cx, cx, r1, 0, Math.PI * 2);
+      c.arc(cx, cx, r0, 0, Math.PI * 2, true);
+      c.fillStyle = fill;
+      c.fill();
+    };
+    ring(470, 505, TOKENS.stone.pink);
+    ring(452, 466, color);
+    ring(300, 316, TOKENS.stone.pink);
+    // sixteen petals between the rings
+    for (let k = 0; k < 16; k++) {
+      const a = (k / 16) * Math.PI * 2;
+      c.save();
+      c.translate(cx + Math.cos(a) * 385, cx + Math.sin(a) * 385);
+      c.rotate(a);
+      c.beginPath();
+      c.ellipse(0, 0, 62, 22, 0, 0, Math.PI * 2);
+      c.fillStyle = k % 2 ? TOKENS.stone.pink : color;
+      c.globalAlpha = k % 2 ? 0.9 : 0.55;
+      c.fill();
+      c.restore();
+    }
+    c.globalAlpha = 1;
+    // an eight-pointed star in the middle
+    c.beginPath();
+    for (let k = 0; k < 16; k++) {
+      const r = k % 2 ? 70 : 150;
+      const a = (k / 16) * Math.PI * 2;
+      c.lineTo(cx + Math.cos(a) * r, cx + Math.sin(a) * r);
+    }
+    c.closePath();
+    c.fillStyle = color;
+    c.globalAlpha = 0.45;
+    c.fill();
+    c.globalAlpha = 1;
+  }));
+}
+export function makeInlay(radius, color) {
+  const m = new THREE.Mesh(
+    new THREE.CircleGeometry(radius, 64),
+    new THREE.MeshStandardMaterial({ map: inlayTexture(color), transparent: true, depthWrite: false, roughness: 0.85, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }),
+  );
+  m.rotation.x = -Math.PI / 2;
+  m.position.y = 0.012;
+  m.receiveShadow = true;
+  m.userData.decor = true;
+  return m;
+}
+
 // ---------- street furniture ----------
 export function makeLantern(h = 3.1) {
   const g = new THREE.Group();
@@ -347,7 +405,8 @@ export function makeFingerpost(entries) {
     const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.7 });
     const arm = new THREE.Group();
     arm.position.y = 3.05 - k * 0.42;
-    arm.rotation.y = e.angle - Math.PI / 2;
+    // an arm points along its world direction [dx, dz]
+    arm.rotation.y = Math.atan2(-e.to[1], e.to[0]);
     const board = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.32, 0.05), [M.lime, M.lime, M.lime, M.lime, mat, mat]);
     board.position.x = 0.85;
     arm.add(board);
@@ -470,6 +529,7 @@ export const ARENAS = {
 // planting, lamps, benches, low walls and the pavilion. Exhibits, landmark and people are placed
 // by the hamlet builder, which knows the department's content.
 export function furnishArena(g, h, C, { collider, gateZ = 16 }) {
+  g.add(makeInlay(9.3, h.color));
   const gw = makeGateway({ name: h.name, sub: h.place, color: h.color, ...C.gate });
   gw.g.position.set(0, 0, gateZ);
   g.add(gw.g);
@@ -544,5 +604,54 @@ export function furnishArena(g, h, C, { collider, gateZ = 16 }) {
     pv.rotation.y = faceTo(x, z, 0, 0);
     g.add(pv);
     collider(g, 2.2, x, z);
+  }
+}
+
+// ---------- wayfinding ----------
+// Fingerposts where people decide where to go: round the tree's plaza (one per spoke, naming the
+// department it leads to and the place in the pocket beside it), at the landward end of every
+// ferry pier, and where the Gallery's lane leaves the ring road.
+export function buildWayfinding(scene, { places, piers, colliders, groundAt }) {
+  const byId = Object.fromEntries(places.map((p) => [p.id, p]));
+  const dirTo = (x, z, p) => {
+    const dx = p.x - x;
+    const dz = p.z - z;
+    const l = Math.hypot(dx, dz) || 1;
+    return [dx / l, dz / l];
+  };
+  const post = (x, z, ids) => {
+    const entries = ids.map((id) => byId[id]).filter(Boolean).map((p) => ({ label: p.name, color: p.color, to: dirTo(x, z, p) }));
+    if (!entries.length) return;
+    const f = makeFingerpost(entries);
+    f.position.set(x, groundAt(x, z), z);
+    scene.add(f);
+    colliders.push({ x, z, r: 0.35 });
+  };
+  const depts = places.filter((p) => p.angle !== undefined && p.reach === 22);
+  const pockets = places.filter((p) => ['fun', 'awards', 'home', 'ai', 'lab'].includes(p.id));
+  for (const d of depts) {
+    const a = d.angle;
+    // 12.5 m out along the spoke, 4 m to its right
+    const x = Math.cos(a) * 12.5 - Math.sin(a) * 4;
+    const z = Math.sin(a) * 12.5 + Math.cos(a) * 4;
+    const near = pockets.reduce((b, p) => (Math.hypot(p.x - x, p.z - z) < Math.hypot(b.x - x, b.z - z) ? p : b));
+    post(x, z, [d.id, near.id]);
+  }
+  for (const pr of piers) {
+    const a = THREE.MathUtils.degToRad(pr.deg);
+    const r = pr.land - 3;
+    const x = Math.cos(a) * r - Math.sin(a) * 3.2;
+    const z = Math.sin(a) * r + Math.cos(a) * 3.2;
+    const nearest = (list) => list.reduce((b, p) => (Math.hypot(p.x - x, p.z - z) < Math.hypot(b.x - x, b.z - z) ? p : b));
+    post(x, z, ['hq', nearest(depts).id, nearest([...pockets, byId.gallery].filter(Boolean)).id]);
+  }
+  const gal = byId.gallery;
+  if (gal) {
+    const f = gal.facing;
+    const [fx, fz] = [Math.sin(f), Math.cos(f)];
+    // where the lane meets the ring road: beside it, a little way up
+    const lx = gal.x + fx * (Math.hypot(gal.x, gal.z) - 61);
+    const lz = gal.z + fz * (Math.hypot(gal.x, gal.z) - 61);
+    post(lx - fz * 3.6 - fx * 3, lz + fx * 3.6 - fz * 3, ['gallery', 'hq']);
   }
 }

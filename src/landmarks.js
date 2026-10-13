@@ -366,6 +366,7 @@ function makePier(scene, colliders, pier, deck) {
   let start = R - 30;
   while (start < R && groundAt(Math.cos(a) * start, Math.sin(a) * start) > PIER_TOP + 0.2) start += 0.5;
   start -= 1.5;
+  pier.land = start;
   const end = R + FERRY_OUT - 1.7;
   const len = end - start;
   const g = new THREE.Group();

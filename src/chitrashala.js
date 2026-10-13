@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { GALLERY } from './data.js';
 import { archSlab, LIME } from './jaipur.js';
 import { solid, mesh, glow } from './materials.js';
-import { makeGateway, makeLowWall, makeBed, makeBench, makeLantern, plaqueTexture, TOKENS } from './arena.js';
+import { makeGateway, makeLowWall, makeBench, makeLantern, plaqueTexture, TOKENS } from './arena.js';
 import { makePerson, animate } from './characters.js';
 
 const S = 10.5; // half the courtyard's side
@@ -134,10 +134,21 @@ export function buildChitrashala(scene, { gallery, colliders, npcs }) {
     g.add(mesh(new THREE.BoxGeometry(w + 0.3, 0.12, d + 0.3), lime, 0, 0.06, 0, false));
     g.add(mesh(new THREE.BoxGeometry(w, 0.04, d), water, 0, 0.13, 0, false));
   }
-  [[-3.4, -3.4, 'green', true], [3.4, -3.4, 'pink', false], [-3.4, 3.4, 'white', false], [3.4, 3.4, 'green', true]].forEach(([x, z, pal, tree], k) => {
-    const bed = makeBed(4.1, 4.1, pal, 70 + k, { tree });
-    bed.position.set(x, 0, z);
-    g.add(bed);
+  // low lawns in a clipped hedge, so the walls stay in view from anywhere in the court; a small
+  // flowering tree in the two far quadrants
+  const lawn = solid('#6db347', { roughness: 0.95 });
+  const hedge = solid('#4f9a37', { roughness: 0.85 });
+  [[-3.4, -3.4, true], [3.4, -3.4, true], [-3.4, 3.4, false], [3.4, 3.4, false]].forEach(([x, z, tree]) => {
+    g.add(mesh(new THREE.BoxGeometry(4.1, 0.08, 4.1), lawn, x, 0.04, z, false));
+    for (const [w, d, ox, oz] of [[4.3, 0.32, 0, 2.05], [4.3, 0.32, 0, -2.05], [0.32, 4.3, 2.05, 0], [0.32, 4.3, -2.05, 0]]) g.add(mesh(new THREE.BoxGeometry(w, 0.42, d), hedge, x + ox, 0.21, z + oz));
+    if (tree) {
+      const tx = x + Math.sign(x) * 1.1;
+      const tz = z + Math.sign(z) * 1.1;
+      g.add(mesh(new THREE.CylinderGeometry(0.1, 0.15, 1.6, 6), solid('#6e5038'), tx, 0.8, tz));
+      const crown = mesh(new THREE.IcosahedronGeometry(0.85, 1), solid('#f2a7c3', { roughness: 0.7, flatShading: true }), tx, 2.1, tz);
+      crown.scale.y = 0.8;
+      g.add(crown);
+    }
     col(2.1, x, z);
     col(1.4, x + Math.sign(x) * 1.2, z + Math.sign(z) * 1.2);
   });

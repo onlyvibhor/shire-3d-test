@@ -1801,7 +1801,8 @@ export function buildVillage(scene) {
   tag('aihub', () => buildAIHubDome(scene, ctx));
   tag('hall', () => buildHallDome(scene, ctx));
   tag('cafe-wall', () => buildCafeAndWall(scene, ctx));
-  tag('adboard', () => buildAdBoards(scene, ctx));
+  // (the roadside 'now showing' boards are gone: each department's gateway and hero exhibit now
+  // announce its work, and the boards crowded the approaches)
   tag('hill-domes', () => buildHillDomes(scene));
   tag('drones', () => buildDrones(scene, ctx));
   tag('scooters', () => buildScooters(scene, ctx));

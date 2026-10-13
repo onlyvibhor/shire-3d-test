@@ -13,7 +13,7 @@ import {
   buildSky, makeSkyMaterial, buildClouds, buildTerrain, buildGrass, buildLavender, buildFlowers, buildMountains, buildTrees, buildPollen,
   heightAt, groundAt, walkY, POND, PATHS, WORLD_RADIUS, buildOcean, SEA_LEVEL, coastR, onPaving, BAZAAR, distToPath, GALLERY,
 } from './world.js';
-import { buildMonoliths, buildSkyRail, buildFloatingProps, buildStreetLamps, buildCoast } from './landmarks.js';
+import { buildMonoliths, buildSkyRail, buildFloatingProps, buildStreetLamps, buildCoast, PIERS } from './landmarks.js';
 import { buildInteriors } from './interiors.js';
 import { createDayNight } from './daynight.js';
 import { buildVillage, playerPos } from './village.js';
@@ -26,6 +26,7 @@ import { declutter } from './declutter.js';
 import { buildHidden } from './hidden.js';
 import { buildPond } from './pond.js';
 import { buildChitrashala } from './chitrashala.js';
+import { buildWayfinding } from './arena.js';
 import { snapshotMatrices, groundFit } from './groundfit.js';
 import galleryLayout from './content/gallery-layout.json';
 import { createQuest } from './quest.js';
@@ -202,6 +203,9 @@ const PLACES = [
   { ...HALL, reach: 16 },
   { ...GALLERY, reach: 17 },
 ];
+
+// Level 3 wayfinding: fingerposts at the tree, at the piers and at the Gallery's lane
+named('wayfinding', () => buildWayfinding(outdoor, { places: PLACES, piers: PIERS, colliders, groundAt }));
 
 // the place card and pass open only once you're properly inside a place, not on its outskirts
 function nearestPlace(x, z) {
