@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { HAMLETS, DEPARTMENTS, PILLARS, CENTER, LAB, PROJECTS, AWARDS, HOME, FUN, FAVOURITES, OWNER, AIHUB, BELIEFS } from './data.js';
+import { HAMLETS, DEPARTMENTS, PILLARS, CENTER, LAB, PROJECTS, AWARDS, HOME, FUN, FAVOURITES, OWNER, AIHUB, HALL, BELIEFS } from './data.js';
 import { groundAt, walkY, rng, PATHS, ROAD_HALF, distToPath, SURFACE, BAZAAR } from './world.js';
 import { makeDome, makeDrone, makeScooter, makeDesk, makeMonitorWall, dashboardTexture, makeCafe, makeAdBoard, screenMat } from './props.js';
 import { makePerson, giveProp, animate } from './characters.js';
@@ -8,7 +8,7 @@ import { makePillar } from './pillars.js';
 import { projectPlateTexture, metricTexture, signPlateTexture, FONT, fit, fitWrap, fillFit } from './type.js';
 import { buildTraffic } from './traffic.js';
 import { buildJaipur, makePol, cuspedArchPoints, makeBeliefSign, PINK as JAIPUR_PINK, OCHRE } from './jaipur.js';
-import { ARENAS, P, faceTo, furnishArena, makeExhibitFrame, TOKENS, makeBed, makeBench, makeLantern, plaqueTexture } from './arena.js';
+import { ARENAS, P, faceTo, furnishArena, makeExhibitFrame, TOKENS, makeLantern, makeBed, makeBench } from './arena.js';
 import { WHITE_METAL, BRUSHED, CHROME, GLASS, GOLD, WOOD, DARK, MOUND, WINDOW_GLOW, CONCRETE, solid, glow, mesh, canvasTexture, deepMerge, mergeStatic } from './materials.js';
 
 // The player's position, shared so walking villagers can step aside.
@@ -829,94 +829,6 @@ function buildHamlet(scene, h, i, ctx) {
   deepMerge(g);
 }
 
-// ---------- Gardens where departments used to be ----------
-// Two of the six spokes end in a garden rather than a department: a round of flower beds, a
-// water feature (a lotus fountain in the Rose Garden, a small stepwell in the other), benches and
-// shade trees, so the road still arrives somewhere worth arriving.
-function buildGarden(scene, h, i, ctx) {
-  const g = new THREE.Group();
-  g.position.set(h.x, h.y + SURFACE, h.z);
-  g.rotation.y = Math.atan2(-Math.cos(h.angle), -Math.sin(h.angle)); // local +Z faces the centre
-  scene.add(g);
-  const stone = solid(TOKENS.stone.pink, { roughness: 0.82 });
-  const lime = solid(TOKENS.stone.lime, { roughness: 0.75 });
-  const water = solid('#5fb3c9', { roughness: 0.1, metalness: 0.1, emissive: '#1d6b80', emissiveIntensity: 0.15 });
-  const stepwell = h.id === 'design';
-  if (stepwell) {
-    // a small stepwell: square terraces stepping down to a pool
-    for (let k = 0; k < 4; k++) {
-      const w = 6.4 - k * 1.1;
-      g.add(mesh(new THREE.BoxGeometry(w, 0.22, w), k % 2 ? lime : stone, 0, 0.11 - k * 0.0, 0, false));
-      g.add(mesh(new THREE.BoxGeometry(w - 0.3, 0.06, w - 0.3), k % 2 ? stone : lime, 0, 0.23 + k * 0.001, 0, false));
-    }
-    g.add(mesh(new THREE.BoxGeometry(2.0, 0.05, 2.0), water, 0, 0.27, 0, false));
-    for (const [x, z] of [[-3.2, -3.2], [3.2, -3.2], [-3.2, 3.2], [3.2, 3.2]]) {
-      g.add(mesh(new THREE.CylinderGeometry(0.16, 0.2, 2.6, 10), lime, x, 1.3, z));
-      g.add(mesh(new THREE.ConeGeometry(0.42, 0.7, 8), stone, x, 2.95, z));
-      collider(g, 0.3, x, z);
-    }
-    collider(g, 3.2, 0, 0);
-  } else {
-    // a lotus fountain in an octagonal basin
-    g.add(mesh(new THREE.CylinderGeometry(2.2, 2.35, 0.5, 8), stone, 0, 0.25, 0));
-    g.add(mesh(new THREE.CylinderGeometry(2.0, 2.0, 0.05, 8), water, 0, 0.5, 0, false));
-    g.add(mesh(new THREE.CylinderGeometry(0.2, 0.32, 1.1, 10), lime, 0, 0.95, 0));
-    for (let k = 0; k < 10; k++) {
-      const pe = mesh(new THREE.SphereGeometry(0.34, 10, 6), solid('#f6b5c8', { roughness: 0.55 }), Math.sin((k / 10) * Math.PI * 2) * 0.36, 1.58, Math.cos((k / 10) * Math.PI * 2) * 0.36, false);
-      pe.scale.set(0.45, 0.35, 1.2);
-      pe.rotation.set(-0.6, (k / 10) * Math.PI * 2, 0, 'YXZ');
-      g.add(pe);
-    }
-    collider(g, 2.5, 0, 0);
-  }
-  // a ring of flower beds and benches round the water, open towards the road in
-  let seed = 40 + i;
-  for (let k = 0; k < 6; k++) {
-    const deg = 30 + k * 60;
-    if (deg === 0 || deg === 180) continue;
-    const [x, z] = P(deg, 7.2);
-    const bed = makeBed(3.2, 1.3, ['warm', 'pink', 'cool', 'white'][k % 4], seed++, { tree: k % 2 === 0 });
-    bed.position.set(x, 0, z);
-    bed.rotation.y = faceTo(x, z, 0, 0);
-    g.add(bed);
-    collider(g, 1.5, x, z);
-  }
-  for (const deg of [90, 270]) {
-    const [x, z] = P(deg, 4.6);
-    const b = makeBench();
-    b.position.set(x, 0, z);
-    b.rotation.y = faceTo(x, z, 0, 0);
-    g.add(b);
-    collider(g, 0.9, x, z);
-  }
-  for (const deg of [150, 210, 330, 30]) {
-    const [x, z] = P(deg, 9.6);
-    const l = makeLantern(2.8);
-    l.position.set(x, 0, z);
-    g.add(l);
-    collider(g, 0.3, x, z);
-  }
-  // its name, low on a stone by the road in
-  const plaque = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.56), new THREE.MeshStandardMaterial({ map: plaqueTexture(h.name, 'A garden', h.color), roughness: 0.7 }));
-  plaque.position.set(2.9, 0.75, 9.15);
-  g.add(plaque, mesh(new THREE.BoxGeometry(2.8, 1.1, 0.3), stone, 2.9, 0.55, 9.0));
-  collider(g, 0.9, 2.9, 9.0);
-  // a few people enjoying it
-  const r = rng(500 + i);
-  for (const [deg, act] of [[90, 'sit'], [250, 'think']]) {
-    const [x, z] = P(deg, act === 'sit' ? 4.75 : 5.6);
-    const p = makePerson({ seed: r(), accent: h.color });
-    p.root.position.set(x, act === 'sit' ? 0.02 : 0, z);
-    p.root.rotation.y = faceTo(x, z, 0, 0);
-    g.add(p.root);
-    ctx.updaters.push({ update: (t) => animate(p, act, t) });
-    ctx.npcs.push({ p, dept: 'hq' });
-  }
-  deepMerge(g);
-}
-
-// ---------- The Night Lab by the pond ----------
-
 function buildLab(scene, ctx) {
   // An open art terrace by the pond, made for looking: no walls or roof, six works on slim
   // easel-screens in an arc facing a long bench, the pond behind them. Sit on the bench and the
@@ -1708,15 +1620,17 @@ function buildZoneDome(scene, ctx, place, { radius = 10, glass = false, extras }
   if (BELIEFS[place.id]) {
     // at the end of the branch path that brings people here from the spoke road, a step to its
     // side and turned to face them: the first thing you read on the way in, clear of the gate
-    const a = place.angle - Math.PI / 6;
     const th = g.rotation.y;
-    const dx = Math.cos(a) * 32 - place.x;
-    const dz = Math.sin(a) * 32 - place.z;
+    const dx = place.laneFrom[0] - place.x;
+    const dz = place.laneFrom[1] - place.z;
     const L = Math.hypot(dx, dz);
     const ux = dx / L;
     const uz = dz / L;
-    const wx = ux * 15.5 + uz * 3.6;
-    const wz = uz * 15.5 - ux * 3.6;
+    // the corner places' lane runs straight at the gate, so their sign stands well to its side
+    const along = place.corner ? 14 : 15.5;
+    const side = place.corner ? 7.5 : 3.6;
+    const wx = ux * along + uz * side;
+    const wz = uz * along - ux * side;
     // into the dome group's own frame
     const sx = wx * Math.cos(th) - wz * Math.sin(th);
     const sz = wx * Math.sin(th) + wz * Math.cos(th);
@@ -1771,6 +1685,158 @@ function buildAIHubDome(scene, ctx) {
           }),
       });
     },
+  });
+}
+
+function buildHallDome(scene, ctx) {
+  buildZoneDome(scene, ctx, HALL, {
+    radius: 10,
+    extras: (g, doorZ) => {
+      // golden columns and a giant trophy on the roof
+      for (const sx of [-1, 1]) {
+        g.add(mesh(new THREE.CylinderGeometry(0.45, 0.5, 7, 20), GOLD, sx * 4.2, 3.5, doorZ + 0.8));
+        g.add(mesh(new THREE.BoxGeometry(1.4, 0.4, 1.4), GOLD, sx * 4.2, 7.1, doorZ + 0.8));
+      }
+      const pts = [[0, 0], [1.2, 0], [0.4, 0.5], [0.3, 1.8], [1.1, 2.4], [1.3, 3.8], [0, 3.4]].map(([x, y]) => new THREE.Vector2(x, y));
+      const cup = mesh(new THREE.LatheGeometry(pts, 32), GOLD, 0, 12.2, -2);
+      cup.userData.dynamic = true;
+      g.add(cup);
+      ctx.updaters.push({ update: (t) => (cup.rotation.y = t * 0.4) });
+      const carpet = new THREE.Mesh(new THREE.PlaneGeometry(3, 9), solid('#a3182f', { roughness: 1 }));
+      carpet.rotation.x = -Math.PI / 2;
+      carpet.position.set(0, 0.12, doorZ + 4.5);
+      g.add(carpet);
+    },
+  });
+}
+
+// ---------- Around the corner places: billboards, sculptures, planting and people ----------
+// The AI Lab and the Hall of Fame stand alone on the hexagon's corners, so each gets a setting:
+// two billboards of its work flanking the forecourt, a pair of sculptures by the gate, planted
+// beds wrapping the dome, benches and a few people. Laid out in the place's own frame (+Z towards
+// the tree, the dome centred a little behind the origin), clear of the lane and the ring roads.
+function dressCorner(scene, ctx, place, { ads, palette, sculpture, people }) {
+  const r = rng(place.id.length * 131);
+  const th = place.facing;
+  const at = (lx, lz) => [place.x + lx * Math.cos(th) + lz * Math.sin(th), place.z - lx * Math.sin(th) + lz * Math.cos(th)];
+  const put = (o, lx, lz, rot = 0, dy = 0) => {
+    const [x, z] = at(lx, lz);
+    o.position.set(x, groundAt(x, z) + dy, z);
+    o.rotation.y = th + rot;
+    scene.add(o);
+    return [x, z];
+  };
+  // billboards either side of the forecourt, turned towards the people arriving
+  ads.forEach(([slug, src], k) => {
+    const sd = k ? 1 : -1;
+    const { g, img: m, tag, imgBack, tagBack } = makeAdBoard(src, place.color, PROJECTS[slug].title);
+    for (const o of [m, tag, imgBack, tagBack]) o.userData.slug = slug;
+    ctx.clickables.push(m, tag, imgBack, tagBack);
+    put(g, sd * 16, 3, -sd * 0.45, -0.2);
+    g.updateMatrixWorld(true);
+    for (const px of [-3, 3]) {
+      const v = new THREE.Vector3(px, 0, -0.3).applyMatrix4(g.matrixWorld);
+      ctx.colliderList.push({ x: v.x, z: v.z, r: 0.4 });
+    }
+    mergeStatic(g);
+  });
+  // the sculptures, one each side of the gate, on lime plinths
+  for (const sd of [-1, 1]) {
+    const s = new THREE.Group();
+    s.add(mesh(new THREE.CylinderGeometry(1.0, 1.15, 1.1, 8), solid(TOKENS.stone.lime, { roughness: 0.75 }), 0, 0.55, 0));
+    s.add(mesh(new THREE.CylinderGeometry(1.08, 1.08, 0.12, 8), solid(TOKENS.stone.pink, { roughness: 0.8 }), 0, 1.16, 0));
+    sculpture(s, sd, ctx);
+    const [x, z] = put(s, sd * 10.5, 8.5, 0);
+    ctx.colliderList.push({ x, z, r: 1.3 });
+  }
+  // planted beds wrapping the dome's sides and back, with trees in the bigger ones
+  const beds = [[16.5, -4, 4.6, 2.2, 1.35, true], [14, -12.5, 4.2, 2.0, 0.8, false], [7.5, -17.5, 4.4, 2.0, 0.35, true], [18.5, 6.5, 2.6, 1.6, 0.2, false]];
+  for (const sd of [-1, 1]) {
+    for (const [lx, lz, w, d, rot, tree] of beds) {
+      const b = makeBed(w, d, palette, Math.floor(r() * 1000), { tree });
+      const [x, z] = put(b, sd * lx, lz, sd * rot);
+      ctx.colliderList.push({ x, z, r: Math.min(w, d) / 2 + 0.2 });
+    }
+    // a bench under each side's tree, facing out over the meadow
+    const bench = makeBench();
+    const [bx, bz] = put(bench, sd * 19.5, -1.5, sd * (Math.PI / 2 + 0.35));
+    ctx.colliderList.push({ x: bx, z: bz, r: 1.0 });
+  }
+  // people: what they do, where they stand, which way they look
+  for (const { pose, lx, lz, look, prop, name, lines } of people) {
+    const p = makePerson({ seed: r(), accent: place.color, style: ['blazer', 'streetwear', 'kurta', 'dress'][Math.floor(r() * 4)] });
+    if (prop) giveProp(p, prop);
+    const [x, z] = put(p.root, lx, lz, 0);
+    const [tx, tz] = at(look[0], look[1]);
+    p.root.rotation.y = Math.atan2(tx - x, tz - z);
+    ctx.updaters.push({ update: (t) => animate(p, pose, t + lx) });
+    ctx.npcs.push({ p, dept: place.id, ...(lines ? { lines, name } : {}) });
+  }
+}
+
+function buildCornerDressing(scene, ctx) {
+  dressCorner(scene, ctx, AIHUB, {
+    ads: [['houseparty', 'assets/img/hero-houseparty-poster.jpg'], ['jaipur-ai', 'assets/img/ai/midjourney-3.jpg']],
+    palette: 'cool',
+    // a wireframe mind: a glowing icosahedron turning inside two tilted orbit rings
+    sculpture: (s, sd) => {
+      const core = mesh(new THREE.IcosahedronGeometry(0.9, 1), new THREE.MeshStandardMaterial({ color: AIHUB.color, emissive: AIHUB.color, emissiveIntensity: 1.2, wireframe: true }), 0, 3.0, 0, false);
+      const seed = mesh(new THREE.IcosahedronGeometry(0.35, 0), glow('#7b5cff', 2.2), 0, 3.0, 0, false);
+      const rings = [0.5, -0.9].map((tilt) => {
+        const ring = mesh(new THREE.TorusGeometry(1.45, 0.05, 8, 48), CHROME, 0, 3.0, 0, false);
+        ring.rotation.set(Math.PI / 2 + tilt, 0, 0);
+        return ring;
+      });
+      s.add(mesh(new THREE.CylinderGeometry(0.08, 0.12, 1.5, 8), CHROME, 0, 1.9, 0));
+      for (const o of [core, seed, ...rings]) {
+        o.userData.dynamic = true;
+        s.add(o);
+      }
+      ctx.updaters.push({
+        update: (t) => {
+          core.rotation.set(t * 0.3, t * 0.5 * sd, 0);
+          rings[0].rotation.z = t * 0.6;
+          rings[1].rotation.z = -t * 0.45;
+          seed.position.y = 3.0 + Math.sin(t * 1.6 + sd) * 0.12;
+        },
+      });
+    },
+    people: [
+      { pose: 'think', lx: -8.2, lz: 10.2, look: [-10.5, 8.5] },
+      { pose: 'phone', lx: -12.6, lz: 10.6, look: [-10.5, 8.5], prop: 'phone' },
+      { pose: 'point', lx: 13.4, lz: 7.4, look: [16, 3], name: 'Prompt designer', lines: ['That poster? Houseparty: an AI short we made start to finish.', 'Every tool inside started as a task we were tired of repeating.'] },
+      { pose: 'talk', lx: 12.2, lz: 9.2, look: [13.4, 7.4] },
+    ],
+  });
+  dressCorner(scene, ctx, HALL, {
+    ads: [['trial', 'work/trial-1.jpg'], ['btb', 'work/btb-1.jpg']],
+    palette: 'warm',
+    // a gold figure holding a star over its head: the winner's pose
+    sculpture: (s, sd) => {
+      s.add(mesh(new THREE.CylinderGeometry(0.32, 0.5, 1.9, 12), GOLD, 0, 2.2, 0));
+      s.add(mesh(new THREE.SphereGeometry(0.3, 16, 12), GOLD, 0, 3.45, 0));
+      for (const ax of [-1, 1]) {
+        const arm = mesh(new THREE.CylinderGeometry(0.08, 0.1, 1.1, 8), GOLD, ax * 0.32, 3.6, 0);
+        arm.rotation.z = -ax * 0.35;
+        s.add(arm);
+      }
+      const star = new THREE.Shape();
+      for (let k = 0; k < 10; k++) {
+        const a = (k / 10) * Math.PI * 2 + Math.PI / 2;
+        const rr = k % 2 ? 0.26 : 0.6;
+        k ? star.lineTo(Math.cos(a) * rr, Math.sin(a) * rr) : star.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      }
+      const st = mesh(new THREE.ExtrudeGeometry(star, { depth: 0.14, bevelEnabled: false }), GOLD, 0, 4.55, -0.07, false);
+      st.userData.dynamic = true;
+      s.add(st);
+      ctx.updaters.push({ update: (t) => (st.rotation.y = t * 0.8 * sd) });
+    },
+    people: [
+      { pose: 'camera', lx: 9.4, lz: 12.6, look: [11.6, 10], prop: 'camera', name: 'Photographer', lines: ['One more by the statue. The light is perfect.', 'Six of the seven awards came from the animal courtroom. Inside, on the big screen.'] },
+      { pose: 'cheer', lx: 11.6, lz: 10.4, look: [9.4, 12.6] },
+      { pose: 'coffee', lx: -12.4, lz: 9.6, look: [-10, 12], prop: 'cup' },
+      { pose: 'talk', lx: -10, lz: 12, look: [-12.4, 9.6] },
+    ],
   });
 }
 
@@ -1844,7 +1910,7 @@ function buildAdBoards(scene, ctx) {
     const d = 52;
     // whichever side of the road is further from the domes and the bazaar
     const spot = (sd) => [ca * d - sa * 9 * sd, sa * d + ca * 9 * sd];
-    const clearance = ([px, pz]) => Math.min(...[HOME, FUN, AIHUB].map((zn) => Math.hypot(px - zn.x, pz - zn.z)), ...[0, 0.5, 1].map((t) => Math.hypot(px - (BAZAAR.ax + (BAZAAR.bx - BAZAAR.ax) * t), pz - (BAZAAR.az + (BAZAAR.bz - BAZAAR.az) * t))));
+    const clearance = ([px, pz]) => Math.min(...[HOME, FUN, AIHUB, HALL].map((zn) => Math.hypot(px - zn.x, pz - zn.z)), ...[0, 0.5, 1].map((t) => Math.hypot(px - (BAZAAR.ax + (BAZAAR.bx - BAZAAR.ax) * t), pz - (BAZAAR.az + (BAZAAR.bz - BAZAAR.az) * t))));
     const side = clearance(spot(1)) >= clearance(spot(-1)) ? 1 : -1;
     const [x, z] = spot(side);
     const { g, img: m, tag, imgBack, tagBack } = makeAdBoard(`work/${img}.jpg`, h.color, PROJECTS[slug].title);
@@ -1891,7 +1957,7 @@ function buildDrones(scene, ctx) {
   const drones = [];
   const hq = new THREE.Vector3(0, groundAt(0, 0) + 16, 0);
   // Delivery runs from HQ to every hamlet and the two inner zones
-  const targets = [...DEPARTMENTS, HOME, FUN, AIHUB];
+  const targets = [...DEPARTMENTS, HOME, FUN, AIHUB, HALL];
   targets.forEach((h, k) => {
     const d = makeDrone(h.color, true);
     scene.add(d);
@@ -1997,7 +2063,8 @@ export function buildVillage(scene) {
     for (const o of scene.children) if (!before.has(o) && !o.name) o.name = name;
     return out;
   };
-  HAMLETS.forEach((h, i) => tag(`hamlet:${h.id}`, () => (h.empty ? buildGarden(scene, h, i, ctx) : buildHamlet(scene, h, i, ctx))));
+  // the two empty corners hold the AI Lab and the Hall of Fame (see world.js), not a department
+  DEPARTMENTS.forEach((h) => tag(`hamlet:${h.id}`, () => buildHamlet(scene, h, HAMLETS.indexOf(h), ctx)));
   tag('lab', () => buildLab(scene, ctx));
   tag('centre', () => buildCentre(scene, ctx));
   tag('trophies', () => buildTrophies(scene, ctx));
@@ -2005,6 +2072,8 @@ export function buildVillage(scene) {
   tag('home', () => buildHome(scene, ctx));
   tag('playhouse', () => buildPlayhouse(scene, ctx));
   tag('aihub', () => buildAIHubDome(scene, ctx));
+  tag('hall', () => buildHallDome(scene, ctx));
+  tag('corner-dressing', () => buildCornerDressing(scene, ctx));
   tag('cafe-wall', () => buildCafeAndWall(scene, ctx));
   // (the roadside 'now showing' boards are gone: each department's gateway and hero exhibit now
   // announce its work, and the boards crowded the approaches)

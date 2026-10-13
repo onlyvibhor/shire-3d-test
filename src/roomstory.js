@@ -3,6 +3,7 @@
 // reached breathes gently; a guide card on screen follows along. All text comes from the
 // portfolio's own content.
 import * as THREE from 'three';
+import { AWARD_LIST } from './data.js';
 import { canvasTexture } from './materials.js';
 import { FONT } from './type.js';
 
@@ -43,6 +44,18 @@ export const STORIES = {
       { at: [11, -8.4], title: 'Power', line: 'Found-object art: sockets, switches and wires, as courage and instinct.' },
       { at: [14.4, 15.2], title: 'The art series', line: 'Eyes, Birds, Power and All Things A, one cabinet each.' },
       { at: [-14.6, 14.8], title: 'Films & references', line: 'The films and stories that shaped the work, in the lounge.' },
+    ],
+  },
+  awards: {
+    title: 'The Hall of Fame',
+    intro: `${AWARD_LIST.length} awards in 2026, for the work and for the team.`,
+    chapters: [
+      { at: [0, 15.6], title: 'The Golden Gallery', line: 'Every award here was won by the studio, on real briefs, in 2026.' },
+      { at: [0, 3.4], title: 'For the team', line: 'ET Brand Disruption Awards, Gold: Most Disruptive Creative & Design Team.' },
+      { at: [-13.4, 1], title: 'The Shorty Awards', line: 'Winner for Generative AI, Gold Honor for Financial Services, Finalist for Community Engagement.' },
+      { at: [13.4, 1], title: 'Kyoorius and ET Brand Disruption', line: 'First List for Film Craft and for Use of Technology & AI; Silver for Most Disruptive B2B Campaign.' },
+      { at: [0, -13.6], title: 'Trial of the Century', line: 'The animal courtroom behind six of the seven awards, on the big screen.' },
+      { at: [12.6, 14.6], title: 'The nights', line: 'On stage and at the awards, framed on the photography wall.' },
     ],
   },
 };

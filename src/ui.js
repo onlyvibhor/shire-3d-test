@@ -360,7 +360,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
   const GLYPH = { gallery: '🖼️', hq: '🌳', brand: '🎬', pmm: '🚀', product: '🧩', social: '📣', copy: '✍️', design: '🎨', lab: '🌙', fun: '🍿', home: '🏡', ai: '🤖', awards: '🏆' };
   // the head of a place card: its name, where it is and what it is, then the numbers, all in one block
   function placeHead(p) {
-    const kind = { hq: 'Island pass', home: 'Home pass', fun: 'Playground pass', lab: 'Night Lab pass', ai: 'Lab pass' }[p.id] || 'Department pass';
+    const kind = { hq: 'Island pass', home: 'Home pass', fun: 'Playground pass', lab: 'Night Lab pass', ai: 'Lab pass', awards: 'Hall pass' }[p.id] || 'Department pass';
     const makes = p.makes || [];
     return `<header class="place">
       <div class="place__top"><i class="place__glyph">${GLYPH[p.id] || '📍'}</i><span class="place__kind">${kind}<em>${esc(p.place)}</em></span></div>
@@ -374,7 +374,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     </header>`;
   }
   function renderPass(p) {
-    const kind = { hq: 'Island pass', home: 'Home pass', fun: 'Playground pass', lab: 'Night Lab pass', ai: 'Lab pass' }[p.id] || 'Department pass';
+    const kind = { hq: 'Island pass', home: 'Home pass', fun: 'Playground pass', lab: 'Night Lab pass', ai: 'Lab pass', awards: 'Hall pass' }[p.id] || 'Department pass';
     const makes = p.makes || [];
     passEl.style.setProperty('--c', p.color);
     passEl.innerHTML = `

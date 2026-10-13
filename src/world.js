@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { HAMLETS, LAB, HOME, FUN, AIHUB } from './data.js';
+import { HAMLETS, LAB, HOME, FUN, AIHUB, HALL } from './data.js';
 import { windMaterial, canvasTexture } from './materials.js';
 
 // ---------- Layout ----------
@@ -11,14 +11,17 @@ export const WATER_LEVEL = -1.0;
 export const ROAD_HALF = 2.6;
 
 // ---------- Master plan ----------
-// The jamun tree is the origin: Creative Direction & Culture. Six spokes leave it on a loose
-// hexagon: four departments (Brand, Product Launches, Social, Mentorship), each at its own
-// distance so the ring reads as a planned village, and two gardens where departments used to be.
-// Secondary places take the pockets between the spokes: Home pulled off-axis into a quiet garden,
-// the Playground on the lively side between the Rose Garden and Social, the AI Lab past the bazaar.
+// The jamun tree is the origin: Creative Direction & Culture. Six spokes leave it on a hexagon:
+// four departments (Brand, Product Launches, Social, Mentorship) and, on the two remaining
+// corners, the AI Lab (west) and the Hall of Fame (east), each just past its corner so the spoke
+// and ring road meet in a forecourt at its gate. Secondary places take the pockets between the
+// spokes: the Playground on the lively side by Social, Home in the quiet pocket between the AI
+// Lab and Brand, clear of the bazaar street on the ring road.
 export const PLAN = {
   departments: { brand: 75, pmm: 70, product: 66, social: 76, mentorship: 70, design: 66 },
-  zones: { fun: [60, 43], home: [187, 45], ai: [238, 39] }, // degrees, metres
+  zones: { fun: [60, 43], home: [240, 42] }, // degrees, metres
+  // places built on an empty corner of the hexagon, this far past the corner
+  corners: { ai: ['design', 15], awards: ['product', 14] },
   // half-widths: main spokes from the tree, the ring road between departments, lanes to places
   roads: { spoke: 2.3, ring: 1.85, lane: 1.35 },
 };
@@ -38,18 +41,28 @@ LAB.angle = pondAngle;
 LAB.x = Math.cos(pondAngle) * 25;
 LAB.z = Math.sin(pondAngle) * 25;
 
-// Home, the Playhouse, the Hall of Fame and the AI Hub sit inside the ring, between spokes.
-for (const place of [FUN, HOME, AIHUB]) {
+// Home and the Playground sit inside the ring, between spokes.
+for (const place of [FUN, HOME]) {
   const [deg, r] = PLAN.zones[place.id];
   const a = THREE.MathUtils.degToRad(deg);
   place.angle = a;
   place.x = Math.cos(a) * r;
   place.z = Math.sin(a) * r;
 }
-export const ZONES = [HOME, FUN, AIHUB];
+// The AI Lab and the Hall of Fame stand on the hexagon's empty corners, facing the tree.
+for (const place of [AIHUB, HALL]) {
+  const [slot, past] = PLAN.corners[place.id];
+  const h = HAMLETS.find((s) => s.id === slot);
+  place.corner = h;
+  place.angle = h.angle;
+  place.x = Math.cos(h.angle) * (Math.hypot(h.x, h.z) + past);
+  place.z = Math.sin(h.angle) * (Math.hypot(h.x, h.z) + past);
+  place.facing = Math.atan2(h.x - place.x, h.z - place.z);
+}
+export const ZONES = [HOME, FUN, AIHUB, HALL];
 
 // Jaipur on the island: Jantar Mantar in the free slot between the Lab and the Playhouse,
-// and the old-city bazaar along the ring road past Home.
+// and the old-city bazaar along the ring road between Mentorship and the AI Lab.
 export const JANTAR = { x: 40, z: 0, r: 13 };
 export const BAZAAR = (() => {
   const a = HAMLETS[4];
@@ -67,7 +80,7 @@ HAMLETS.forEach((h, i) => {
   PATHS.push([h.x, h.z, n.x, n.z, PLAN.roads.ring, 'ring']);
 });
 // Branch paths from the nearest spoke into each inner zone, keeping the centre plaza clear.
-for (const [z, i, r, edge] of [[FUN, 2, 32, 11], [HOME, 4, 32, 11], [AIHUB, 5, 32, 11], [LAB, 1, 19, 7.4]]) {
+for (const [z, i, r, edge] of [[FUN, 2, 32, 11], [HOME, 5, 32, 11], [LAB, 1, 19, 7.4]]) {
   const a = HAMLETS[i].angle;
   const sx = Math.cos(a) * r;
   const sz = Math.sin(a) * r;
@@ -77,6 +90,14 @@ for (const [z, i, r, edge] of [[FUN, 2, 32, 11], [HOME, 4, 32, 11], [AIHUB, 5, 3
   PATHS.push([sx, sz, z.x - (dx / l) * edge, z.z - (dz / l) * edge, PLAN.roads.lane, 'lane']);
   // each place's front turns to where its lane arrives from, not blindly to the tree
   z.facing = Math.atan2(sx - z.x, sz - z.z);
+  z.laneFrom = [sx, sz];
+}
+// the corner places: a short lane from the corner's forecourt to the gate
+for (const z of [AIHUB, HALL]) {
+  const h = z.corner;
+  const l = Math.hypot(z.x - h.x, z.z - h.z);
+  PATHS.push([h.x, h.z, z.x - ((z.x - h.x) / l) * 11, z.z - ((z.z - h.z) / l) * 11, PLAN.roads.lane, 'lane']);
+  z.laneFrom = [h.x, h.z];
 }
 export function distToSegment(px, pz, [ax, az, bx, bz]) {
   const dx = bx - ax;

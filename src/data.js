@@ -84,6 +84,7 @@ export const BELIEFS = {
   fun: { title: 'Have fun doing it.', body: 'Stop motion, found objects and quirky little things, after hours.' },
   home: { title: 'Build a culture that can take risks.', body: 'Turn brainstorms into hubs of collaboration, where trying something bold does not mean fearing failure.' },
   ai: { title: 'Interfaces, not prompts.', body: 'Make AI easy to learn, so beginners are productive on day one.' },
+  awards: { title: 'Make goals measurable.', body: 'Use analytics not only to validate creative work but to show how it contributes to the company.' },
 };
 
 // The five pillars around the jamun tree.
@@ -592,7 +593,7 @@ export const CENTER = {
 
 // Each hamlet is one department. `activity` picks the props and what the villagers do.
 // Six slots round the tree make the village's plan (its roads, the pond, the bazaar all hang off
-// them). Four hold departments; the two marked `empty` are gardens where a department used to be.
+// them). Four hold departments; the two marked `empty` are the corners the AI Lab and the Hall of Fame stand on.
 export const HAMLETS = [
   {
     id: 'brand',
@@ -636,7 +637,7 @@ export const HAMLETS = [
       'Passport For Your Product: 50% view-through on LinkedIn.',
     ],
   },
-  { id: 'product', empty: true, name: 'The Rose Garden', color: '#7b5cff' },
+  { id: 'product', empty: true, name: 'Hall of Fame corner', color: '#f5b700' },
   {
     id: 'social',
     name: 'Social',
@@ -679,7 +680,7 @@ export const HAMLETS = [
       'Workshops teach what the studio is learning.',
     ],
   },
-  { id: 'design', empty: true, name: 'The Stepwell Garden', color: '#ff7a3d' },
+  { id: 'design', empty: true, name: 'AI Lab corner', color: '#00c2ff' },
 ];
 export const DEPARTMENTS = HAMLETS.filter((h) => !h.empty);
 
@@ -746,6 +747,22 @@ export const AIHUB = {
   makes: ['In-house AI tools', 'Automation pipelines', 'AI films', 'AI images'],
   projects: ['toolkit', 'undying-light', 'khwaab', 'houseparty', 'jaipur-ai'],
   quotes: ['Prompts are inputs. Tools are modules. Systems create consistency.', 'Every tool here started as a task we were tired of repeating.'],
+};
+
+export const HALL = {
+  id: 'awards',
+  name: 'Hall of Fame',
+  place: 'Awards & recognition',
+  color: '#f5b700',
+  lead: 'Work that wins rooms, juries and, more importantly, customers.',
+  how: [
+    'Trial of the Century: Shorty Awards winner for Generative AI',
+    'Kyoorius 2026 First List for Film Craft and Use of Technology & AI',
+    'ET Brand Disruption Gold for the Razorpay Creative & Design Team',
+  ],
+  makes: ['Shorty Awards', 'Kyoorius', 'ET Brand Disruption'],
+  projects: ['trial', 't20', 'btb'],
+  quotes: ['Every trophy here started as a brief nobody thought could be fun.', 'The animal courtroom took home the Shorty for Generative AI.'],
 };
 
 export const AWARD_LIST = [

@@ -9,7 +9,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import './style.css';
 import './theme.css';
-import { OWNER, PILLARS, CENTER, HAMLETS, DEPARTMENTS, LAB, HOME, FUN, AIHUB, PROJECTS, AWARDS, ASSETS, NPC_TALK, CONTACT, FAVOURITES, TOOLS, AWARD_LIST } from './data.js';
+import { OWNER, PILLARS, CENTER, HAMLETS, DEPARTMENTS, LAB, HOME, FUN, AIHUB, HALL, PROJECTS, AWARDS, ASSETS, NPC_TALK, CONTACT, FAVOURITES, TOOLS, AWARD_LIST } from './data.js';
 import {
   buildSky, makeSkyMaterial, buildClouds, buildTerrain, buildGrass, buildLavender, buildFlowers, buildMountains, buildTrees, buildPollen,
   heightAt, groundAt, walkY, POND, PATHS, WORLD_RADIUS, buildOcean, SEA_LEVEL, coastR, onPaving, BAZAAR, distToPath,
@@ -206,6 +206,7 @@ const PLACES = [
   { ...FUN, reach: 16 },
   { ...HOME, reach: 16 },
   { ...AIHUB, reach: 17 },
+  { ...HALL, reach: 16 },
 ];
 
 // Level 3 wayfinding: fingerposts at the tree, at the piers and at the Gallery's lane
@@ -238,7 +239,7 @@ function travelTo(id) {
   if (p.id === 'hq') {
     x = 0;
     z = 15;
-  } else if (['lab', 'home', 'fun', 'ai'].includes(p.id)) {
+  } else if (['lab', 'home', 'fun', 'ai', 'awards'].includes(p.id)) {
     // arrive on the place's own lane, a few steps short of its front
     const back = p.id === 'lab' ? 7 : p.id === 'home' ? 14 : p.id === 'gallery' ? 17 : 20;
     const f = p.facing ?? Math.atan2(-p.x, -p.z);

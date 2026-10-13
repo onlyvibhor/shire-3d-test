@@ -5,6 +5,7 @@ import { addStory } from './roomstory.js';
 import { buildPlayhouse } from './rooms/playhouse.js';
 import { buildAIHub } from './rooms/aihub.js';
 import { buildHome } from './rooms/home.js';
+import { buildHall } from './rooms/hall.js';
 
 // The four buildings you can walk into. Each is one continuous interior of several rooms, built in
 // src/rooms/ from a shared kit; they live far from the island, and entering one hides the island
@@ -51,6 +52,7 @@ export function buildInteriors(root) {
     ai: buildAIHub(new THREE.Vector3(3000, 0, 0)),
     home: buildHome(new THREE.Vector3(3000, 0, 400)),
     fun: buildPlayhouse(new THREE.Vector3(3000, 0, 800)),
+    awards: buildHall(new THREE.Vector3(3000, 0, 1200)),
   };
   const theme = { ai: [AIHUB.color, true], home: ['#c8503c', false], fun: [FUN.color, true], awards: ['#d9a441', true] };
   for (const [id, room] of Object.entries(rooms)) {

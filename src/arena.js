@@ -645,7 +645,7 @@ export function buildWayfinding(scene, { places, piers, colliders, groundAt }) {
     colliders.push({ x, z, r: 0.35 });
   };
   const depts = places.filter((p) => p.angle !== undefined && p.reach === 22);
-  const pockets = places.filter((p) => ['fun', 'home', 'ai', 'lab'].includes(p.id));
+  const pockets = places.filter((p) => ['fun', 'awards', 'home', 'ai', 'lab'].includes(p.id));
   for (const d of depts) {
     const a = d.angle;
     // 12.5 m out along the spoke, 4 m to its right
