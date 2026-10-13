@@ -346,6 +346,9 @@ body.show-keys #keys { opacity: 1; transform: none; pointer-events: auto; }
 #pass.is-open ~ #prompt.is-open { bottom: 196px; }
 #toast { top: 74px; bottom: auto; padding: 10px 20px; border-radius: 999px; background: rgba(30, 34, 38, 0.95); border: 0; box-shadow: var(--depth); font-size: 13px; transform: translate(-50%, -160%); }
 #toast.is-open { transform: translate(-50%, 0); }
+/* the toast sits at the top now: never also pin it to the bottom (the old tour rule did, which
+   stretched it into a tall empty pill over the scene) */
+body[data-mode] #toast { bottom: auto; height: auto; }
 #toast b { color: var(--accent); }
 #toast a { color: #fff; text-decoration: underline; }
 #toast kbd { color: #fff; }
@@ -534,6 +537,8 @@ body.splash-open #intro { background: rgba(14, 16, 18, 0.5) !important; backdrop
 @media (max-width: 520px) and (orientation: portrait) {
   .topnav { left: 10px; right: 10px; top: 140px; }
   #hud .stack { width: calc(100vw - 120px); }
+  /* on a portrait phone the toast gets the full width under the nav, so it never squeezes into a tall pill */
+  #toast { top: 192px; max-width: calc(100vw - 24px); width: max-content; border-radius: 18px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .hero__stack .hcard, .hero__copy, .hero__note { animation: none; }
