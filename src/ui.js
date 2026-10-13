@@ -333,9 +333,9 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     const nxt = s.next >= 0 ? s.chapters[s.next] : null;
     guideEl.innerHTML = `
       <p class="guide__top"><span>${esc(s.title)}</span><b>${reached}/${n}</b></p>
-      ${cur ? `<p class="guide__ch">Chapter ${s.current + 1}</p><h3>${esc(cur.title)}</h3><p class="guide__line">${esc(cur.line)}</p>` : `<h3>${esc(s.intro)}</h3><p class="guide__line">Follow the numbered markers on the floor, from the door.</p>`}
+      ${cur ? `<p class="guide__ch">Chapter ${s.current + 1}</p><h3>${esc(cur.title)}</h3><p class="guide__line">${esc(cur.line)}</p>` : `<h3>${esc(s.intro)}</h3><p class="guide__line">Walk through the rooms: each numbered medallion in the floor marks a stop. The floor plan shows the way.</p>`}
       <ol class="guide__dots">${s.chapters.map((c, k) => `<li class="${s.seen.includes(k) ? 'is-seen' : ''} ${k === s.current ? 'is-now' : ''} ${k === s.next ? 'is-next' : ''}" title="${esc(c.title)}">${k + 1}</li>`).join('')}</ol>
-      <p class="guide__next">${nxt ? `Next: <b>${s.next + 1} · ${esc(nxt.title)}</b>, the glowing marker` : 'Story complete. Walk out the door or press <kbd>Esc</kbd>.'}</p>`;
+      <p class="guide__next">${nxt ? `Next: <b>${s.next + 1} · ${esc(nxt.title)}</b>` : 'Story complete. Exit to the island whenever you like.'}</p>`;
   }
 
   function setIndoor(place) {

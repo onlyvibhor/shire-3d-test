@@ -8,13 +8,13 @@
 import * as THREE from 'three';
 import { PROJECTS, FAVOURITES, FUN } from '../data.js';
 import { screenMat } from '../props.js';
-import { solid, glow, mesh, WHITE_METAL, DARK, CHROME } from '../materials.js';
-import { FONT, fit, wrap, fillFit } from '../type.js';
+import { solid, glow, mesh, DARK } from '../materials.js';
+import { FONT, wrap, fillFit } from '../type.js';
 import { giveProp } from '../characters.js';
 import { rng } from '../world.js';
 import {
-  makeShell, partition, zone, addThing, addCollider, addBox, addFootprint, addNpc, person, clickable, plate, lamp, sofa, armchair, coffeeTable, plant,
-  floorLamp, rug, plinth, framed, bigScreen, tileTexture, floorPatch, shelf, table, stool, counter, faceTo,
+  makeShell, partition, zone, addThing, addCollider, addBox, addFootprint, addNpc, person, clickable, plate, lamp, sofa, armchair, coffeeTable,
+  plant, floorLamp, rug, plinth, framed, bigScreen, tileTexture, floorPatch, shelf, table, stool, counter, faceTo,
 } from './kit.js';
 
 const C = FUN.color;
@@ -41,7 +41,7 @@ function cabinet(room, x, z, ry, { body = '#1d2b4f', art = PINK, marquee = 'ARCA
   s.lineTo(-0.45, 0);
   const side = new THREE.ExtrudeGeometry(s, { depth: 0.82, bevelEnabled: false });
   side.translate(0, 0, -0.41);
-  const shell = new THREE.Mesh(side, [bm, am]);
+  const shell = new THREE.Mesh(side, [am, bm]);
   shell.rotation.y = -Math.PI / 2;
   shell.castShadow = true;
   g.add(shell);
@@ -100,11 +100,12 @@ export function buildPlayhouse(origin) {
   const PH = 6.2;
 
   // ----- the plan -----
-  partition(room, { axis: 'z', at: -7, from: 8, to: 20, h: PH, mat: WALL, trim: TRIM, openings: [{ at: 14, w: 3.2, style: 'round' }] });
-  partition(room, { axis: 'z', at: 7, from: 8, to: 20, h: PH, mat: WALL, trim: TRIM, openings: [{ at: 14, w: 3.2, style: 'round' }] });
-  partition(room, { axis: 'x', at: 8, from: -18, to: 18, h: PH, mat: WALL, trim: TRIM, openings: [{ at: -3, w: 3.4, style: 'round' }, { at: -12.5, w: 3, style: 'round' }, { at: 12, w: 3, style: 'round' }] });
-  partition(room, { axis: 'z', at: 4, from: -20, to: 8, h: PH, mat: WALL, trim: TRIM, openings: [{ at: 1, w: 3, style: 'round' }, { at: -14, w: 3, style: 'round' }] });
-  partition(room, { axis: 'x', at: -6, from: 4, to: 18, h: PH, mat: WALL, trim: TRIM, openings: [{ at: 11, w: 3, style: 'round' }] });
+  const sg = (t) => ({ signColor: '#ffd08a', signs: t });
+  partition(room, { axis: 'z', at: -7, from: 8, to: 20, h: PH, mat: WALL, trim: TRIM, openings: [{ at: 14, w: 3.2, style: 'round', ...sg({ pos: 'Creative lounge' }) }] });
+  partition(room, { axis: 'z', at: 7, from: 8, to: 20, h: PH, mat: WALL, trim: TRIM, openings: [{ at: 14, w: 3.2, style: 'round', ...sg({ neg: 'Arcade' }) }] });
+  partition(room, { axis: 'x', at: 8, from: -18, to: 18, h: PH, mat: WALL, trim: TRIM, openings: [{ at: -3, w: 3.4, style: 'round' }, { at: -12.5, w: 3, style: 'round', ...sg({ pos: 'Cinema' }) }, { at: 12, w: 3, style: 'round', ...sg({ pos: 'Stop-motion workshop' }) }] });
+  partition(room, { axis: 'z', at: 4, from: -20, to: 8, h: PH, mat: WALL, trim: TRIM, openings: [{ at: 1, w: 3, style: 'round', ...sg({ neg: 'Workshop', pos: 'Cinema' }) }, { at: -14, w: 3, style: 'round', ...sg({ neg: 'Found-object art' }) }] });
+  partition(room, { axis: 'x', at: -6, from: 4, to: 18, h: PH, mat: WALL, trim: TRIM, openings: [{ at: 11, w: 3, style: 'round', ...sg({ pos: 'Power: found objects', neg: 'Workshop' }) }] });
   zone(room, 'lobby', 'Lobby', -7, 8, 7, 20, [0, 15.5], 'Popcorn and the way in');
   zone(room, 'lounge', 'Creative lounge', -18, 8, -7, 20, [-12.5, 13], 'Films and references');
   zone(room, 'arcade', 'Arcade', 7, 8, 18, 20, [12, 14], 'Back in the Ring: play it');
@@ -353,7 +354,7 @@ export function buildPlayhouse(origin) {
   addThing(room, 11, 5.6, { kind: 'project', slug: 'modern-junkyard', label: 'Modern Junkyard: the stop-motion studio', verb: 'Open' });
   addThing(room, 9.5, -4.2, { kind: 'project', slug: 'urbanclap', label: 'Stop motion: All Things A for UrbanClap', verb: 'Open' });
   addThing(room, 16, -1.2, { kind: 'project', slug: 'winter-foods', label: 'Stop motion: Winter Foods', verb: 'Open' });
-  addNpc(room, person({ seed: r(), style: 'kurta', accent: C }), 9.2, 3.6, faceTo(9.2, 3.6, 10.6, 2), 'think', 'fun', { name: 'Animator', lines: ['Twelve frames for every second. Don’t bump the table.', 'The puppets are clay over wire, so they hold a pose between frames.'] });
+  addNpc(room, person({ seed: r(), style: 'kurta', accent: C }), 9.2, 3.6, faceTo(9.2, 3.6, 10.6, 2), 'think', 'fun', { name: 'Animator', lines: ['Don’t bump the table: we’re mid-shot.', 'One frame, nudge the puppet, another frame. That’s the whole trick, and the whole week.'] });
 
   // ===== Found-object art: Power =====
   floorPatch(room, 11, -13, 13.6, 13.6, new THREE.MeshStandardMaterial({ color: '#efe9e0', roughness: 0.85 }));
@@ -437,7 +438,7 @@ export function buildPlayhouse(origin) {
   clickable(room, rp.pic, { kind: 'project', slug: 'ring' });
   addThing(room, 12.2, 18.2, { kind: 'project', slug: 'ring', label: 'Back in the Ring: the case study', verb: 'Open' });
   const gamer = person({ seed: r(), style: 'streetwear', accent: C });
-  addNpc(room, gamer, 16.1, 13.3, Math.PI / 2, 'type', 'fun', { name: 'Arcade regular', lines: ['Every opponent you beat unlocks a Netbanking feature. I’m on round four.', 'The cabinet on the end is the real game. Press E and it opens.'] });
+  addNpc(room, gamer, 16.1, 13.3, Math.PI / 2, 'type', 'fun', { name: 'Arcade regular', lines: ['Every opponent you beat unlocks a Netbanking feature. I’m on round four.', 'The Back in the Ring cabinets open the real game. Press E at one.'] });
   for (let k = 0; k < 2; k++) stool(room, 14.6, 16.5 - k * 3.2, { color: PINK });
   for (const [x, col] of [[8.2, PINK], [9.4, '#00e5ff']]) g.add(mesh(new THREE.BoxGeometry(0.06, 5.4, 0.06), glow(col, 2.4), x, 2.9, 19.9, false));
   lamp(room, 12.5, 4.6, 14.5, '#b07bff', 6, 10);
@@ -491,7 +492,7 @@ export function buildPlayhouse(origin) {
     clickable(room, poster, { kind: 'poster', item });
   });
   addThing(room, -16.2, 15, { kind: 'place', id: 'fun', label: 'Films & references', verb: 'See all' });
-  addNpc(room, person({ seed: r(), style: 'hoodie', accent: C }), -13.2, 16.45, Math.PI, 'sit', 'fun', { y: 0.06, name: 'Writer', lines: ['Damini’s courtroom scene is why Trial of the Century has a judge with a gavel.', 'Every film on that wall left a fingerprint on the work.'] });
+  addNpc(room, person({ seed: r(), style: 'hoodie', accent: C }), -13.2, 16.45, Math.PI, 'sit', 'fun', { y: 0.02, name: 'Writer', lines: ['Damini’s “sawaal pe sawaal” scene is where Trial of the Century’s courtroom began.', 'Every story on that wall left a fingerprint on the work.'] });
   lamp(room, -12.5, 5, 14, '#ffd9a8', 5, 10);
 
   room.sounds = { ring: [16.5, 16.5], power: [11, -12] };

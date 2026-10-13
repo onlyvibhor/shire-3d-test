@@ -9,19 +9,19 @@
 import * as THREE from 'three';
 import { AWARD_LIST, PROJECTS, PLAYS, OWNER, HALL } from '../data.js';
 import { screenMat } from '../props.js';
-import { solid, glow, mesh, canvasTexture } from '../materials.js';
+import { solid, glow, mesh } from '../materials.js';
 import { FONT, fit, wrap } from '../type.js';
 import { giveProp } from '../characters.js';
 import { rng } from '../world.js';
 import {
-  makeShell, partition, zone, addThing, addCollider, addNpc, person, clickable, plate, lamp, sofa, armchair, coffeeTable, plant, floorLamp,
-  rug, plinth, framed, bigScreen, niche, marbleTexture, floorPatch, pendant, faceTo,
+  makeShell, partition, zone, addThing, addNpc, person, clickable, plate, lamp, sofa, armchair, coffeeTable, plant, floorLamp, rug, plinth, framed,
+  bigScreen, niche, marbleTexture, floorPatch, pendant, faceTo,
 } from './kit.js';
 
-const CHARCOAL = '#1d1c21';
+const CHARCOAL = '#2a2830';
 const GOLD_C = '#d9b77a';
 const IVORY = '#f3ecdf';
-const CHAMPAGNE = new THREE.MeshPhysicalMaterial({ color: '#d9b77a', metalness: 0.85, roughness: 0.28, emissive: '#3a2a10', emissiveIntensity: 0.25 });
+const CHAMPAGNE = new THREE.MeshPhysicalMaterial({ color: '#e2c48a', metalness: 0.7, roughness: 0.32, emissive: '#4a3514', emissiveIntensity: 0.3 });
 const CASE_GLASS = new THREE.MeshPhysicalMaterial({ color: '#ffffff', transparent: true, opacity: 0.1, roughness: 0.05, depthWrite: false });
 
 function trophy(tier, scale = 1) {
@@ -93,14 +93,15 @@ export function buildHall(origin) {
   });
   const g = room.group;
   const r = rng(904);
-  const WALL = new THREE.MeshStandardMaterial({ color: '#25232a', roughness: 0.7 });
+  const WALL = new THREE.MeshStandardMaterial({ color: '#3a3640', roughness: 0.7 });
   const PH = 7; // partition height: the ceiling floats above, so the rooms read as one hall
 
   // ----- the plan -----
-  partition(room, { axis: 'z', at: -7, from: 8, to: 20, h: PH, mat: WALL, trim: CHAMPAGNE, openings: [{ at: 14, w: 3.2 }] });
-  partition(room, { axis: 'z', at: 7, from: 8, to: 20, h: PH, mat: WALL, trim: CHAMPAGNE, openings: [{ at: 14, w: 3.2 }] });
+  const sg = (t) => ({ signColor: '#f2d58c', signs: t });
+  partition(room, { axis: 'z', at: -7, from: 8, to: 20, h: PH, mat: WALL, trim: CHAMPAGNE, openings: [{ at: 14, w: 3.2, ...sg({ pos: 'Lounge' }) }] });
+  partition(room, { axis: 'z', at: 7, from: 8, to: 20, h: PH, mat: WALL, trim: CHAMPAGNE, openings: [{ at: 14, w: 3.2, ...sg({ neg: 'Photography wall' }) }] });
   partition(room, { axis: 'x', at: 8, from: -17, to: 17, h: PH, mat: WALL, trim: CHAMPAGNE, openings: [{ at: 0, w: 4.4 }, { at: -12, w: 3 }, { at: 12, w: 3 }] });
-  partition(room, { axis: 'x', at: -6, from: -17, to: 17, h: PH, mat: WALL, trim: CHAMPAGNE, openings: [{ at: 0, w: 6 }, { at: -12, w: 3 }, { at: 12, w: 3 }] });
+  partition(room, { axis: 'x', at: -6, from: -17, to: 17, h: PH, mat: WALL, trim: CHAMPAGNE, openings: [{ at: 0, w: 6, ...sg({ pos: 'Trial of the Century' }) }, { at: -12, w: 3 }, { at: 12, w: 3 }] });
   zone(room, 'foyer', 'Foyer', -7, 8, 7, 20, [0, 16.5], 'The statement trophy');
   zone(room, 'lounge', 'Lounge', -17, 8, -7, 20, [-12, 13], 'Sit for a while');
   zone(room, 'photos', 'Photography wall', 7, 8, 17, 20, [12, 13], 'The award nights');
@@ -111,11 +112,6 @@ export function buildHall(origin) {
   const runner = solid('#2a2630', { roughness: 1 });
   floorPatch(room, 0, 5, 3.2, 30, runner);
   for (const x of [-1.7, 1.7]) floorPatch(room, x, 5, 0.1, 30, CHAMPAGNE, 0.016);
-  // a gold inlaid medallion under the statement trophy
-  const medal = new THREE.Mesh(new THREE.RingGeometry(2.0, 2.15, 64), CHAMPAGNE);
-  medal.rotation.x = -Math.PI / 2;
-  medal.position.set(0, 0.018, 13.5);
-  g.add(medal);
 
   // champagne bands along the outer walls
   for (const y of [1.0, 7.6]) {
@@ -292,7 +288,7 @@ export function buildHall(origin) {
   panel([['kicker', 'WHAT IT DID'], ...P.metrics.map((m) => ['big', m])], 10.6);
   // two rows of seats facing the film, and a seated guest
   for (const z of [-11.6, -9.4]) for (const x of [-3.2, 3.2]) sofa(room, x, z, Math.PI, { w: 2.8, color: '#3a2f3f', cushion: '#4a3b50', legs: '#c9a24a' });
-  addNpc(room, person({ seed: r(), style: 'blazer', accent: GOLD_C }), 3.9, -11.55, Math.PI, 'sit', 'awards', { y: 0.06 });
+  addNpc(room, person({ seed: r(), style: 'blazer', accent: GOLD_C }), 3.9, -11.55, Math.PI, 'sit', 'awards', { y: 0.02 });
   lamp(room, 0, 6, -14, '#ffe2b0', 6, 12);
 
   // ===== D: the photography wall =====
@@ -321,7 +317,7 @@ export function buildHall(origin) {
   addThing(room, 13.5, 14, { kind: 'hire', label: 'Photographs: the award nights and the stage', verb: 'More about Vibhor' });
   const photographer = person({ seed: r(), style: 'streetwear', accent: GOLD_C });
   giveProp(photographer, 'camera');
-  addNpc(room, photographer, 11.2, 12.2, faceTo(11.2, 12.2, 17, 14), 'camera', 'awards', { name: 'Photographer', lines: ['Hold still. The light on that frame is perfect.', 'I shot both of those nights. The stage one is my favourite.'] });
+  addNpc(room, photographer, 11.2, 12.2, faceTo(11.2, 12.2, 17, 14), 'camera', 'awards', { name: 'Photographer', lines: ['Hold still. The light on that frame is perfect.', 'Those frames are from the award nights. The stage one is my favourite.'] });
   plant(room, 8.2, 19, { s: 1.1, pot: '#2a2630' });
   lamp(room, 12, 5, 14, '#fff1d8', 5, 9);
 
@@ -334,7 +330,7 @@ export function buildHall(origin) {
   g.add(mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.28, 10), glow('#fff1cf', 1.2), -11.8, 0.6, 14.2, false));
   floorLamp(room, -16, 18.6, { color: '#ffe2a8', stem: '#c9a24a' });
   plant(room, -16, 9.2, { s: 1.1, pot: '#2a2630' });
-  addNpc(room, person({ seed: r(), style: 'dress', accent: GOLD_C }), -12.8, 16.5, Math.PI, 'coffee', 'awards', { y: 0.06, name: 'Guest', lines: ['I came for the film and stayed for the trophies.', 'Have you seen the courtroom on the big screen? Through the arches, at the back.'] });
+  addNpc(room, person({ seed: r(), style: 'dress', accent: GOLD_C }), -9.4, 15.6, faceTo(-9.4, 15.6, -12, 14.2), 'coffee', 'awards', { name: 'Guest', lines: ['I came for the film and stayed for the trophies.', 'Have you seen the courtroom on the big screen? Through the arches, at the back.'] });
   addThing(room, -12, 12.4, { kind: 'toast', label: 'The lounge', verb: 'Sit for a while', text: '<b>🛋️ The lounge.</b> Take a seat. The awards gallery is through the arch.' });
 
   return room;

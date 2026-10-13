@@ -10,12 +10,12 @@
 import * as THREE from 'three';
 import { PROJECTS, TOOLS, AIHUB } from '../data.js';
 import { screenMat } from '../props.js';
-import { solid, glow, mesh, WHITE_METAL, BRUSHED, DARK, GLASS } from '../materials.js';
+import { solid, glow, mesh, WHITE_METAL, BRUSHED, DARK } from '../materials.js';
 import { FONT, fit, wrap, fillFit } from '../type.js';
 import { rng } from '../world.js';
 import {
-  makeShell, partition, zone, addThing, addCollider, addBox, addFootprint, addNpc, person, clickable, plate, lamp, plant, framed, bigScreen, tileTexture,
-  floorPatch, table, stool, chair, faceTo, sofa,
+  makeShell, partition, zone, addThing, addCollider, addBox, addFootprint, addNpc, person, clickable, plate, lamp, plant, framed, bigScreen,
+  tileTexture, floorPatch, table, chair, faceTo,
 } from './kit.js';
 
 const C = AIHUB.color;
@@ -150,7 +150,8 @@ export function buildAIHub(origin) {
   ['Prompts are inputs', 'Tools are modules', 'Systems create consistency'].forEach((text, k) => {
     const panel = new THREE.Group();
     panel.position.set(-5.4 + k * 5.4, 4.4, 13.2);
-    panel.add(mesh(new THREE.BoxGeometry(4.4, 1.5, 0.06), GLASS, 0, 0, -0.04, false));
+    panel.add(mesh(new THREE.BoxGeometry(4.4, 1.5, 0.04), new THREE.MeshPhysicalMaterial({ color: '#0b1a33', transparent: true, opacity: 0.55, roughness: 0.1, metalness: 0.2 }), 0, 0, -0.03, false));
+    panel.add(mesh(new THREE.BoxGeometry(4.44, 0.03, 0.05), glow(C, 2), 0, 0.76, -0.03, false));
     const label = plate(4.2, 1.3, (c, w, h) => {
       c.clearRect(0, 0, w, h);
       c.fillStyle = C;
@@ -160,10 +161,8 @@ export function buildAIHub(origin) {
       fit(c, text, { weight: 800, size: h * 0.3, min: h * 0.18, family: FONT.display, maxW: w - 48 });
       c.fillText(text, 24, h * 0.72);
     }, { transparent: true });
-    label.position.z = -0.005;
-    label.rotation.y = Math.PI;
+    label.position.z = 0.01;
     panel.add(label);
-    panel.rotation.y = Math.PI;
     g.add(panel);
     room.updaters.push({ update: (t) => (panel.position.y = 4.4 + Math.sin(t * 1.2 + k) * 0.1) });
   });
@@ -252,12 +251,13 @@ export function buildAIHub(origin) {
   const belt = new THREE.Group();
   belt.position.set(14, 0, 15.6);
   belt.rotation.y = Math.PI / 2;
-  belt.add(mesh(new THREE.BoxGeometry(1.8, 0.9, 8), DARK, 0, 0.45, 0));
-  belt.add(mesh(new THREE.BoxGeometry(1.6, 0.05, 8), solid('#1f2a44', { roughness: 0.5 }), 0, 0.93, 0));
-  for (const sx of [-0.92, 0.92]) belt.add(mesh(new THREE.BoxGeometry(0.06, 0.06, 8), glow(C, 1.6), sx, 0.95, 0, false));
-  const machine = mesh(new THREE.BoxGeometry(2.6, 2.4, 2.4), WHITE_METAL, 0, 2.1, 0);
+  belt.add(mesh(new THREE.BoxGeometry(1.8, 0.9, 6), DARK, 0, 0.45, 0));
+  belt.add(mesh(new THREE.BoxGeometry(1.6, 0.05, 6), solid('#1f2a44', { roughness: 0.5 }), 0, 0.93, 0));
+  for (const sx of [-0.92, 0.92]) belt.add(mesh(new THREE.BoxGeometry(0.06, 0.06, 6), glow(C, 1.6), sx, 0.95, 0, false));
+  const machine = mesh(new THREE.BoxGeometry(2.2, 1.9, 2.0), solid('#1b2338', { metalness: 0.4, roughness: 0.35 }), 0, 1.85, 0);
+  belt.add(mesh(new THREE.BoxGeometry(2.24, 0.06, 2.04), glow(C, 2), 0, 2.4, 0, false));
   belt.add(machine);
-  for (const sz of [-1.21, 1.21]) belt.add(mesh(new THREE.PlaneGeometry(1.6, 0.5), glow(C, 3), 0, 1.3, sz, false).rotateY(sz > 0 ? 0 : Math.PI));
+  for (const sz of [-1.01, 1.01]) belt.add(mesh(new THREE.PlaneGeometry(1.5, 0.42), glow(C, 3), 0, 1.25, sz, false).rotateY(sz > 0 ? 0 : Math.PI));
   const mlabel = plate(2.4, 0.8, (c, w, h) => {
     c.fillStyle = '#0b1222';
     c.fillRect(0, 0, w, h);
@@ -268,7 +268,7 @@ export function buildAIHub(origin) {
     c.font = `800 ${h * 0.28}px ${FONT.display}`;
     fillFit(c, '200+ posts, one pipeline', 20, h * 0.76, w - 40);
   });
-  mlabel.position.set(1.31, 2.7, 0);
+  mlabel.position.set(1.11, 2.0, 0);
   mlabel.rotation.y = Math.PI / 2;
   belt.add(mlabel);
   const cardMats = ['work/profile.jpg', 'work/t20-1.jpg', 'work/social-1.jpg', 'work/t20-5.jpg', 'work/t20-3.jpg'].map((src) => screenMat(src, 0.7));
@@ -281,13 +281,13 @@ export function buildAIHub(origin) {
     cards.push({ card, off: k / 10 });
   }
   g.add(belt);
-  addBox(room, 10, 14.6, 18, 16.6);
+  addBox(room, 11, 14.6, 17, 16.6);
   room.updaters.push({
     update: (t) => {
       for (const { card, off } of cards) {
         const u = (t * 0.06 + off) % 1;
-        const z = 3.8 - u * 7.6;
-        card.position.set(0, 0.97 + (Math.abs(z) < 1.3 ? -5 : 0), z);
+        const z = 2.8 - u * 5.6;
+        card.position.set(0, 0.97 + (Math.abs(z) < 1.1 ? -5 : 0), z);
         card.material = z > 0 ? cardMats[0] : cardMats[1 + Math.floor((off * 10) % 4)];
       }
     },
@@ -390,10 +390,10 @@ export function buildAIHub(origin) {
   for (let k = 0; k < 20; k++) {
     const lx = -2.8 + (k % 10) * 0.62;
     const ly = 3.6 - Math.floor(k / 10) * 1.0;
-    const len = mesh(new THREE.CylinderGeometry(0.2 + (k % 3) * 0.03, 0.22, 0.3 + (k % 4) * 0.1, 18), solid('#1a1a1a', { metalness: 0.6, roughness: 0.35 }), lx, ly, 0.2);
+    const len = mesh(new THREE.CylinderGeometry(0.16 + (k % 3) * 0.02, 0.18, 0.14 + (k % 4) * 0.05, 18), solid('#1a1a1a', { metalness: 0.6, roughness: 0.35 }), lx, ly, 0.1);
     len.rotation.x = Math.PI / 2;
     lensWall.add(len);
-    lensWall.add(mesh(new THREE.CircleGeometry(0.15, 18), glow(k % 2 ? V : C, 1.2), lx, ly, 0.36 + (k % 4) * 0.05, false));
+    lensWall.add(mesh(new THREE.CircleGeometry(0.12, 18), glow(k % 2 ? V : C, 1.2), lx, ly, 0.18 + (k % 4) * 0.025 + 0.002, false));
   }
   const lensHead = plate(6.2, 0.5, (c, w, h) => {
     c.fillStyle = '#0b1222';
@@ -469,7 +469,7 @@ export function buildAIHub(origin) {
       const x = -7.7 + k * 2.2;
       const z = -14.2 + row * 1.7;
       chair(room, x, z, Math.PI, { color: '#2a3654' });
-      if ((k + row * 3) % 4 === 1) addNpc(room, person({ seed: r(), accent: C }), x, z - 0.05, Math.PI, 'sit', 'ai', { y: 0.02 });
+      if ((k + row * 3) % 4 === 1) addNpc(room, person({ seed: r(), accent: C }), x, z - 0.02, Math.PI, 'sit', 'ai', { y: -0.03 });
     }
   }
   lamp(room, 0, 6, -15, '#bfefff', 6, 14);

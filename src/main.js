@@ -6,6 +6,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import './style.css';
 import './theme.css';
 import { OWNER, PILLARS, CENTER, HAMLETS, LAB, HOME, FUN, AIHUB, HALL, PROJECTS, AWARDS, ASSETS, NPC_TALK, CONTACT, FAVOURITES, TOOLS, AWARD_LIST } from './data.js';
@@ -53,6 +54,7 @@ scene.fog = new THREE.Fog('#d3e9f4', 170, 620);
 const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.2, 2000);
 
 // Environment map from the sky, so the white metal reflects blue sky and green land.
+const ISLAND_ENV = { tex: null, room: null };
 {
   const pmrem = new THREE.PMREMGenerator(renderer);
   const envScene = new THREE.Scene();
@@ -61,8 +63,10 @@ const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerH
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -8;
   envScene.add(ground);
-  scene.environment = pmrem.fromScene(envScene, 0.03).texture;
+  scene.environment = ISLAND_ENV.tex = pmrem.fromScene(envScene, 0.03).texture;
   scene.environmentIntensity = 1.0;
+  // indoors, metals reflect a warm neutral room instead of sky and grass (gold stays gold)
+  ISLAND_ENV.room = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 }
 if (ASSETS.skybox) {
   new THREE.TextureLoader().load(ASSETS.skybox, (t) => {
@@ -341,6 +345,7 @@ ui.addOverlay({ isOpen: quest.isOpen, close: quest.closeChooser });
 // ---------- Navigation: where you are, and the only way in and out of the buildings ----------
 const nav = createNav({
   state, rooms, places: PLACES, scene, hemi, outdoor, ui, sfx, dayNight, walkY, setShadowRange,
+  islandEnv: () => ISLAND_ENV.tex,
   applyIndoorLight: (room) => applyIndoorLight(room),
   now: () => elapsed,
   beforeTransition: () => {
@@ -352,8 +357,9 @@ const nav = createNav({
     snapCamera = true;
     marker.visible = false;
     if (dir === 'in') {
-      state.pitch = Math.min(camPreset.pitch, 0.5);
-      state.dist = Math.min(camPreset.dist, 5.5);
+      const cam = nav.entry(room.id)?.camera || { dist: 5.5, pitch: 0.5 };
+      state.pitch = Math.min(camPreset.pitch, cam.pitch);
+      state.dist = Math.min(camPreset.dist, cam.dist);
       ui.setIndoor(PLACES.find((p) => p.id === room.id));
     } else ui.setIndoor(null);
   },
@@ -443,7 +449,7 @@ for (const ev of ['pointerdown', 'keydown', 'touchstart', 'touchend', 'click']) 
 {
   const at = (room, x, z) => ({ x: room.origin.x + x, z: room.origin.z + z });
   addFilm({ url: 'audio/lab-time.m4a', pos: { x: LAB.x, z: LAB.z }, radius: 18, gain: 0.7 });
-  addFilm({ url: 'audio/ai-creator.m4a', room: 'ai', pos: at(rooms.ai, 0, -8), radius: 16, gain: 0.55 });
+  addFilm({ url: 'audio/ai-creator.m4a', room: 'ai', pos: at(rooms.ai, 0, -14), radius: 14, gain: 0.55 });
   const fs = rooms.fun.sounds || { ring: [-13.8, 7.1], power: [13, -4] };
   addFilm({ url: 'audio/ring-game.m4a', room: 'fun', pos: at(rooms.fun, ...fs.ring), radius: 8, gain: 0.8 });
   addFilm({ url: 'audio/power.m4a', room: 'fun', pos: at(rooms.fun, ...fs.power), radius: 9, gain: 2.2 });
@@ -603,25 +609,35 @@ function pick(e) {
   if (ground && ground.distance > wd) ground = null;
   if (h && (!ground || h.distance < ground.distance)) {
     const ud = h.object.userData;
-    return { action: ud.action || { kind: 'project', slug: ud.slug }, at: h.point };
+    const normal = h.face ? h.face.normal.clone().transformDirection(h.object.matrixWorld) : null;
+    return { action: ud.action || { kind: 'project', slug: ud.slug }, at: h.point, normal };
   }
   return ground ? { point: ground.point } : null;
 }
 let lastHover = 0;
 // clicking a thing: if you're beside it, use it; otherwise walk up to it first, then turn and use it
-function useFromAfar(action, at) {
+// `normal` is the clicked surface's facing: you walk to a spot in front of it, never round the back
+// of a wall to the nearest point on the other side
+function useFromAfar(action, at, normal) {
   if (!at || state.mode !== 'walk' || ride.active || action.kind === 'exit') return act(action);
   const d = Math.hypot(at.x - state.pos.x, at.z - state.pos.z);
   const reach = action.kind === 'enter' ? 1.6 : 2.6;
-  if (d < reach + 0.4) {
+  const facing = normal && Math.hypot(normal.x, normal.z) > 0.5 ? normal : null;
+  const inFront = !facing || (state.pos.x - at.x) * facing.x + (state.pos.z - at.z) * facing.z > 0;
+  if (d < reach + 0.4 && inFront) {
     state.heading = Math.atan2(at.x - state.pos.x, at.z - state.pos.z);
     return act(action);
   }
   // doors: walk to the doorway itself, so you go in the way you would on foot
   const door = action.kind === 'enter' ? nav.entry(action.room)?.door : null;
-  const tx = door ? door.x : at.x;
-  const tz = door ? door.z : at.z;
-  goTo(tx, tz, { action, x: tx, z: tz, reach });
+  let tx = door ? door.x : at.x;
+  let tz = door ? door.z : at.z;
+  if (!door && facing) {
+    const l = Math.hypot(facing.x, facing.z);
+    tx += (facing.x / l) * 1.4;
+    tz += (facing.z / l) * 1.4;
+  }
+  goTo(tx, tz, { action, x: tx, z: tz, fx: at.x, fz: at.z, reach: facing ? 1.0 : reach });
 }
 function hover(e) {
   const now = performance.now();
@@ -633,7 +649,7 @@ canvas.addEventListener('pointerup', (e) => {
   pointers.delete(e.pointerId);
   if (drag && !drag.moved && (state.mode === 'walk' || state.mode === 'overview')) {
     const res = pick(e);
-    if (res?.action) useFromAfar(res.action, res.at);
+    if (res?.action) useFromAfar(res.action, res.at, res.normal);
     else if (res?.point && (state.indoor || heightAt(res.point.x, res.point.z) > SEA_LEVEL + 0.5 || jettyAt(res.point.x, res.point.z) || coast.onFerry(res.point.x, res.point.z) !== null)) {
       goTo(res.point.x, res.point.z);
     }
@@ -706,7 +722,7 @@ function arrive(stuck = false) {
     ui.toast('<b>Can’t get any closer.</b> Walk round, or press <kbd>E</kbd> when you’re beside it.', 2400, { quiet: true });
     return;
   }
-  state.heading = Math.atan2(p.x - state.pos.x, p.z - state.pos.z);
+  state.heading = Math.atan2((p.fx ?? p.x) - state.pos.x, (p.fz ?? p.z) - state.pos.z);
   act(p.action);
 }
 function movePlayer(dt) {
@@ -776,6 +792,7 @@ function movePlayer(dt) {
     if (d < (last ? 0.35 : 0.55)) {
       state.path.shift();
       routeStall = 0;
+      routeBest = Infinity;
       if (!state.path.length) arrive();
     } else {
       dir.set(dx / d, dz / d);
@@ -889,21 +906,22 @@ function jettyAt(x, z) {
 
 const INDOOR = {
   ai: { bg: '#060b16', hemi: ['#cfe9ff', '#24315a', 1.45], sun: ['#e6f4ff', 1.9], exp: 1.08, bloom: [0.28, 0.84] },
-  home: { bg: '#f4e9db', hemi: ['#fff1de', '#8a6a4a', 1.35], sun: ['#ffe6c4', 2.2], exp: 1.0, bloom: [0.12, 0.95] },
+  home: { bg: '#f4e9db', hemi: ['#fff1de', '#e2c6ae', 1.4], sun: ['#ffe6c4', 2.2], exp: 1.0, bloom: [0.12, 0.95], env: 0.5 },
   fun: { bg: '#120a1c', hemi: ['#ffd9f0', '#3a2244', 1.3], sun: ['#ffd7a8', 1.7], exp: 1.12, bloom: [0.3, 0.82] },
-  awards: { bg: '#121119', hemi: ['#fff4dc', '#2a2620', 1.0], sun: ['#fff1cf', 2.4], exp: 1.0, bloom: [0.22, 0.88] },
+  awards: { bg: '#121119', hemi: ['#fff4dc', '#4a4236', 1.45], sun: ['#fff1cf', 2.4], exp: 1.05, bloom: [0.22, 0.88], env: 0.7 },
 };
 function applyIndoorLight(room) {
   const L = INDOOR[room.id];
   scene.fog = null;
   scene.background = new THREE.Color(L.bg);
+  scene.environment = ISLAND_ENV.room;
   hemi.color.set(L.hemi[0]);
   hemi.groundColor.set(L.hemi[1]);
   hemi.intensity = L.hemi[2];
   sun.color.set(L.sun[0]);
   sun.intensity = L.sun[1];
   renderer.toneMappingExposure = L.exp;
-  scene.environmentIntensity = 0.55;
+  scene.environmentIntensity = L.env ?? 0.6;
   bloom.strength = L.bloom[0];
   bloom.threshold = L.bloom[1];
   sun.target.position.set(room.origin.x, 0, room.origin.z);
@@ -1504,4 +1522,4 @@ await fitted;
 hideLoader();
 ui.ready();
 
-window.__shire = { sitDown, elapsed: () => elapsed, keys, nav, mapView, goTo, distToPath, PATHS, fit: () => fitResult, hidden, colliders, gallery, quest, story, ride, audioDebug, state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };
+window.__shire = { useFromAfar, act, pathfind: { buildGrid, findPath }, sitDown, elapsed: () => elapsed, keys, nav, mapView, goTo, distToPath, PATHS, fit: () => fitResult, hidden, colliders, gallery, quest, story, ride, audioDebug, state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };

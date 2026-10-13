@@ -41,6 +41,8 @@ export function createNav(d) {
         exit: { x: it.x + out.x * EXIT_STEP, z: it.z + out.z * EXIT_STEP, heading: f },
         arrival: { x: room.origin.x + room.spawn.x, z: room.origin.z + room.spawn.z, heading: room.spawn.heading },
         bounds: room.bounds,
+        camera: room.camera || { dist: 5.5, pitch: 0.5 },
+        colliders: room.colliders,
         room,
       };
     }
@@ -58,6 +60,7 @@ export function createNav(d) {
   function applyIsland() {
     scene.fog = savedFog;
     scene.background = null;
+    if (d.islandEnv) scene.environment = d.islandEnv();
     hemi.groundColor.copy(groundColor);
     d.dayNight.update(0); // sun, hemisphere, exposure, environment and bloom for the current hour
     d.setShadowRange(50);

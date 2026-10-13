@@ -10,7 +10,7 @@
 import * as THREE from 'three';
 import { PROJECTS, OWNER, AWARDS, HOME, LENSES, PLAYS } from '../data.js';
 import { screenMat, makeDesk, dashboardTexture } from '../props.js';
-import { solid, glow, mesh, canvasTexture, WHITE_METAL, BRUSHED, DARK, GOLD, GLASS } from '../materials.js';
+import { solid, mesh, canvasTexture, WHITE_METAL, BRUSHED, DARK, GOLD } from '../materials.js';
 import { FONT, fit, wrap, fillFit } from '../type.js';
 import { makePerson } from '../characters.js';
 import { makeBicycle } from '../jaipur.js';
@@ -18,7 +18,7 @@ import { playerPos } from '../village.js';
 import { sfx } from '../audio.js';
 import { rng } from '../world.js';
 import {
-  makeShell, partition, zone, addThing, addCollider, addBox, addFootprint, addNpc, person, clickable, plate, lamp, sofa, armchair, coffeeTable, plant,
+  makeShell, partition, zone, addThing, addCollider, addBox, addFootprint, addNpc, clickable, plate, lamp, sofa, armchair, coffeeTable, plant,
   floorLamp, rug, framed, bigScreen, plankTexture, floorPatch, shelf, table, chair, counter, pendant, niche, local, faceTo,
 } from './kit.js';
 import { addNikita } from './nikita.js';
@@ -622,7 +622,7 @@ export function buildHome(origin) {
   armchair(room, -8.8, -1.0, Math.PI / 2, { color: '#e8c27a' });
   armchair(room, -6.4, -1.0, -Math.PI / 2, { color: '#e8c27a' });
   coffeeTable(room, -7.6, -1.0, 0, { w: 0.7, round: true, top: '#7a5232' });
-  addNpc(room, makePerson({ seed: r(), style: 'hoodie', accent: '#7b5cff' }), -6.5, -1.0, -Math.PI / 2, 'sit', 'home', { y: 0.05, lines: ['Thank you for the session! Could you also look at my case study?', 'Your workshop is why I started using AI in my work.'], name: 'Mentee' });
+  addNpc(room, makePerson({ seed: r(), style: 'hoodie', accent: '#7b5cff' }), -6.5, -1.0, -Math.PI / 2, 'sit', 'home', { y: 0.02, lines: ['Thank you for the session! Could you also look at my case study?', 'Your workshop is why I started using AI in my work.'], name: 'Mentee' });
   const adp = plate(2.2, 1.2, (c, w, h) => {
     c.fillStyle = '#3b2a1c';
     c.fillRect(0, 0, w, h);
@@ -668,9 +668,9 @@ export function buildHome(origin) {
       c.font = `500 ${h * 0.075}px ${FONT.sans}`;
       wrap(c, text, w - 52, 4).forEach((l, i) => c.fillText(l, 26, h * 0.55 + i * h * 0.1));
     });
-    f.position.set(-3.82, 2.4, z);
+    f.position.set(-3.78, 2.4, z);
     f.rotation.y = Math.PI / 2;
-    g.add(f, mesh(new THREE.BoxGeometry(0.05, 1.86, 2.36), WOOD, -3.83, 2.4, z, false));
+    g.add(f, mesh(new THREE.BoxGeometry(0.05, 1.86, 2.36), WOOD, -3.815, 2.4, z, false));
     clickable(room, f, k === 3 ? { kind: 'leadership' } : { kind: 'hire' });
   });
   const shelfR = rng(77);
@@ -688,7 +688,10 @@ export function buildHome(origin) {
   cab.position.set(15.4, 0, -6.4);
   cab.rotation.y = -Math.PI / 2;
   cab.add(mesh(new THREE.BoxGeometry(3.6, 0.9, 0.9), solid('#7a5232'), 0, 0.45, 0));
-  cab.add(mesh(new THREE.BoxGeometry(3.6, 1.8, 0.9), GLASS, 0, 1.8, 0, false));
+  cab.add(mesh(new THREE.BoxGeometry(3.6, 1.8, 0.04), solid('#5a3b22'), 0, 1.8, -0.43, false));
+  cab.add(mesh(new THREE.BoxGeometry(3.56, 1.78, 0.86), new THREE.MeshPhysicalMaterial({ color: '#ffffff', transparent: true, opacity: 0.12, roughness: 0.05, depthWrite: false }), 0, 1.8, 0, false));
+  for (const sx of [-1.78, -0.6, 0.6, 1.78]) cab.add(mesh(new THREE.BoxGeometry(0.05, 1.8, 0.05), BRASS_M, sx, 1.8, 0.43, false));
+  cab.add(mesh(new THREE.BoxGeometry(3.6, 0.04, 0.86), solid('#5a3b22'), 0, 1.8, 0, false));
   cab.add(mesh(new THREE.BoxGeometry(3.7, 0.08, 1.0), BRASS_M, 0, 2.74, 0, false));
   const cups = [];
   const plaque = plate(3.4, 0.5, (c, w, h) => {
@@ -759,11 +762,11 @@ export function buildHome(origin) {
     ],
     spots: [
       // on the sofa in the gaming lounge, controller in hand, facing the TV; the other seat is free
-      { id: 'game', weight: 5, dur: [40, 75], pose: 'game', prop: 'controller', at: [-11.2, 11.0], sit: { x: -12.45, z: 11.0, rot: -Math.PI / 2, y: 0.08 }, watch: { x: -12.45, z: 12.2, rot: -Math.PI / 2, approach: [-11.1, 12.4] } },
+      { id: 'game', weight: 5, dur: [40, 75], pose: 'game', prop: 'controller', at: [-11.2, 11.0], sit: { x: -12.45, z: 11.0, rot: -Math.PI / 2, y: 0.02 }, watch: { x: -12.45, z: 12.2, rot: -Math.PI / 2, approach: [-11.1, 12.4] } },
       // the kitchen counter with a cup
       { id: 'kitchen', weight: 2, dur: [14, 22], pose: 'coffee', prop: 'cup', at: [14.6, 7.6], sit: { x: 14.75, z: 7.6, rot: Math.PI / 2 } },
       // the reading chair in the library
-      { id: 'read', weight: 2.5, dur: [25, 45], pose: 'read', prop: 'book', at: [1.0, -9.0], sit: { x: 2.05, z: -9.35, rot: -Math.PI / 2 + 0.5, y: 0.06 } },
+      { id: 'read', weight: 2.5, dur: [25, 45], pose: 'read', prop: 'book', at: [1.0, -9.0], sit: { x: 2.12, z: -9.36, rot: -Math.PI / 2 + 0.5, y: 0.02 } },
       // a look out of the living-room window by the plant
       { id: 'window', weight: 1, dur: [8, 14], pose: 'idle', prop: null, at: [6.2, 13.2], sit: { x: 6.2, z: 13.4, rot: 0.6 } },
     ],

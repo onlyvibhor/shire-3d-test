@@ -467,14 +467,14 @@ export function plant(room, x, z, { s = 1, pot = '#e9dcc8', leaf = '#4f8a3a' } =
   addCollider(room, x, z, 0.36 * s);
   return g;
 }
-export function floorLamp(room, x, z, { color = '#ffe2a8', stem = '#2b2b2b' } = {}) {
+export function floorLamp(room, x, z, { color = '#ffe2a8', stem = '#2b2b2b', light = false } = {}) {
   const g = placed(room, x, z, 0);
   const sm = solid(stem, { metalness: 0.5, roughness: 0.4 });
   g.add(mesh(new THREE.CylinderGeometry(0.18, 0.2, 0.04, 16), sm, 0, 0.02, 0));
   g.add(mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.6, 8), sm, 0, 0.8, 0));
   g.add(mesh(new THREE.CylinderGeometry(0.18, 0.26, 0.32, 18, 1, true), glow(color, 1.6), 0, 1.68, 0, false));
   addCollider(room, x, z, 0.22);
-  lamp(room, x, 1.6, z, color, 3, 7);
+  if (light) lamp(room, x, 1.6, z, color, 3, 7);
   return g;
 }
 export function pendant(room, x, z, y, { color = '#ffe2a8', shade = '#c9a24a', r = 0.3 } = {}) {
