@@ -560,5 +560,18 @@ export function buildGallery(scene, { colliders, lamps = [], clickables, layout 
     camera.getWorldPosition(cam);
     for (const f of faces) f.update(dt, Math.hypot(f.pos.x - cam.x, f.pos.z - cam.z) < (LITE ? 90 : 140));
   }
-  return { update, placed, faces, towers, cacheSize: () => cache.size };
+  // a framed exhibit somewhere else on the island (the Gallery courtyard): an image plane and an
+  // optional name plate that cycle through a curated playlist, by project slug
+  function exhibit(img, plate, { pool = 'land', slugs = null, x = 0, z = 0, plateAspect = 5 } = {}) {
+    const all = manifest[pool];
+    const picked = slugs ? all.filter((i) => slugs.includes(i.slug)) : all;
+    const list = picked.length ? picked : all;
+    const f = new Face(img, plate, list, plateAspect, (seed++ * 5) % list.length);
+    f.pos = new THREE.Vector3(x, 0, z);
+    faces.push(f);
+    clickables.push(img);
+    if (plate) clickables.push(plate);
+    return f;
+  }
+  return { update, placed, faces, towers, exhibit, cacheSize: () => cache.size };
 }

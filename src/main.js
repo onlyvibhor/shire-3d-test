@@ -11,7 +11,7 @@ import './theme.css';
 import { OWNER, PILLARS, CENTER, HAMLETS, LAB, HOME, FUN, AIHUB, HALL, PROJECTS, AWARDS, ASSETS, NPC_TALK, CONTACT, FAVOURITES, TOOLS, AWARD_LIST } from './data.js';
 import {
   buildSky, makeSkyMaterial, buildClouds, buildTerrain, buildGrass, buildLavender, buildFlowers, buildMountains, buildTrees, buildPollen,
-  heightAt, groundAt, walkY, POND, PATHS, WORLD_RADIUS, buildOcean, SEA_LEVEL, coastR, onPaving, BAZAAR,
+  heightAt, groundAt, walkY, POND, PATHS, WORLD_RADIUS, buildOcean, SEA_LEVEL, coastR, onPaving, BAZAAR, distToPath, GALLERY,
 } from './world.js';
 import { buildMonoliths, buildSkyRail, buildFloatingProps, buildStreetLamps, buildCoast } from './landmarks.js';
 import { buildInteriors } from './interiors.js';
@@ -25,6 +25,7 @@ import { buildGallery } from './gallery.js';
 import { declutter } from './declutter.js';
 import { buildHidden } from './hidden.js';
 import { buildPond } from './pond.js';
+import { buildChitrashala } from './chitrashala.js';
 import { snapshotMatrices, groundFit } from './groundfit.js';
 import galleryLayout from './content/gallery-layout.json';
 import { createQuest } from './quest.js';
@@ -181,7 +182,7 @@ state.pos.y = heightAt(state.pos.x, state.pos.z);
 
 // ---------- The bicycle: parked outside Home, ridden anywhere outdoors ----------
 const ride = (() => {
-  const rot = Math.atan2(-HOME.x, -HOME.z); // Home's front faces the centre
+  const rot = HOME.facing; // Home's front faces its lane
   const lx = 3.6;
   const lz = 3.2;
   const home = { x: HOME.x + lx * Math.cos(rot) + lz * Math.sin(rot), z: HOME.z - lx * Math.sin(rot) + lz * Math.cos(rot), heading: rot };
@@ -199,6 +200,7 @@ const PLACES = [
   { ...HOME, reach: 16 },
   { ...AIHUB, reach: 17 },
   { ...HALL, reach: 16 },
+  { ...GALLERY, reach: 17 },
 ];
 
 // the place card and pass open only once you're properly inside a place, not on its outskirts
@@ -235,11 +237,12 @@ function travelTo(id) {
   if (p.id === 'hq') {
     x = 0;
     z = 15;
-  } else if (['lab', 'home', 'fun', 'ai', 'awards'].includes(p.id)) {
-    const a = Math.atan2(p.z, p.x);
-    const back = p.id === 'lab' ? 7 : p.id === 'home' ? 14 : 20;
-    x = p.x - Math.cos(a) * back;
-    z = p.z - Math.sin(a) * back;
+  } else if (['lab', 'home', 'fun', 'ai', 'awards', 'gallery'].includes(p.id)) {
+    // arrive on the place's own lane, a few steps short of its front
+    const back = p.id === 'lab' ? 7 : p.id === 'home' ? 14 : p.id === 'gallery' ? 17 : 20;
+    const f = p.facing ?? Math.atan2(-p.x, -p.z);
+    x = p.x + Math.sin(f) * back;
+    z = p.z + Math.cos(f) * back;
   } else {
     x = p.x - Math.cos(p.angle) * 8;
     z = p.z - Math.sin(p.angle) * 8;
@@ -261,11 +264,11 @@ const story = buildStory(outdoor, { colliders, interactables: village.interactab
 story.board.name = 'brief-board';
 // two hidden places, off the paths: the Grofers years in the woods, the Razorpay years by the sea
 const hidden = buildHidden(outdoor, { colliders, interactables: village.interactables, clickables: village.clickables });
-// clear the trees and monoliths standing where they were built
-for (const sp of hidden.spots) {
-  for (const it of trees.items) if (!it.out && Math.hypot(it.x - sp.x, it.z - sp.z) < 12) ((it.out = true), trees.hide(it));
+// clear the trees and monoliths standing where they were built (the Gallery courtyard too)
+for (const sp of [...hidden.spots, { x: GALLERY.x, z: GALLERY.z, clear: 17 }]) {
+  for (const it of trees.items) if (!it.out && Math.hypot(it.x - sp.x, it.z - sp.z) < (sp.clear ?? 12)) ((it.out = true), trees.hide(it));
   for (const it of monoliths.items) {
-    if (it.out || Math.hypot(it.x - sp.x, it.z - sp.z) > 13) continue;
+    if (it.out || Math.hypot(it.x - sp.x, it.z - sp.z) > (sp.clear ?? 13)) continue;
     it.out = true;
     for (const m of it.meshes) m.parent?.remove(m);
     const k = colliders.indexOf(it.collider);
@@ -278,7 +281,10 @@ const clutter = { trees, monoliths: { ...monoliths, colliders } };
 declutter(outdoor, clutter, { merge: false });
 // screens, towers and lamp banners full of the work, in a layout solved so nothing hides anything
 // else (re-solve with ?solve after moving things on the island)
-const gallery = buildGallery(outdoor, { colliders, lamps: lampSpots, clickables: village.clickables, layout: galleryLayout, solve: new URLSearchParams(location.search).has('solve') });
+// The roadside screens, rotating towers and lamp banners have moved into the Gallery courtyard;
+// what stays out on the island is the pair of hill boards seen from across it.
+const gallery = buildGallery(outdoor, { colliders, lamps: lampSpots, clickables: village.clickables, layout: galleryLayout.filter((it) => it.type === 'hill'), solve: new URLSearchParams(location.search).has('solve') });
+const court = named('gallery-court', () => buildChitrashala(outdoor, { gallery, colliders, npcs: village.npcs }));
 declutter(outdoor, clutter);
 
 // ---------- UI ----------
@@ -1270,6 +1276,7 @@ function frame() {
   story.update(t, quest.activeId());
   hidden.update(t);
   pond.update(t);
+  court.update(t);
   gallery.update(t, dt, camera, !state.indoor);
   quest.update(t, dt, { pos: state.pos, indoorId: state.indoor?.id || null, mode: state.mode, blocked: ui.modalOpen() });
   playerPos.copy(state.pos);
@@ -1324,4 +1331,4 @@ await fitted;
 hideLoader();
 ui.ready();
 
-window.__shire = { fit: () => fitResult, hidden, colliders, gallery, quest, story, ride, audioDebug, state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };
+window.__shire = { distToPath, PATHS, fit: () => fitResult, hidden, colliders, gallery, quest, story, ride, audioDebug, state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };

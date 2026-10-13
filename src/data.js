@@ -723,6 +723,25 @@ export const HALL = {
   quotes: ['Every trophy here started as a brief nobody thought could be fun.', 'The animal courtroom took home the Shorty for Generative AI.'],
 };
 
+// The Gallery: a courtyard of framed screens from every case study, and the art series.
+export const GALLERY = {
+  id: 'gallery',
+  name: 'The Gallery',
+  place: 'Chitrashala courtyard',
+  color: '#b5446e',
+  lead: 'A painted courtyard where every wall cycles through screens from the case studies.',
+  how: [
+    'Each wall runs a slideshow of real screenshots from the case studies',
+    'The art series hang in the colonnade: Birds, Eyes, Absolut Landscapes and Habitats without the life',
+    'Click any frame to open the project it comes from',
+  ],
+  makes: ['Case studies', 'Art series'],
+  projects: [],
+  count: 'All',
+  countLabel: 'the work',
+  quotes: ['Every frame here comes from a project you can open.', 'Take your time. The walls change every few seconds.'],
+};
+
 export const AWARD_LIST = [
   { show: 'Shorty Awards', year: '2026', title: 'Winner', category: 'Generative AI', project: 'trial', tier: 'gold' },
   { show: 'Shorty Awards', year: '2026', title: 'Gold Honor', category: 'Financial Services', project: 'trial', tier: 'gold' },

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { HAMLETS, LAB, HOME, FUN, AIHUB, HALL } from './data.js';
+import { HAMLETS, LAB, HOME, FUN, AIHUB, HALL, GALLERY } from './data.js';
 import { windMaterial, canvasTexture } from './materials.js';
 
 // ---------- Layout ----------
@@ -10,11 +10,28 @@ export const WORLD_RADIUS = 175;
 export const WATER_LEVEL = -1.0;
 export const ROAD_HALF = 2.6;
 
+// ---------- Master plan ----------
+// The jamun tree is the origin. The six departments sit on a loose hexagon of spokes, each at its
+// own distance (the ceremonial Arena and the Beacon a little further out, the working courts a
+// little closer in), so the ring reads as a planned village rather than a compass drawing.
+// Secondary places take the pockets between the spokes where their character fits: the Hall of
+// Fame close to HQ on a processional approach, Home pulled off-axis into a quiet garden, the
+// Playhouse on the lively side between Product and Social. The Gallery sits just past the ring
+// road beside the Jantar Mantar: the island's art quarter.
+export const PLAN = {
+  departments: { brand: 75, pmm: 70, product: 72, social: 76, copy: 70, design: 73 },
+  zones: { fun: [60, 43], awards: [120, 36], home: [187, 45], ai: [238, 39] }, // degrees, metres
+  gallery: [0, 88],
+  // half-widths: main spokes from the tree, the ring road between departments, lanes to places
+  roads: { spoke: 2.3, ring: 1.85, lane: 1.35 },
+};
+
 HAMLETS.forEach((h, i) => {
   const a = -Math.PI / 2 + (i / HAMLETS.length) * Math.PI * 2;
+  const r = PLAN.departments[h.id] ?? HAMLET_RADIUS;
   h.angle = a;
-  h.x = Math.cos(a) * HAMLET_RADIUS;
-  h.z = Math.sin(a) * HAMLET_RADIUS;
+  h.x = Math.cos(a) * r;
+  h.z = Math.sin(a) * r;
 });
 
 const pondAngle = (HAMLETS[0].angle + HAMLETS[1].angle) / 2;
@@ -24,14 +41,23 @@ LAB.angle = pondAngle;
 LAB.x = Math.cos(pondAngle) * 25;
 LAB.z = Math.sin(pondAngle) * 25;
 
-// Home and the Playhouse sit inside the ring, between hamlets.
-for (const [place, i] of [[FUN, 2], [HALL, 3], [HOME, 4], [AIHUB, 5]]) {
-  const a = HAMLETS[i].angle + Math.PI / 6;
+// Home, the Playhouse, the Hall of Fame and the AI Hub sit inside the ring, between spokes.
+for (const place of [FUN, HALL, HOME, AIHUB]) {
+  const [deg, r] = PLAN.zones[place.id];
+  const a = THREE.MathUtils.degToRad(deg);
   place.angle = a;
-  place.x = Math.cos(a) * 40;
-  place.z = Math.sin(a) * 40;
+  place.x = Math.cos(a) * r;
+  place.z = Math.sin(a) * r;
 }
 export const ZONES = [HOME, FUN, AIHUB, HALL];
+{
+  const a = THREE.MathUtils.degToRad(PLAN.gallery[0]);
+  GALLERY.angle = a;
+  GALLERY.x = Math.cos(a) * PLAN.gallery[1];
+  GALLERY.z = Math.sin(a) * PLAN.gallery[1];
+  GALLERY.r = 13;
+}
+export { GALLERY };
 
 // Jaipur on the island: Jantar Mantar in the free slot between the Lab and the Playhouse,
 // and the old-city bazaar along the ring road past Home.
@@ -44,11 +70,12 @@ export const BAZAAR = (() => {
   return { ax: a.x + (b.x - a.x) * u, az: a.z + (b.z - a.z) * u, bx: b.x - (b.x - a.x) * u, bz: b.z - (b.z - a.z) * u, side: -1 };
 })();
 
+// Every path is [ax, az, bx, bz, halfWidth, kind]: spokes from the tree, the ring road, lanes.
 export const PATHS = [];
 HAMLETS.forEach((h, i) => {
   const n = HAMLETS[(i + 1) % HAMLETS.length];
-  PATHS.push([0, 0, h.x, h.z]);
-  PATHS.push([h.x, h.z, n.x, n.z]);
+  PATHS.push([0, 0, h.x, h.z, PLAN.roads.spoke, 'spoke']);
+  PATHS.push([h.x, h.z, n.x, n.z, PLAN.roads.ring, 'ring']);
 });
 // Branch paths from the nearest spoke into each inner zone, keeping the centre plaza clear.
 for (const [z, i, r, edge] of [[FUN, 2, 32, 11], [HALL, 3, 32, 11], [HOME, 4, 32, 11], [AIHUB, 5, 32, 11], [LAB, 1, 19, 5.5]]) {
@@ -58,7 +85,23 @@ for (const [z, i, r, edge] of [[FUN, 2, 32, 11], [HALL, 3, 32, 11], [HOME, 4, 32
   const dx = z.x - sx;
   const dz = z.z - sz;
   const l = Math.hypot(dx, dz);
-  PATHS.push([sx, sz, z.x - (dx / l) * edge, z.z - (dz / l) * edge]);
+  PATHS.push([sx, sz, z.x - (dx / l) * edge, z.z - (dz / l) * edge, PLAN.roads.lane, 'lane']);
+  // each place's front turns to where its lane arrives from, not blindly to the tree
+  z.facing = Math.atan2(sx - z.x, sz - z.z);
+}
+// the Gallery's lane leaves the ring road where it crosses the Gallery's bearing
+{
+  const [i, j] = [1, 2]; // the ring road between Product Marketing and Product & Web
+  const a = HAMLETS[i];
+  const b = HAMLETS[j];
+  const t = 0.5;
+  const sx = a.x + (b.x - a.x) * t;
+  const sz = a.z + (b.z - a.z) * t;
+  const dx = GALLERY.x - sx;
+  const dz = GALLERY.z - sz;
+  const l = Math.hypot(dx, dz);
+  PATHS.push([sx, sz, GALLERY.x - (dx / l) * (GALLERY.r - 1), GALLERY.z - (dz / l) * (GALLERY.r - 1), PLAN.roads.lane, 'lane']);
+  GALLERY.facing = Math.atan2(sx - GALLERY.x, sz - GALLERY.z);
 }
 
 export function distToSegment(px, pz, [ax, az, bx, bz]) {
@@ -67,9 +110,11 @@ export function distToSegment(px, pz, [ax, az, bx, bz]) {
   const t = Math.max(0, Math.min(1, ((px - ax) * dx + (pz - az) * dz) / (dx * dx + dz * dz)));
   return Math.hypot(px - (ax + t * dx), pz - (az + t * dz));
 }
+// Distance to the nearest path, measured so that ROAD_HALF is that path's edge whatever its
+// width: anything comparing against ROAD_HALF keeps meaning "on the road" / "beside the road".
 export function distToPath(x, z) {
   let d = Infinity;
-  for (const s of PATHS) d = Math.min(d, distToSegment(x, z, s));
+  for (const s of PATHS) d = Math.min(d, distToSegment(x, z, s) - (s[4] ?? ROAD_HALF) + ROAD_HALF);
   return d;
 }
 
@@ -112,6 +157,7 @@ export const PADS = [
   { x: Math.cos((120 * Math.PI) / 180) * 15.5, z: Math.sin((120 * Math.PI) / 180) * 15.5, r: 4.5 },
 ].map((p) => ({ ...p, y: rawHeight(p.x, p.z) }));
 HAMLETS.forEach((h) => (h.y = rawHeight(h.x, h.z)));
+GALLERY.y = rawHeight(GALLERY.x, GALLERY.z);
 LAB.y = rawHeight(LAB.x, LAB.z);
 for (const z of ZONES) z.y = rawHeight(z.x, z.z);
 JANTAR.y = rawHeight(JANTAR.x, JANTAR.z);
@@ -123,6 +169,7 @@ function baseHeight(x, z) {
   for (const hm of HAMLETS) h = THREE.MathUtils.lerp(hm.y, h, smooth(16, 28, Math.hypot(x - hm.x, z - hm.z)));
   h = THREE.MathUtils.lerp(LAB.y, h, smooth(7, 12, Math.hypot(x - LAB.x, z - LAB.z)));
   for (const zn of ZONES) h = THREE.MathUtils.lerp(zn.y, h, smooth(14, 22, Math.hypot(x - zn.x, z - zn.z)));
+  h = THREE.MathUtils.lerp(GALLERY.y, h, smooth(GALLERY.r + 2, GALLERY.r + 10, Math.hypot(x - GALLERY.x, z - GALLERY.z)));
   h = THREE.MathUtils.lerp(JANTAR.y, h, smooth(JANTAR.r + 1, JANTAR.r + 8, Math.hypot(x - JANTAR.x, z - JANTAR.z)));
   return h;
 }
@@ -226,6 +273,7 @@ export function onPaving(x, z) {
   if (Math.hypot(x - LAB.x, z - LAB.z) < 6.6) return true;
   for (const h of HAMLETS) if (Math.hypot(x - h.x, z - h.z) < 9.4) return true;
   for (const zn of ZONES) if (Math.hypot(x - zn.x, z - zn.z) < 12.5) return true;
+  if (Math.hypot(x - GALLERY.x, z - GALLERY.z) < GALLERY.r - 1) return true;
   return false;
 }
 
@@ -239,6 +287,7 @@ function isClearing(x, z, pad = 0) {
   if (Math.hypot(x, z) < 10 + pad) return true;
   if (Math.hypot(x - LAB.x, z - LAB.z) < 7 + pad) return true;
   for (const zn of ZONES) if (Math.hypot(x - zn.x, z - zn.z) < 13 + pad) return true;
+  if (Math.hypot(x - GALLERY.x, z - GALLERY.z) < GALLERY.r + 2 + pad) return true;
   if (Math.hypot(x - POND.x, z - POND.z) < POND.bank + 1 + pad) return true;
   for (const h of HAMLETS) if (Math.hypot(x - h.x, z - h.z) < 9 + pad) return true;
   if (Math.hypot(x - JANTAR.x, z - JANTAR.z) < JANTAR.r + 2 + pad) return true;
@@ -391,10 +440,12 @@ export function buildTerrain(scene) {
   terrain.name = 'terrain';
   scene.add(terrain);
 
-  // Roads as real ribbons, so their edges stay crisp at any distance.
-  const roadMat = new THREE.MeshStandardMaterial({ color: '#d9dcd5', roughness: 0.9, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-  const ribbons = [];
-  for (const [ax, az, bx, bz] of PATHS) {
+  // Roads as real ribbons, so their edges stay crisp at any distance. Three kinds, read at a glance:
+  // the spokes from the tree in warm white stone, the ring road a touch greyer, lanes in pale
+  // sand. Every road and plaza sits on a slightly wider band of pink Jaipur sandstone: the edge.
+  const ROAD_TONE = { spoke: '#e7e3da', ring: '#dcd9d1', lane: '#e9dfcb', plaza: '#e7e3da' };
+  const byKind = { spoke: [], ring: [], lane: [], plaza: [], edge: [] };
+  const ribbon = (ax, az, bx, bz, half, lift) => {
     const len = Math.hypot(bx - ax, bz - az);
     const steps = Math.ceil(len / 1.25);
     const nx = -(bz - az) / len;
@@ -408,9 +459,9 @@ export function buildTerrain(scene) {
       const px = ax + (bx - ax) * t;
       const pz = az + (bz - az) * t;
       for (const side of across) {
-        const x = px + nx * ROAD_HALF * side;
-        const z = pz + nz * ROAD_HALF * side;
-        pos.push(x, groundAt(x, z) + SURFACE, z);
+        const x = px + nx * half * side;
+        const z = pz + nz * half * side;
+        pos.push(x, groundAt(x, z) + lift, z);
       }
       if (k < steps) {
         for (let j = 0; j < W - 1; j++) {
@@ -423,50 +474,40 @@ export function buildTerrain(scene) {
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     g.setIndex(idx);
     g.computeVertexNormals();
-    ribbons.push(g);
+    return g;
+  };
+  for (const [ax, az, bx, bz, half = ROAD_HALF, kind = 'spoke'] of PATHS) {
+    byKind[kind].push(ribbon(ax, az, bx, bz, half, SURFACE));
+    byKind.edge.push(ribbon(ax, az, bx, bz, half + 0.38, SURFACE - 0.012));
   }
   const plaza = (x, z, rad, y) => {
-    const g = new THREE.CircleGeometry(rad, 48);
+    const g = new THREE.CircleGeometry(rad, 56);
     g.rotateX(-Math.PI / 2);
     g.translate(x, y + SURFACE + 0.004, z);
-    g.deleteAttribute('uv');
-    ribbons.push(g);
+    byKind.plaza.push(g);
+    const e = new THREE.RingGeometry(rad - 0.05, rad + 0.45, 56);
+    e.rotateX(-Math.PI / 2);
+    e.translate(x, y + SURFACE + 0.002, z);
+    byKind.edge.push(e);
   };
   for (const h of HAMLETS) plaza(h.x, h.z, 9.4, h.y);
   plaza(0, 0, 9.2, heightAt(0, 0));
   plaza(LAB.x, LAB.z, 6.6, LAB.y);
   for (const zn of ZONES) plaza(zn.x, zn.z, 12.5, zn.y);
-  for (const g of ribbons) if (g.attributes.uv) g.deleteAttribute('uv');
-  const roads = new THREE.Mesh(mergeGeometries(ribbons.map((g) => (g.index ? g.toNonIndexed() : g))), roadMat);
-  roads.receiveShadow = true;
-  scene.add(roads);
-
-  // Road curbs: thin white-metal edging along every road.
-  const curbGeo = [];
-  for (const [ax, az, bx, bz] of PATHS) {
-    const len = Math.hypot(bx - ax, bz - az);
-    const steps = Math.floor(len / 3);
-    const nx = -(bz - az) / len;
-    const nz = (bx - ax) / len;
-    for (let s = 1; s < steps; s++) {
-      const t = s / steps;
-      const px = ax + (bx - ax) * t;
-      const pz = az + (bz - az) * t;
-      for (const side of [-1, 1]) {
-        const x = px + nx * (ROAD_HALF + 0.1) * side;
-        const z = pz + nz * (ROAD_HALF + 0.1) * side;
-        if (isClearing(x, z, -ROAD_HALF - 1) && distToPath(x, z) > ROAD_HALF + 1) continue;
-        if (Math.hypot(x, z) < 11 || HAMLETS.some((h) => Math.hypot(x - h.x, z - h.z) < 10)) continue;
-        const g = new THREE.BoxGeometry(0.18, 0.14, 3.05);
-        g.rotateY(Math.atan2(bx - ax, bz - az));
-        g.translate(x, groundAt(x, z) + 0.05, z);
-        curbGeo.push(g);
-      }
-    }
+  plaza(GALLERY.x, GALLERY.z, GALLERY.r - 1, GALLERY.y);
+  const flat = (list) => mergeGeometries(list.map((g) => { if (g.attributes.uv) g.deleteAttribute('uv'); if (g.attributes.normal && !g.index) return g; return g.index ? g.toNonIndexed() : g; }));
+  for (const [kind, list] of Object.entries(byKind)) {
+    if (!list.length) continue;
+    const edge = kind === 'edge';
+    const mat = new THREE.MeshStandardMaterial({
+      color: edge ? '#e2b9a6' : ROAD_TONE[kind], roughness: edge ? 0.95 : 0.88,
+      polygonOffset: true, polygonOffsetFactor: edge ? -1 : -2, polygonOffsetUnits: edge ? -1 : -2,
+    });
+    const m = new THREE.Mesh(flat(list), mat);
+    m.receiveShadow = true;
+    m.name = edge ? 'road-edges' : `roads-${kind}`;
+    scene.add(m);
   }
-  const curbs = new THREE.Mesh(mergeGeometries(curbGeo), new THREE.MeshPhysicalMaterial({ color: '#f4f6f8', metalness: 0.4, roughness: 0.3 }));
-  curbs.receiveShadow = true;
-  scene.add(curbs);
 
   return { terrain };
 }
@@ -642,7 +683,7 @@ export function buildFlowers(scene, count = 9000) {
     const dz = seg[3] - seg[1];
     const L = Math.hypot(dx, dz) || 1;
     const side = r() < 0.5 ? -1 : 1;
-    const off = ROAD_HALF + 0.8 + r() * 1.3;
+    const off = (seg[4] ?? ROAD_HALF) + 0.8 + r() * 1.3;
     const x = seg[0] + dx * u + (-dz / L) * off * side;
     const z = seg[1] + dz * u + (dx / L) * off * side;
     if (distToPath(x, z) < ROAD_HALF + 0.6) continue;

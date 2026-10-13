@@ -328,17 +328,17 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
 
   // The place "pass": a ticket with the department's name, numbers and a colour stub
   const passEl = $('#pass');
-  const GLYPH = { hq: '🌳', brand: '🎬', pmm: '🚀', product: '🧩', social: '📣', copy: '✍️', design: '🎨', lab: '🌙', fun: '🍿', home: '🏡', ai: '🤖', awards: '🏆' };
+  const GLYPH = { gallery: '🖼️', hq: '🌳', brand: '🎬', pmm: '🚀', product: '🧩', social: '📣', copy: '✍️', design: '🎨', lab: '🌙', fun: '🍿', home: '🏡', ai: '🤖', awards: '🏆' };
   // the head of a place card: its name, where it is and what it is, then the numbers, all in one block
   function placeHead(p) {
-    const kind = { hq: 'Island pass', home: 'Home pass', fun: 'Playhouse pass', lab: 'Studio pass', ai: 'Hub pass', awards: 'Hall pass' }[p.id] || 'Department pass';
+    const kind = { hq: 'Island pass', home: 'Home pass', fun: 'Playhouse pass', lab: 'Studio pass', ai: 'Hub pass', awards: 'Hall pass', gallery: 'Gallery pass' }[p.id] || 'Department pass';
     const makes = p.makes || [];
     return `<header class="place">
       <div class="place__top"><i class="place__glyph">${GLYPH[p.id] || '📍'}</i><span class="place__kind">${kind}<em>${esc(p.place)}</em></span></div>
       <h2>${esc(p.name)}</h2>
       <p class="place__lead">${esc(p.lead)}</p>
       <ul class="place__stats">
-        <li><b>${p.projects.length}</b><span>${p.projects.length === 1 ? 'project' : 'projects'}</span></li>
+        <li><b>${esc(p.count ?? p.projects.length)}</b><span>${esc(p.countLabel ?? (p.projects.length === 1 ? 'project' : 'projects'))}</span></li>
         ${makes[0] ? `<li><b>${esc(makes[0])}</b><span>${esc(makes[1] || 'craft')}</span></li>` : ''}
         <li><b>${visited.has(p.id) ? 'Again' : 'New'}</b><span>visit</span></li>
       </ul>

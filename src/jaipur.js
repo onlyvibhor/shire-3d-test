@@ -13,7 +13,7 @@ import { playerPos } from './village.js';
 export const PINK = '#df8a6c';
 export const OCHRE = '#f7913a';
 export const SAND = '#f6bf78';
-const LIME = '#f6efe0';
+export const LIME = '#f6efe0';
 
 function collider(parent, r, x = 0, z = 0) {
   const o = new THREE.Object3D();
@@ -62,7 +62,7 @@ export function cuspedArchPoints(a, spring, lobes = 7, depth = 0.16) {
   return pts;
 }
 
-function pathFrom(points, PathClass = THREE.Path) {
+export function pathFrom(points, PathClass = THREE.Path) {
   const p = new PathClass();
   p.moveTo(points[0][0], points[0][1]);
   for (let i = 1; i < points.length; i++) p.lineTo(points[i][0], points[i][1]);

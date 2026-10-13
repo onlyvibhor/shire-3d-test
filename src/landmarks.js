@@ -294,15 +294,17 @@ export function buildStreetLamps(world, colliders) {
   const poolMat = lightPool('#ffd99a', 0.38);
   const poolGeo = new THREE.PlaneGeometry(7, 7, 8, 8); // subdivided so it can lie along a slope
   poolGeo.rotateX(-Math.PI / 2);
-  for (const [ax, az, bx, bz] of PATHS) {
+  for (const [ax, az, bx, bz, half = ROAD_HALF, kind] of PATHS) {
     const len = Math.hypot(bx - ax, bz - az);
     const nx = -(bz - az) / len;
     const nz = (bx - ax) / len;
-    for (let d = 16, k = 0; d < len - 12; d += 15, k++) {
+    // lamps alternate sides on the spokes and ring; lanes get them on one side, further apart
+    const step = kind === 'lane' ? 18 : 15;
+    for (let d = 16, k = 0; d < len - 12; d += step, k++) {
       const t = d / len;
-      const side = k % 2 ? 1 : -1;
-      const x = ax + (bx - ax) * t + nx * (ROAD_HALF + 0.7) * side;
-      const z = az + (bz - az) * t + nz * (ROAD_HALF + 0.7) * side;
+      const side = kind === 'lane' ? 1 : k % 2 ? 1 : -1;
+      const x = ax + (bx - ax) * t + nx * (half + 0.9) * side;
+      const z = az + (bz - az) * t + nz * (half + 0.9) * side;
       if (Math.hypot(x, z) < 12 || HAMLETS.some((h) => Math.hypot(x - h.x, z - h.z) < 16) || ZONES.some((zn) => Math.hypot(x - zn.x, z - zn.z) < 14)) continue;
       // keep the approach to each dome clear: its belief sign stands beside the last stretch of path
       if (ZONES.some((zn) => Math.hypot(x - zn.x, z - zn.z) < 25)) continue;

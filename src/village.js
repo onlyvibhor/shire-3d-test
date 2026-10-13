@@ -3,12 +3,12 @@ import { HAMLETS, PILLARS, CENTER, LAB, PROJECTS, AWARDS, HOME, FUN, FAVOURITES,
 import { groundAt, walkY, rng, PATHS, ROAD_HALF, distToPath, SURFACE, BAZAAR } from './world.js';
 import { makeDome, makeDrone, makeScooter, makeDesk, makeMonitorWall, dashboardTexture, makeCafe, makeAdBoard, screenMat } from './props.js';
 import { makePerson, giveProp, animate } from './characters.js';
-import { makeArch } from './landmarks.js';
 import { buildCreatures } from './creatures.js';
 import { makePillar } from './pillars.js';
 import { projectPlateTexture, metricTexture, signPlateTexture, FONT, fit, fitWrap, fillFit } from './type.js';
 import { buildTraffic } from './traffic.js';
 import { buildJaipur, makePol, cuspedArchPoints, makeBeliefSign, PINK as JAIPUR_PINK, OCHRE } from './jaipur.js';
+import { ARENAS, P, faceTo, furnishArena, makeExhibitFrame, TOKENS } from './arena.js';
 import { WHITE_METAL, BRUSHED, CHROME, GLASS, GOLD, WOOD, DARK, MOUND, WINDOW_GLOW, CONCRETE, solid, glow, mesh, canvasTexture, deepMerge, mergeStatic } from './materials.js';
 
 // The player's position, shared so walking villagers can step aside.
@@ -356,102 +356,116 @@ function buildHamlet(scene, h, i, ctx) {
   g.rotation.y = Math.atan2(-Math.cos(h.angle), -Math.sin(h.angle)); // local +Z faces the centre
   scene.add(g);
   const U = ctx.updaters;
+  let Q = g; // where person() puts people: the arena, or the landmark scene while building it
   const person = (action, x, z, rotY, extra = {}) => {
     const p = makePerson({ accent: h.color, seed: r(), ...extra });
     p.root.position.set(x, extra.y ?? 0, z);
     p.root.rotation.y = rotY;
-    g.add(p.root);
+    Q.add(p.root);
     U.push({ update: (t) => animate(p, action, t) });
     if (extra.npc !== false) ctx.npcs.push({ p, dept: h.id });
     return p;
   };
   const walker = (pts, opts = {}) => {
     const p = makePerson({ accent: h.color, seed: r() });
-    U.push(new Walker(g, p, pts, { offset: r(), ...opts }));
+    U.push(new Walker(Q, p, pts, { offset: r(), ...opts }));
     ctx.npcs.push({ p, dept: h.id });
     return p;
   };
   const face = (x, z, tx = 0, tz = 0) => Math.atan2(tx - x, tz - z);
 
-  // Homes behind the plaza
-  [-55, 0, 55].forEach((deg, k) => {
-    const t = THREE.MathUtils.degToRad(deg);
-    const hole = makeHobbitHole(k === 1 ? h.color : ['#2f6b3a', '#c9a23a', '#a8432f', '#3d5f9e'][Math.floor(r() * 4)], 0.95, r);
-    const hr = k === 1 ? 19.5 : 17; // the middle one sits back, behind the plaza's centrepiece
-    hole.position.set(Math.sin(t) * hr, -0.25, -Math.cos(t) * hr);
-    hole.rotation.y = -t;
+  // The arena is laid out from its entry in ARENAS (src/arena.js): gateway, exhibits, landmark,
+  // workspace, homes, people, planting and furniture.
+  const C = ARENAS[h.id];
+  const at = ([deg, r]) => P(deg, r);
+  furnishArena(g, h, C, { collider });
+
+  // homes on the quiet edge behind the plaza
+  C.homes.forEach(([deg, r], k) => {
+    const [x, z] = at([deg, r]);
+    const hole = makeHobbitHole(k === 0 ? h.color : ['#2f6b3a', '#c9a23a', '#a8432f', '#3d5f9e'][Math.floor(r * 7) % 4], 0.95, rng(300 + i * 5 + k));
+    hole.position.set(x, -0.25, z);
+    hole.rotation.y = faceTo(x, z, 0, 0);
     g.add(hole);
   });
 
-  // what I believe about working with this team, on a Jaipur signboard just outside the gateway
-  // arch, turned towards people walking in from the centre (inside the arch its posts cut across it)
-  const sideSign = i % 2 ? 1 : -1;
-  const belief = makeBeliefSign(h, BELIEFS[h.id]);
-  const bRot = -sideSign * 0.5;
-  belief.position.set(sideSign * 6.4, 0, 19.5);
-  belief.rotation.y = bRot;
-  g.add(belief);
-  for (const d of [-1.71, 1.71]) collider(g, 0.35, sideSign * 6.4 + Math.cos(bRot) * d, 19.5 - Math.sin(bRot) * d);
-
-  // Gateway arch on the road from the centre
-  const arch = makeArch(h.color, h.name);
-  arch.position.set(0, 0, 14.5);
-  g.add(arch);
-  collider(g, 1.1, -3.7, 14.5);
-  collider(g, 1.1, 3.7, 14.5);
-
-  // Projects on billboards around the plaza
-  const slots = [-30, 30, -82, 82];
-  const many = h.projects.length > slots.length;
-  const boards = many ? h.projects.slice(0, 3) : h.projects;
-  if (many) {
-    // the rest of the department's work goes on a poster wall in the last slot
-    const t = THREE.MathUtils.degToRad(slots[3]);
-    const x = Math.sin(t) * 11.5;
-    const z = -Math.cos(t) * 11.5;
-    const wall = makeCampaignWall(h.projects.slice(3), h.color, ctx, { title: h.wallTitle || 'More\nwork', sub: `${h.projects.length - 3} more · press E` });
-    wall.position.set(x, 0, z);
-    wall.rotation.y = face(x, z);
-    g.add(wall);
+  // what I believe about working with this team, on a Jaipur signboard outside the gateway,
+  // turned towards people walking up the spoke
+  {
+    const [x, z] = at(C.belief);
+    const belief = makeBeliefSign(h, BELIEFS[h.id]);
+    const bRot = faceTo(x, z, x * 0.3, 40);
+    belief.position.set(x, 0, z);
+    belief.rotation.y = bRot;
+    g.add(belief);
+    for (const d of [-1.71, 1.71]) collider(g, 0.35, x + Math.cos(bRot) * d, z - Math.sin(bRot) * d);
   }
-  boards.forEach((slug, k) => {
-    const t = THREE.MathUtils.degToRad(slots[k]);
-    const x = Math.sin(t) * 11;
-    const z = -Math.cos(t) * 11;
-    const b = makeBillboard(slug, h.color, ctx, 1.2, { plainBack: true });
-    b.position.set(x, 0, z);
-    b.rotation.y = face(x, z);
+
+  // Exhibits: the featured project in a carved frame where the entry sightline lands, the rest
+  // along a short viewing route round the plaza edge, each turned to the people walking it
+  const look = [0, 3.5];
+  const exhibit = (slug, [deg, r], size, hero = false) => {
+    const [x, z] = at([deg, r]);
+    const b = makeBillboard(slug, h.color, ctx, size, { plainBack: true });
+    const rot = faceTo(x, z, look[0], hero ? 12 : look[1]);
+    b.position.set(x, hero ? 0.62 : 0, z);
+    b.rotation.y = rot;
+    b.userData.hero = hero;
     g.add(b);
+    if (hero) {
+      const W = 4.6 * size;
+      const fr = makeExhibitFrame(W, 2.85 * size, 1.2 + size * 0.3 + 0.62, h.color, C.gate.stone === 'lime' ? 'blush' : C.gate.stone);
+      fr.position.set(x, 0, z);
+      fr.rotation.y = rot;
+      g.add(fr);
+      for (const sx of [-1, 1]) collider(g, 0.5, x + Math.cos(rot) * sx * (W / 2 + 0.55), z - Math.sin(rot) * sx * (W / 2 + 0.55));
+    }
     const marker = new THREE.Object3D();
-    marker.position.set(x * 0.78, 0, z * 0.78);
+    marker.position.set(x * 0.72, 0, z * 0.72);
     marker.userData.project = slug;
     g.add(marker);
-  });
+  };
+  const [heroSlug, ...rest] = h.projects;
+  exhibit(heroSlug, C.hero, TOKENS.hero, true);
+  const onBoards = rest.slice(0, C.boards.length);
+  onBoards.forEach((slug, k) => exhibit(slug, C.boards[k], TOKENS.board));
+  const extra = rest.slice(C.boards.length);
+  if (extra.length && C.wall) {
+    // the rest of the department's work on a poster wall
+    const [x, z] = at(C.wall);
+    const wall = makeCampaignWall(extra, h.color, ctx, { title: h.wallTitle || 'More\nwork', sub: `${extra.length} more · press E` });
+    wall.position.set(x, 0, z);
+    wall.rotation.y = faceTo(x, z, 0, 0);
+    g.add(wall);
+  }
 
-  // Department lead, with things to say
-  const leadPos = { x: 2.6, z: 7.5 };
-  const lead = person('talk', leadPos.x, leadPos.z, face(leadPos.x, leadPos.z, 0, 14), { top: h.color, npc: false });
+  // Department lead, with things to say, just inside the gate and off the walking line
+  const lead = person('talk', C.lead[0], C.lead[1], faceTo(C.lead[0], C.lead[1], 0, 16), { top: h.color, npc: false });
   ctx.npcs.push({ p: lead, dept: h.id, lines: h.quotes, name: `${h.name} lead` });
 
-  // A dome on one side, and a war room of desks and dashboards on the other.
-  const side = i % 2 ? 1 : -1;
-  const dome = makeDome(3.8, h.color);
-  dome.position.set(side * 17.5, 0, 1.5);
-  dome.rotation.y = face(side * 17.5, 1.5);
-  g.add(dome);
-  collider(g, 4, side * 17.5, 1.5);
+  // A dome to one side, and a workspace (monitor wall and a desk) on the other.
+  {
+    const [x, z] = at(C.dome);
+    const dome = makeDome(3.8, h.color);
+    dome.position.set(x, 0, z);
+    dome.rotation.y = faceTo(x, z, 0, 0);
+    g.add(dome);
+    collider(g, 4, x, z);
+  }
   const dash = (k) => new THREE.MeshBasicMaterial({ map: dashboardTexture(h.name, h.color, PROJECTS[h.projects[k % h.projects.length]].metrics, i * 7 + k), toneMapped: false });
+  const [wx, wz] = at(C.work.wall);
   const wall = makeMonitorWall([dash(0), dash(1), screenMat(PROJECTS[h.projects[0]].images[0], 2.4 / 1.35)], h.color, 3);
-  wall.position.set(-side * 9.5, 0, 10.5);
-  wall.rotation.y = face(-side * 9.5, 10.5);
+  wall.position.set(wx, 0, wz);
+  wall.rotation.y = faceTo(wx, wz, 0, 0);
   wall.scale.setScalar(0.9);
   g.add(wall);
-  collider(g, 2.2, -side * 9.5, 10.5);
+  collider(g, 2.2, wx, wz);
+  const [dx, dz] = at(C.work.desk);
   const desk = makeDesk([dash(2), screenMat(PROJECTS[h.projects[1 % h.projects.length]].images[0], 0.92 / 0.52)], h.color);
-  desk.position.set(-side * 7.2, 0, 6.4);
-  desk.rotation.y = face(-side * 7.2, 6.4, -side * 9.5, 10.5) + Math.PI;
+  desk.position.set(dx, 0, dz);
+  desk.rotation.y = faceTo(dx, dz, wx, wz) + Math.PI;
   g.add(desk);
-  collider(g, 1.2, -side * 7.2, 6.4);
+  collider(g, 1.2, dx, dz);
   const typer = makePerson({ accent: h.color, seed: r() });
   typer.root.position.set(0, 0, 0.75);
   typer.root.rotation.y = Math.PI;
@@ -459,27 +473,37 @@ function buildHamlet(scene, h, i, ctx) {
   U.push({ update: (t) => animate(typer, 'type', t) });
   ctx.npcs.push({ p: typer, dept: h.id });
 
+  // the department's own scene (its sculpture and the people at work round it) is anchored where
+  // the config puts it
+  const L = new THREE.Group();
+  L.position.set(C.landmark[0], 0, C.landmark[1]);
+  L.rotation.y = C.landmark[2] || 0;
+  g.add(L);
+  Q = L;
+
   switch (h.activity) {
     case 'arena': {
       // A cricket pitch where founders are being filmed for the T20 spots.
-      g.add(mesh(new THREE.BoxGeometry(2.2, 0.04, 9), solid('#d8c79a'), 0, 0.02, -0.5, false));
-      for (const z of [-4.5, 3.5]) for (const x of [-0.18, 0, 0.18]) g.add(mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.75, 6), solid('#f3ead0'), x, 0.38, z));
+      L.add(mesh(new THREE.BoxGeometry(2.2, 0.04, 9), solid('#d8c79a'), 0, 0.02, -0.5, false));
+      for (const z of [-4.5, 3.5]) for (const x of [-0.18, 0, 0.18]) L.add(mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.75, 6), solid('#f3ead0'), x, 0.38, z));
       person('cheer', 0, -3, 0, { top: '#1a4fd6', pants: '#1a4fd6', beard: true });
       const cam = person('camera', 2.6, 0.5, face(2.6, 0.5, 0, -3));
       giveProp(cam, 'camera');
       person('point', -2.6, 1, face(-2.6, 1, 0, -3));
       person('talk', -3.4, -1.2, face(-3.4, -1.2, 0, -3), {});
+      // floodlight masts at the back corners of the pitch, clear of the ring road
       for (const sx of [-1, 1]) {
-        const x = sx * 7.5;
-        g.add(mesh(new THREE.CylinderGeometry(0.18, 0.28, 11, 10), WHITE_METAL, x, 5.5, 4));
-        const panel = mesh(new THREE.BoxGeometry(2.2, 1.3, 0.3), WHITE_METAL, x, 11.2, 4);
-        panel.rotation.y = face(x, 4);
-        g.add(panel);
+        const x = sx * 7.2;
+        const mz = -4.5;
+        L.add(mesh(new THREE.CylinderGeometry(0.18, 0.28, 11, 10), WHITE_METAL, x, 5.5, mz));
+        const panel = mesh(new THREE.BoxGeometry(2.2, 1.3, 0.3), WHITE_METAL, x, 11.2, mz);
+        panel.rotation.y = face(x, mz);
+        L.add(panel);
         const lights = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 1.0), glow('#ffffff', 4));
-        lights.position.set(x - sx * 0.1, 11.2, 4 - 0.17);
-        lights.rotation.y = face(x, 4) + Math.PI;
-        g.add(lights);
-        collider(g, 0.5, x, 4);
+        lights.position.set(x - Math.sin(face(x, mz)) * 0.17, 11.2, mz - Math.cos(face(x, mz)) * 0.17);
+        lights.rotation.y = face(x, mz) + Math.PI;
+        L.add(lights);
+        collider(L, 0.5, x, mz);
       }
       giveProp(walker([[-6, 5.5], [6, 5.5]], { action: 'carry', pause: 1.5 }), 'parcel', '#e9d5a6');
       break;
@@ -499,17 +523,17 @@ function buildHamlet(scene, h, i, ctx) {
       const eq = mesh(new THREE.TorusGeometry(2.3, 0.09, 8, 64), WHITE_METAL);
       eq.rotation.x = Math.PI / 2;
       globe.add(eq);
-      g.add(globe);
-      g.add(mesh(new THREE.CylinderGeometry(0.9, 1.3, 2.2, 24), WHITE_METAL, 0, 1.1, -12));
-      collider(g, 1.6, 0, -12);
-      const deskX = 5;
-      g.add(mesh(new THREE.BoxGeometry(1.6, 0.08, 0.8), WHITE_METAL, deskX, 1.05, 2));
-      g.add(mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.05, 8), BRUSHED, deskX, 0.52, 2));
-      const lap = mesh(new THREE.BoxGeometry(0.5, 0.32, 0.02), DARK, deskX, 1.27, 2.1);
+      L.add(globe);
+      L.add(mesh(new THREE.CylinderGeometry(0.9, 1.3, 2.2, 24), WHITE_METAL, 0, 1.1, -12));
+      collider(L, 1.6, 0, -12);
+      const deskX = -7;
+      L.add(mesh(new THREE.BoxGeometry(1.6, 0.08, 0.8), WHITE_METAL, deskX, 1.05, -1.5));
+      L.add(mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.05, 8), BRUSHED, deskX, 0.52, -1.5));
+      const lap = mesh(new THREE.BoxGeometry(0.5, 0.32, 0.02), DARK, deskX, 1.27, -1.4);
       lap.rotation.x = -0.25;
-      g.add(lap);
-      collider(g, 0.9, deskX, 2);
-      person('type', deskX, 1.35, 0);
+      L.add(lap);
+      collider(L, 0.9, deskX, -1.5);
+      person('type', deskX, -2.15, 0);
       person('present', -1.8, -1.2, face(-1.8, -1.2, 0, 6));
       person('talk', -3.5, 2.5, face(-3.5, 2.5, -1.8, -1.2));
       person('talk', -1.2, 3.4, face(-1.2, 3.4, -1.8, -1.2));
@@ -536,7 +560,7 @@ function buildHamlet(scene, h, i, ctx) {
           b.add(rope);
         }
         b.position.set(x, y, z);
-        g.add(b);
+        L.add(b);
         balloons.push({ b, y });
       }
       U.push({
@@ -566,7 +590,7 @@ function buildHamlet(scene, h, i, ctx) {
         isle.add(top, rock, shop, screen, awning);
         isle.position.set(x, y, z);
         isle.rotation.y = face(x, z, 0, 8);
-        g.add(isle);
+        L.add(isle);
         isles.push({ isle, y, ph: x });
       }
       // Boxing ring: Back in the Ring
@@ -582,8 +606,8 @@ function buildHamlet(scene, h, i, ctx) {
           ringG.add(rope);
         }
       }
-      g.add(ringG);
-      collider(g, 3.2, 0, 2);
+      L.add(ringG);
+      collider(L, 3.2, 0, 2);
       const b1 = makePerson({ seed: r(), style: 'streetwear', top: '#c0392b', outer: null, accessory: 'none', noBag: true, fem: false });
       const b2 = makePerson({ seed: r(), style: 'streetwear', top: '#1a4fd6', outer: null, accessory: 'none', noBag: true, fem: false });
       giveProp(b1, 'glove', '#c0392b');
@@ -593,7 +617,7 @@ function buildHamlet(scene, h, i, ctx) {
       b1.root.rotation.y = Math.PI / 2;
       b2.root.rotation.y = -Math.PI / 2;
       b2.phase += 0.35;
-      g.add(b1.root, b2.root);
+      L.add(b1.root, b2.root);
       U.push({ update: (t) => (animate(b1, 'box', t), animate(b2, 'box', t)) });
       ctx.npcs.push({ p: b1, dept: h.id }, { p: b2, dept: h.id });
       person('cheer', -3.6, 4.6, face(-3.6, 4.6, 0, 2));
@@ -615,8 +639,8 @@ function buildHamlet(scene, h, i, ctx) {
       const light = new THREE.PointLight(h.color, 40, 30, 2);
       light.position.y = 12;
       tower.add(light);
-      g.add(tower);
-      collider(g, 2, 0, -12);
+      L.add(tower);
+      collider(L, 2, 0, -12);
       // Ring light and creators filming reels
       const rl = new THREE.Group();
       rl.position.set(4.2, 0, 2.2);
@@ -625,14 +649,14 @@ function buildHamlet(scene, h, i, ctx) {
       ringLight.position.y = 1.75;
       rl.add(ringLight);
       rl.rotation.y = face(4.2, 2.2, 2.6, 4.4);
-      g.add(rl);
+      L.add(rl);
       const creator = person('phone', 2.6, 4.4, face(2.6, 4.4, 4.2, 2.2), { longHair: true });
       giveProp(creator, 'phone');
       const c2 = person('phone', -3, 1.5, face(-3, 1.5, 0, -12));
       giveProp(c2, 'phone');
       person('wave', -1.5, 4, Math.PI * 0.1);
       person('cheer', 1.6, -0.6, face(1.6, -0.6, -3, 1.5));
-      floaters(g, ctx, [
+      floaters(L, ctx, [
         { t: '♥ 6.55M', bg: '#ff4f8b', fg: '#ffffff' },
         { t: '129 reels', bg: '#ffffff' },
         { t: '♥ ♥ ♥', bg: '#ff4f8b', fg: '#ffffff', w: 1.6 },
@@ -652,30 +676,31 @@ function buildHamlet(scene, h, i, ctx) {
     }
     case 'court': {
       // The animal courtroom of Trial of the Century.
-      g.add(mesh(new THREE.BoxGeometry(5, 0.5, 3), WHITE_METAL, 0, 0.25, -12));
-      g.add(mesh(new THREE.BoxGeometry(4.4, 1.4, 0.6), WHITE_METAL, 0, 1.2, -10.9));
-      g.add(mesh(new THREE.BoxGeometry(4.5, 0.1, 0.9), WOOD, 0, 1.95, -11));
+      L.add(mesh(new THREE.BoxGeometry(5, 0.5, 3), WHITE_METAL, 0, 0.25, -12));
+      L.add(mesh(new THREE.BoxGeometry(4.4, 1.4, 0.6), WHITE_METAL, 0, 1.2, -10.9));
+      L.add(mesh(new THREE.BoxGeometry(4.5, 0.1, 0.9), WOOD, 0, 1.95, -11));
       const crest = new THREE.Mesh(new THREE.CircleGeometry(0.7, 32), glow(h.color, 1.5));
       crest.position.set(0, 1.2, -10.58);
-      g.add(crest);
-      collider(g, 2.6, 0, -11.5);
+      L.add(crest);
+      collider(L, 2.6, 0, -11.5);
       const judge = person('gavel', 0, -11.9, 0, { y: 0.5, top: '#1b1f2a', beard: true });
       giveProp(judge, 'gavel');
       // counsel at their lecterns, low and to either side so the billboards behind stay clear
       for (const sx of [-1, 1]) {
-        g.add(mesh(new THREE.BoxGeometry(1, 1.1, 0.8), WHITE_METAL, sx * 2.2, 0.55, -6.5));
-        collider(g, 0.7, sx * 2.2, -6.5);
+        L.add(mesh(new THREE.BoxGeometry(1, 1.1, 0.8), WHITE_METAL, sx * 2.2, 0.55, -6.5));
+        collider(L, 0.7, sx * 2.2, -6.5);
         person('talk', sx * 2.2, -5.6, Math.PI);
       }
       for (const sx of [-1, 1]) {
         const x = sx * 6.3;
-        g.add(mesh(new THREE.BoxGeometry(1.5, 0.08, 0.8), WOOD, x, 0.85, 3));
-        for (const lx of [-0.65, 0.65]) g.add(mesh(new THREE.BoxGeometry(0.06, 0.85, 0.7), BRUSHED, x + lx, 0.42, 3));
-        g.add(mesh(new THREE.BoxGeometry(0.45, 0.04, 0.6), solid('#fbfaf5'), x, 0.92, 3));
-        collider(g, 0.9, x, 3);
-        person('write', x, 2.1, 0);
+        const dz = -2.6;
+        L.add(mesh(new THREE.BoxGeometry(1.5, 0.08, 0.8), WOOD, x, 0.85, dz));
+        for (const lx of [-0.65, 0.65]) L.add(mesh(new THREE.BoxGeometry(0.06, 0.85, 0.7), BRUSHED, x + lx, 0.42, dz));
+        L.add(mesh(new THREE.BoxGeometry(0.45, 0.04, 0.6), solid('#fbfaf5'), x, 0.92, dz));
+        collider(L, 0.9, x, dz);
+        person('write', x, dz - 0.9, 0);
       }
-      floaters(g, ctx, [
+      floaters(L, ctx, [
         { t: 'Why did my salary change?', bg: '#ffffff', w: 3.6 },
         { t: 'What is this deduction?', bg: '#ffffff', w: 3.4 },
         { t: 'Sawaal pe sawaal!', bg: h.color, w: 3 },
@@ -689,8 +714,8 @@ function buildHamlet(scene, h, i, ctx) {
       const tools = [
         ['cine-ui', -5.2, -1.5],
         ['founder-grid', 5.2, -1.5],
-        ['prod-1', -5.6, 3.4],
-        ['social-flow', 5.6, 3.4],
+        ['prod-1', -5.6, -5.4],
+        ['social-flow', 5.6, -5.4],
       ];
       for (const [img, x, z] of tools) {
         const k = new THREE.Group();
@@ -710,8 +735,8 @@ function buildHamlet(scene, h, i, ctx) {
         screenBack.position.z = -0.355;
         screenBack.rotation.y = Math.PI;
         k.add(screenBack);
-        g.add(k);
-        collider(g, 1, x, z);
+        L.add(k);
+        collider(L, 1, x, z);
         const designer = makePerson({ accent: h.color, seed: r() });
         designer.root.position.set(0, 0, 0.85);
         designer.root.rotation.y = Math.PI;
@@ -730,13 +755,13 @@ function buildHamlet(scene, h, i, ctx) {
         wheel.add(seg);
       }
       wheel.add(mesh(new THREE.TorusGeometry(2.05, 0.12, 10, 48), CHROME));
-      g.add(wheel);
-      g.add(mesh(new THREE.CylinderGeometry(0.15, 0.3, 4, 12), WHITE_METAL, 0, 2, -12.2));
-      collider(g, 0.6, 0, -12.2);
+      L.add(wheel);
+      L.add(mesh(new THREE.CylinderGeometry(0.15, 0.3, 4, 12), WHITE_METAL, 0, 2, -12.2));
+      collider(L, 0.6, 0, -12.2);
       // Cinema camera on a tripod, aimed at a product
-      g.add(mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.9, 24), WHITE_METAL, 1.5, 0.45, -2.5));
-      g.add(mesh(new THREE.BoxGeometry(0.5, 0.3, 0.5), solid(h.color), 1.5, 1.05, -2.5));
-      collider(g, 0.8, 1.5, -2.5);
+      L.add(mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.9, 24), WHITE_METAL, 1.5, 0.45, -2.5));
+      L.add(mesh(new THREE.BoxGeometry(0.5, 0.3, 0.5), solid(h.color), 1.5, 1.05, -2.5));
+      collider(L, 0.8, 1.5, -2.5);
       const tri = new THREE.Group();
       tri.position.set(-1.5, 0, -0.5);
       for (let k = 0; k < 3; k++) {
@@ -746,13 +771,14 @@ function buildHamlet(scene, h, i, ctx) {
       }
       tri.add(mesh(new THREE.BoxGeometry(0.3, 0.3, 0.5), DARK, 0, 1.55, 0));
       tri.rotation.y = face(-1.5, -0.5, 1.5, -2.5);
-      g.add(tri);
+      L.add(tri);
       person('present', -2.2, 1.6, face(-2.2, 1.6, 1.5, -2.5));
       U.push({ update: (t) => (wheel.rotation.z = t * 0.25) });
       break;
     }
   }
-  walker([[-4.5, 5.5], [-1, 9], [4, 9.5]], { pause: 2.5 });
+  Q = g;
+  walker(C.walk, { pause: 2.5 });
   deepMerge(g);
 }
 
@@ -791,10 +817,10 @@ function buildLab(scene, ctx) {
   // the lab's sign stands by the path in (which arrives behind the pavilion), clear of the billboards
   const labSign = makeBeliefSign(LAB, BELIEFS.lab);
   const lRot = -2.3;
-  labSign.position.set(-10.2, 0, -4.6);
+  labSign.position.set(-9.4, 0, 1.2);
   labSign.rotation.y = lRot;
   g.add(labSign);
-  for (const d of [-1.71, 1.71]) collider(g, 0.35, -10.2 + Math.cos(lRot) * d, -4.6 - Math.sin(lRot) * d);
+  for (const d of [-1.71, 1.71]) collider(g, 0.35, -9.4 + Math.cos(lRot) * d, 1.2 - Math.sin(lRot) * d);
   deepMerge(g);
 }
 
@@ -1184,7 +1210,7 @@ function buildHome(scene, ctx) {
   const r = rng(404);
   const g = new THREE.Group();
   g.position.set(H.x, H.y + SURFACE, H.z);
-  g.rotation.y = Math.atan2(-H.x, -H.z);
+  g.rotation.y = H.facing; // the front faces where its lane arrives
   scene.add(g);
   const face = (x, z, tx = 0, tz = 0) => Math.atan2(tx - x, tz - z);
 
@@ -1407,7 +1433,7 @@ function buildZoneDome(scene, ctx, place, { radius = 10, glass = false, extras }
   const r = rng(place.id.length * 97);
   const g = new THREE.Group();
   g.position.set(place.x, place.y + SURFACE, place.z);
-  g.rotation.y = Math.atan2(-place.x, -place.z);
+  g.rotation.y = place.facing;
   scene.add(g);
   const dome = makeDome(radius, place.color, { glass });
   dome.position.z = -2;

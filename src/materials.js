@@ -29,7 +29,7 @@ export const MOUND = new THREE.MeshStandardMaterial({ color: '#5f9e3a', roughnes
 // Emissive materials that brighten at night, and additive light pools under lamps.
 export const NIGHT_GLOWS = new Set();
 export const NIGHT_POOLS = new Set();
-const nightGlow = (m) => {
+export const nightGlow = (m) => {
   m.userData.base = m.emissiveIntensity;
   NIGHT_GLOWS.add(m);
   return m;
