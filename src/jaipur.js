@@ -228,7 +228,14 @@ export function makePol({ w = 9, h = 8, a = 2.2, spring = 3.4, depth = 1.6, colo
     const jd = makeChhatri(0.45, LIME);
     jd.position.set(0, 0.8, 0.12);
     jw.add(jd);
-    if (spring + 1.25 * a + 2 < h) g.add(jw);
+    if (spring + 1.25 * a + 2 < h) {
+      g.add(jw);
+      // and the same window on the back face, so the gate is finished from both sides
+      const back = jw.clone();
+      back.position.z = -depth / 2;
+      back.rotation.y = Math.PI;
+      g.add(back);
+    }
   }
   if (chhatris) {
     for (const sx of [-1, 1]) {
