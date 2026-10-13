@@ -21,31 +21,8 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
   document.querySelectorAll('[data-owner-portrait]').forEach((el) => (el.src = owner.portrait));
   document.querySelectorAll('[data-owner-short]').forEach((el) => (el.textContent = owner.short));
 
-  // ----- Hero: three facts from the work, as stat cards over the island -----
-  {
-    const [years, lines] = owner.numbers;
-    const films = LEADER.impact.find((n) => /TV films/.test(n.label)) || LEADER.impact[0];
-    $('#hero-n1').textContent = years.value;
-    $('#hero-l1').textContent = years.label;
-    $('#hero-n2').textContent = films.value;
-    $('#hero-l2').textContent = films.label;
-    $('#hero-n3').textContent = lines.value;
-    $('#hero-l3').textContent = lines.label;
-    $('#hero-ticks').innerHTML = '<i></i>'.repeat(12);
-  }
-
-  // ----- Intro -----
-  $('#intro-legend').innerHTML = places
-    .filter((p) => p.id !== 'hq')
-    .map((p) => `<li><i style="background:${p.color}"></i><b>${esc(p.name)}</b><span>${esc(p.place)}${p.projects.length ? ` · ${p.projects.length} projects` : ""}</span></li>`)
-    .join('');
-  const statHtml = (list) => list.map((n) => `<div><b>${esc(n.value)}</b><span>${esc(n.label)}</span></div>`).join('');
-  const impactHtml = (list) => list.map((n) => `<div class="impact__item"><b>${esc(n.value)}</b><span>${esc(n.label)}</span><p>${esc(n.text)}</p></div>`).join('');
-  $('#intro-numbers').innerHTML = statHtml(owner.numbers);
-  $('#intro-leader-title').textContent = LEADER.title;
-  $('#intro-leader-line').textContent = LEADER.line;
-  $('#intro-impact').innerHTML = impactHtml(LEADER.impact);
-  $('#intro-awards').innerHTML = awards.map((a) => `<li><span>🏆</span>${esc(a.name)}<em>${esc(a.detail)}</em></li>`).join('');
+  // ----- Title screen: the three numbers under the menu -----
+  $('#title-stats').innerHTML = owner.numbers.map((n) => `<div><dt>${esc(n.value)}</dt><dd>${esc(n.label)}</dd></div>`).join('');
   // Soft ticks under the pointer and a click on every control
   const CONTROL = 'button, .btn, .work, .label, .dot, .legend li, [role="button"], a, .cs-vbox';
   let hovered = null;
@@ -58,42 +35,26 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     if (e.target.closest?.(CONTROL)) sfx('click');
   }, true);
 
-  // The splash card doubles as the about-me card: the name chip in the HUD reopens it over the game.
-  const enterBtn = $('#btn-enter');
-  const splashOpen = () => document.body.classList.contains('splash-open');
-  function openSplash() {
-    sfx('open');
-    document.body.classList.add('splash-open');
-  }
-  function closeSplash() {
-    document.body.classList.remove('splash-open');
-  }
-  enterBtn.addEventListener('click', () => (splashOpen() ? closeSplash() : onEnter()));
-  $('#btn-tour').addEventListener('click', () => {
-    closeSplash();
-    onTour();
-  });
-  $('#splash-close').addEventListener('click', closeSplash);
-  $('#btn-about-intro').addEventListener('click', openSplash);
+  // ----- Title screen menu -----
+  $('#btn-enter').addEventListener('click', () => onEnter());
+  $('#btn-tour').addEventListener('click', () => onTour());
+  $('#btn-about-intro').addEventListener('click', () => openAbout());
+  $('#btn-hire-intro').addEventListener('click', () => openAbout('contact'));
   $('#btn-brief-intro').addEventListener('click', () => {
-    if (splashOpen()) closeSplash();
-    else onEnter();
-    setTimeout(() => onBriefs?.(), 250);
-  });
-  $('.hud__brand').addEventListener('click', openSplash);
-  $('#intro').addEventListener('click', (e) => {
-    if (e.target.id === 'intro' && splashOpen()) closeSplash();
+    onEnter();
+    setTimeout(() => openJournal('campaigns'), 250);
   });
 
-  // ----- HUD -----
+  // ----- The rail: every in-game control in one place -----
+  $('#btn-about').addEventListener('click', () => openAbout());
   $('#btn-overview').addEventListener('click', onOverview);
   $('#btn-map').addEventListener('click', onOverview);
+  $('#btn-map').addEventListener('keydown', (e) => (e.key === 'Enter' || e.key === ' ') && onOverview());
   $('#btn-walk').addEventListener('click', () => onWalk?.());
   $('#btn-tour-hud').addEventListener('click', () => (mode === 'tour' ? onExitTour() : onTour()));
-  $('#btn-hire').addEventListener('click', () => toggleHire(true));
-  $('#btn-about').addEventListener('click', () => openSplash());
-  $('#btn-contact').addEventListener('click', () => toggleHire(true, true));
+  $('#btn-hire').addEventListener('click', () => openAbout('contact'));
   $('#btn-time').addEventListener('click', () => onTime());
+  $('#btn-journal').addEventListener('click', () => toggleJournal());
 
   // ----- Time & sky card: the clock now, then the next few hours -----
   const skyIcon = (h) => (h >= 6.5 && h < 17 ? '☀️' : h >= 17 && h < 19 ? '🌅' : h >= 5 && h < 6.5 ? '🌄' : '🌙');
@@ -108,13 +69,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     if (h === hourShown) return;
     hourShown = h;
     $('#clock-icon').textContent = skyIcon(hour);
-    $('#clock-label').textContent = `${skyWord(hour)} · ${modeLabel}`;
-    $('#hours').innerHTML = [0, 3, 6, 9, 12]
-      .map((d, i) => {
-        const hh = (h + d) % 24;
-        return `<li><span>${i ? fmt(hh) : 'Now'}</span><i>${skyIcon(hh + 0.5)}</i></li>`;
-      })
-      .join('');
+    $('#btn-time').title = `${skyWord(hour)} · ${modeLabel}. Time of day (L)`;
   };
   const setTimeMode = (m) => {
     modeLabel = m.label;
@@ -140,6 +95,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     startAudio();
     soundEl.classList.toggle('is-open');
     document.body.classList.remove('show-keys');
+    toggleJournal(false);
   });
   $('#sound-mute').addEventListener('click', () => toggleMute());
   soundEl.addEventListener('input', (e) => {
@@ -149,47 +105,122 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
   document.addEventListener('pointerdown', (e) => {
     if (!e.target.closest('#sound, #btn-sound')) soundEl.classList.remove('is-open');
     if (!e.target.closest('#keys, #btn-keys')) document.body.classList.remove('show-keys');
+    if (!e.target.closest('#journal, #btn-journal, #scene') && journalEl.classList.contains('is-open')) toggleJournal(false);
   });
   $('#btn-keys').addEventListener('click', (e) => {
     e.stopPropagation();
     soundEl.classList.remove('is-open');
+    toggleJournal(false);
     document.body.classList.toggle('show-keys');
   });
-  $('#missions-toggle').addEventListener('click', () => toggleMissions());
-  $('#visited-dots').innerHTML = places
-    .map((p, i) => `<button class="dot" data-id="${p.id}" style="--c:${p.color}" title="${i} · ${esc(p.name)}"></button>`)
-    .join('');
-  $('#visited-dots').addEventListener('click', (e) => {
-    const id = e.target.dataset?.id;
-    if (id) onTravel(id);
-  });
+  // ----- Journal: missions, campaigns and secrets, together -----
+  const journalEl = $('#journal');
+  let journalTab = 'missions';
+  let quest = null;
   let campaigns = [0, 0];
-  let hidden = [0, 0];
-  function renderMissions() {
-    const rows = [
-      ...(campaigns[1] ? [['Ship campaigns', campaigns[0], campaigns[1]]] : []),
-      ...(hidden[1] ? [['Find the hidden places', hidden[0], hidden[1]]] : []),
-      ['Meet every department', visited.size, places.length],
-      ['Open project files', viewed.size, totalProjects],
-      ['Find the golden trophies', trophies.size, awards.length],
+  let hidden = { n: 0, total: 0, spots: [] };
+  const ICON = {
+    places: '🧭', files: '📂', ship: '📁', hidden: '✨', trophy: '🏆',
+  };
+  function missionRows() {
+    return [
+      { id: 'places', label: 'Meet every department', n: visited.size, total: places.length },
+      { id: 'files', label: 'Open project files', n: viewed.size, total: totalProjects },
+      ...(campaigns[1] ? [{ id: 'ship', label: 'Ship the campaigns', n: campaigns[0], total: campaigns[1], tab: 'campaigns' }] : []),
+      ...(hidden.total ? [{ id: 'hidden', label: 'Find the hidden places', n: hidden.n, total: hidden.total, tab: 'secrets' }] : []),
+      { id: 'trophy', label: 'Find the golden trophies', n: trophies.size, total: awards.length, tab: 'secrets' },
     ];
-    $('#mission-list').innerHTML = rows
-      .map(([label, n, total]) => `<li class="${n >= total ? 'is-done' : ''}"><span>${label}</span><b>${n}/${total}</b><i style="--p:${n / total}"></i></li>`)
-      .join('');
-    // the stat cards: departments met, files opened, and the whole journey as one ring
-    $('#stat-places').textContent = visited.size;
-    $('#stat-projects').textContent = viewed.size;
-    const pct = Math.round((rows.reduce((a, [, n, t]) => a + Math.min(1, n / t), 0) / rows.length) * 100);
-    $('#journey-pct').textContent = `${pct}%`;
-    $('#journey-arc').style.strokeDasharray = `${pct} 100`;
-    const done = rows.filter(([, n, t]) => n >= t).length;
-    $('#missions-sum').textContent = `${done}/${rows.length} done`;
   }
+  function renderMissions() {
+    const rows = missionRows();
+    const pct = Math.round((rows.reduce((a, r) => a + Math.min(1, r.n / r.total), 0) / rows.length) * 100);
+    $('#journal-badge').textContent = `${pct}%`;
+    $('#btn-journal').style.setProperty('--p', pct / 100);
+    if (journalEl.classList.contains('is-open')) renderJournal();
+  }
+  const bar = (n, total) => `<i class="jbar" style="--p:${Math.min(1, n / total)}"></i>`;
+  function renderJournal() {
+    const rows = missionRows();
+    const pct = Math.round((rows.reduce((a, r) => a + Math.min(1, r.n / r.total), 0) / rows.length) * 100);
+    const briefs = quest?.briefs() || [];
+    const secretsFound = hidden.n + trophies.size;
+    const secretsTotal = hidden.total + awards.length;
+    const tabs = [
+      ['missions', 'Missions', `${rows.filter((r) => r.n >= r.total).length}/${rows.length}`],
+      ['campaigns', 'Campaigns', `${campaigns[0]}/${briefs.length}`],
+      ['secrets', 'Secrets', `${secretsFound}/${secretsTotal}`],
+    ];
+    let body = '';
+    if (journalTab === 'missions') {
+      body = `<ul class="jlist">${rows
+        .map((r) => `<li><button class="jrow${r.n >= r.total ? ' is-done' : ''}" ${r.tab ? `data-tab="${r.tab}"` : ''}>
+            <i class="jrow__icon">${ICON[r.id]}</i><span><b>${r.label}</b>${bar(r.n, r.total)}</span><em>${r.n}/${r.total}</em></button>
+            ${r.id === 'places' ? `<div class="jdots">${places.map((p) => `<button class="jdot${visited.has(p.id) ? ' is-on' : ''}" data-go="${p.id}" style="--c:${p.color}" title="${esc(p.name)}">${esc(p.name)}</button>`).join('')}</div>` : ''}</li>`)
+        .join('')}</ul>`;
+    } else if (journalTab === 'campaigns') {
+      body = `<p class="jnote">Real briefs. Carry one to every team it went through and see how it was cracked.</p>
+        <ul class="jlist">${briefs
+          .map((b) => `<li class="jbrief${b.done ? ' is-done' : ''}${b.active ? ' is-active' : ''}" style="--c:${b.color}">
+            <p class="jbrief__client">${esc(b.client)} · ${esc(b.year)}</p>
+            <b>${esc(b.title)}</b>
+            <p class="jbrief__route">${b.route.map(esc).join(' → ')}</p>
+            ${b.active
+              ? `<div class="jbrief__row"><span>Carrying · stop ${b.step + 1} of ${b.stops}</span><button class="linkish" data-drop>Drop it</button></div>`
+              : `<button class="jbrief__go" data-brief="${b.id}">${b.done ? '✓ Shipped · run it again' : `Take this brief · ${b.stops} stops`}</button>`}
+          </li>`)
+          .join('')}</ul>`;
+    } else {
+      body = `<h4 class="jh">Hidden places <em>${hidden.n}/${hidden.total}</em></h4>
+        <ul class="jlist">${hidden.spots
+          .map((h) => `<li class="jsecret${h.found ? ' is-found' : ''}"><i>${h.found ? '✨' : '?'}</i><span><b>${h.found ? esc(h.org) : 'Somewhere off the paths'}</b><em>${h.found ? esc(h.years) : 'A place from the past, hidden on the island'}</em></span></li>`)
+          .join('')}</ul>
+        <h4 class="jh">Golden trophies <em>${trophies.size}/${awards.length}</em></h4>
+        <ul class="jlist">${awards
+          .map((a) => `<li class="jsecret${trophies.has(a.id) ? ' is-found' : ''}"><i>${trophies.has(a.id) ? '🏆' : '?'}</i><span><b>${trophies.has(a.id) ? esc(a.name) : 'A golden trophy'}</b><em>${trophies.has(a.id) ? esc(a.detail) : 'Glinting somewhere in the village'}</em></span></li>`)
+          .join('')}</ul>`;
+    }
+    journalEl.innerHTML = `
+      <header class="jhead"><span class="jring" style="--p:${pct / 100}"><b>${pct}%</b></span><div><b>Journal</b><em>Your progress on the island</em></div><button class="close" data-close aria-label="Close">×</button></header>
+      <div class="jtabs" role="tablist">${tabs.map(([id, name, n]) => `<button role="tab" class="${id === journalTab ? 'is-on' : ''}" data-tab="${id}">${name}<em>${n}</em></button>`).join('')}</div>
+      <div class="jbody">${body}</div>`;
+  }
+  journalEl.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-tab], [data-go], [data-brief], [data-drop], [data-close]');
+    if (!t) return;
+    if (t.dataset.close !== undefined) return toggleJournal(false);
+    if (t.dataset.tab) {
+      journalTab = t.dataset.tab;
+      return renderJournal();
+    }
+    if (t.dataset.go) {
+      toggleJournal(false);
+      return onTravel(t.dataset.go);
+    }
+    if (t.dataset.brief) {
+      toggleJournal(false);
+      return quest?.start(t.dataset.brief);
+    }
+    if (t.dataset.drop !== undefined) {
+      quest?.cancel();
+      renderJournal();
+    }
+  });
+  function toggleJournal(force, tab) {
+    const open = force ?? !journalEl.classList.contains('is-open');
+    if (tab) journalTab = tab;
+    if (open === journalEl.classList.contains('is-open') && !tab) return;
+    if (open) {
+      renderJournal();
+      soundEl.classList.remove('is-open');
+      document.body.classList.remove('show-keys');
+    }
+    if (open !== journalEl.classList.contains('is-open')) sfx(open ? 'open' : 'close');
+    journalEl.classList.toggle('is-open', open);
+    $('#btn-journal').classList.toggle('is-active', open);
+  }
+  const openJournal = (tab) => toggleJournal(true, tab);
+  const toggleMissions = () => toggleJournal(undefined, journalEl.classList.contains('is-open') ? undefined : 'missions');
   renderMissions();
-  function toggleMissions(force) {
-    $('#missions').classList.toggle('is-collapsed', force === undefined ? undefined : !force);
-    $('#missions-toggle').setAttribute('aria-expanded', String(!$('#missions').classList.contains('is-collapsed')));
-  }
 
   // ----- Labels -----
   const labels = {};
@@ -343,12 +374,15 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     guideKey = '';
     guideEl.innerHTML = '';
     if (!place) {
+      indoorEl.innerHTML = '';
+      $('#btn-overview span').textContent = 'Map';
       $('#map-title').textContent = 'Vibhor’s island';
       $('#map-sub').textContent = 'Exploring';
     }
     if (place) {
       indoorEl.style.setProperty('--c', place.color);
-      indoorEl.innerHTML = `<i></i><span>Inside</span><b>${esc(place.name)}</b><button class="indoor__btn" data-plan title="Floor plan (O)">Floor plan</button><button class="indoor__btn indoor__btn--exit" data-exit title="Leave by the front door (Esc)">Exit to island</button>`;
+      indoorEl.innerHTML = `<button class="ri ri--exit" data-exit title="Leave ${esc(place.name)} by the front door (Esc)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 4.5H6.5v15H13"/><path d="M10.5 12h9m-3-3 3 3-3 3"/></svg><span>Exit</span></button>`;
+      $('#btn-overview span').textContent = 'Plan';
       $('#map-title').textContent = place.name;
       $('#map-sub').textContent = 'Inside · floor plan';
       toast(`<b>Welcome to ${esc(place.name)}.</b> Walk through the rooms, tap anything to walk up to it, or open the floor plan.`, 4500);
@@ -411,7 +445,6 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
   function markVisited(id) {
     if (visited.has(id)) return;
     visited.add(id);
-    document.querySelector(`.dot[data-id="${id}"]`)?.classList.add('is-visited');
     renderMissions();
     if (visited.size === places.length)
       setTimeout(() => toast(`<b>You’ve met the whole organisation.</b><br>Every team, one voice. That’s the job. <a href="#" data-hire-link>Let’s talk →</a>`, 9000), 1500);
@@ -525,39 +558,161 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     toastTimer = setTimeout(() => toastEl.classList.remove('is-open'), ms);
   }
 
-  // ----- Hire modal -----
-  const hire = $('#hire');
-  // ----- Home: the about-me postcard -----
-  const homepop = $('#homepop');
+  // ----- About: the one page about Vibhor. Hire me, Home and the name card all open it -----
+  const aboutEl = $('#about');
   const md = (t) => esc(t).replace(/\*([^*]+)\*/g, '<em>$1</em>');
-  $('#home-headline').innerHTML = md(about.headline);
-  $('#home-intro').innerHTML = about.intro.map((p) => `<p>${md(p)}</p>`).join('');
-  $('#home-numbers').innerHTML = statHtml(owner.numbers);
-  $('#home-path').innerHTML = about.timeline.items.map((i) => `<li><span>${esc(i.years)}</span><b>${esc(i.org)}</b><em>${esc(i.role)}</em><p>${esc(i.note)}</p></li>`).join('');
-  $('#home-notes').innerHTML = about.leadership.items.map((i, k) => `<div><span>${String(k + 1).padStart(2, '0')}</span><b>${esc(i.title)}</b><p>${esc(i.body)}</p></div>`).join('');
-  $('#home-after').textContent = about.studio.body.split('\n')[0];
-  function openHome() {
-    if (homepop.classList.contains('is-open')) return;
-    homepop.classList.add('is-open');
-    homepop.querySelector('.sheet').scrollTop = 0;
-    sfx('open');
+  const fact = (label) => about.facts.find((f) => f.label === label)?.value || '';
+  const hireList = owner.hireFor
+    .replace(/\.$/, '')
+    .split(/;\s*/)
+    .map((x) => x.replace(/^and /, ''))
+    .map((x) => x[0].toUpperCase() + x.slice(1));
+  const shows = [...new Set(awardList.map((a) => a.show))];
+  const SECTIONS = [
+    ['impact', 'Impact'],
+    ['awards', 'Awards'],
+    ['path', 'Path'],
+    ['bring', 'What I bring'],
+    ['lead', 'How I lead'],
+    ['teach', 'Mentoring'],
+    ['after', 'After hours'],
+    ['contact', 'Work with me'],
+  ];
+  aboutEl.querySelector('.about').innerHTML = `
+    <button class="close" data-close aria-label="Close">×</button>
+    <aside class="about__side">
+      <figure class="about__portrait"><img src="${esc(owner.portrait)}" alt="${esc(owner.name)}" /><figcaption>${esc(about.portrait_caption)}</figcaption></figure>
+      <h2>${esc(owner.name)}</h2>
+      <p class="about__role">${esc(owner.role)}</p>
+      <div class="about__btns">
+        <button class="btn btn--accent" data-jump="contact">✉️ Write to me</button>
+        <button class="btn btn--ghost" data-home-visit>🏡 Walk to Home</button>
+        <button class="btn btn--ghost" data-home-ride>🚲 Ride my bicycle</button>
+      </div>
+      <nav class="about__toc">${SECTIONS.map(([id, name]) => `<button data-jump="${id}">${name}</button>`).join('')}</nav>
+    </aside>
+    <div class="about__main">
+      <header class="about__hero">
+        <p class="about__eyebrow">About</p>
+        <h1>${md(about.headline)}</h1>
+        <p class="about__lead">${esc(owner.tagline)}</p>
+        <dl class="about__facts">${['Currently', 'Based', 'Education'].map((l) => `<div><dt>${l}</dt><dd>${esc(fact(l))}</dd></div>`).join('')}</dl>
+      </header>
+
+      <section id="ab-impact">
+        <h3 class="about__h">Impact</h3>
+        <div class="bento">${LEADER.impact.map((n, k) => `<div class="bento__tile${k === 0 || k === 4 ? ' is-wide' : ''}"><b>${esc(n.value)}</b><span>${esc(n.label)}</span></div>`).join('')}</div>
+        <h4 class="about__sub">Numbers the work moved</h4>
+        <div class="results">${owner.results.map((r) => `<button class="result" data-open="${r.slug}"><b>${esc(r.value)}</b><span>${esc(r.label)}</span><em>${esc(ALL_PROJECTS[r.slug].title)} →</em></button>`).join('')}</div>
+      </section>
+
+      <section id="ab-awards">
+        <h3 class="about__h">Awards</h3>
+        <div class="about__awards">
+        <div class="awards__big"><b>${awardList.length}</b><span>awards in 2026</span><em>${shows.map(esc).join(' · ')}</em></div>
+        <div class="awards__list">${shows
+          .map((show) => `<div class="awards__show"><p>${esc(show)}</p><ul>${awardList
+            .filter((a) => a.show === show)
+            .map((a) => `<li class="is-${a.tier}"><b>${esc(a.title)}</b><span>${esc(a.category)}</span>${a.project ? `<button class="linkish" data-open="${a.project}">${esc(ALL_PROJECTS[a.project].title)}</button>` : '<em>The team</em>'}</li>`)
+            .join('')}</ul></div>`)
+          .join('')}</div>
+        </div>
+      </section>
+
+      <section id="ab-path">
+        <h3 class="about__h">Path</h3>
+        <ol class="tl">${about.timeline.items.map((i) => `<li><span>${esc(i.years)}</span><b>${esc(i.org)}</b><em>${esc(i.role)}</em></li>`).join('')}</ol>
+      </section>
+
+      <section id="ab-bring">
+        <h3 class="about__h">What I bring</h3>
+        <div class="bento bento--5">${pillars.map((p) => `<div class="bento__tile bento__tile--text"><i>${esc(p.rune)}</i><b>${esc(p.name)}</b><span>${esc(p.text)}</span></div>`).join('')}</div>
+      </section>
+
+      <section id="ab-lead">
+        <h3 class="about__h">How I lead</h3>
+        <ol class="nums">${about.leadership.items.map((i) => `<li>${esc(i.title)}</li>`).join('')}</ol>
+        <ul class="ticks">${LEADER.people.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>
+        <div class="about__row"><button class="btn btn--ghost" data-playbook>Open the campaign playbook →</button></div>
+        <h4 class="about__sub">Writing</h4>
+        <ul class="links">${owner.writing.map((w) => `<li><a href="${esc(w.url)}" target="_blank" rel="noopener"><b>${esc(w.title)}</b><em>${esc(w.date)} ↗</em></a></li>`).join('')}</ul>
+      </section>
+
+      <section id="ab-teach">
+        <h3 class="about__h">Mentoring &amp; talks</h3>
+        <ul class="ticks">${owner.teaching.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>
+        <blockquote class="about__quote">“${esc(LEADER.quote.text)}”<cite>${esc(LEADER.quote.who)}</cite></blockquote>
+      </section>
+
+      <section id="ab-after">
+        <h3 class="about__h">After hours</h3>
+        <div class="chips">${['AI art', 'Stop-motion animation', 'Found-object art', 'Quirky content for Instagram'].map((c) => `<span class="chip">${c}</span>`).join('')}</div>
+        <div class="gallery">${owner.gallery.map((g) => `<figure><img src="${esc(g.image)}" alt="${esc(g.caption)}" loading="lazy" /><figcaption>${esc(g.caption)}</figcaption></figure>`).join('')}</div>
+      </section>
+
+      <section id="ab-contact" class="about__contact">
+        <h3 class="about__h">Work with me</h3>
+        <ul class="ticks">${hireList.map((h) => `<li>${esc(h)}</li>`).join('')}</ul>
+        <div class="about__links"><a class="btn" href="mailto:${esc(owner.email)}">${esc(owner.email)}</a>${owner.links.map((l) => `<a class="btn btn--ghost" href="${esc(l.href)}" target="_blank" rel="noopener">${esc(l.label)}</a>`).join('')}</div>
+        <form id="contact-form" class="contact-form">
+          <div class="cf-row">
+            <label>Your name<input id="cf-name" name="name" required autocomplete="name" /></label>
+            <label>Email<input name="email" type="email" required autocomplete="email" /></label>
+          </div>
+          <label>I’d like to talk about<select id="cf-intent" name="intent">${contact.intents.map((i) => `<option>${esc(i)}</option>`).join('')}</select></label>
+          <label>Message<textarea name="message" rows="3" required placeholder="Tell me what you’re building…"></textarea></label>
+          <div class="cf-foot"><button class="btn" type="submit">Send message</button><span id="cf-status"></span></div>
+        </form>
+      </section>
+    </div>`;
+  const aboutOpen = () => aboutEl.classList.contains('is-open');
+  const aboutScroller = () => (window.innerWidth > 860 ? aboutEl.querySelector('.about__main') : aboutEl.querySelector('.about'));
+  function jump(id) {
+    const target = aboutEl.querySelector(`#ab-${id}`);
+    if (!target) return;
+    const sc = aboutScroller();
+    sc.scrollTo({ top: target.offsetTop - 16, behavior: 'smooth' });
   }
-  function closeHome() {
-    if (!homepop.classList.contains('is-open')) return;
-    homepop.classList.remove('is-open');
+  function openAbout(section) {
+    if (!aboutOpen()) {
+      aboutEl.classList.add('is-open');
+      sfx('open');
+      aboutEl.querySelector('.about__main').scrollTop = 0;
+      aboutEl.querySelector('.about').scrollTop = 0;
+    }
+    if (section) setTimeout(() => {
+      jump(section);
+      if (section === 'contact') $('#cf-name').focus({ preventScroll: true });
+    }, 120);
+  }
+  function closeAbout() {
+    if (!aboutOpen()) return;
+    aboutEl.classList.remove('is-open');
     sfx('close');
   }
-  homepop.addEventListener('click', (e) => {
-    if (e.target === homepop || e.target.closest('[data-close]')) closeHome();
-    else if (e.target.closest('[data-home-visit]')) {
-      closeHome();
+  // the old entry points, kept as names the rest of the game calls
+  const toggleHire = (force) => ((force ?? !aboutOpen()) ? openAbout('contact') : closeAbout());
+  const openHome = () => openAbout();
+  const openSplash = () => openAbout();
+  aboutEl.addEventListener('click', (e) => {
+    if (e.target === aboutEl || e.target.closest('[data-close]')) return closeAbout();
+    const j = e.target.closest('[data-jump]');
+    if (j) return jump(j.dataset.jump);
+    const o = e.target.closest('[data-open]');
+    if (o) {
+      closeAbout();
+      return openProject(o.dataset.open);
+    }
+    if (e.target.closest('[data-playbook]')) {
+      closeAbout();
+      return openPlaybook();
+    }
+    if (e.target.closest('[data-home-visit]')) {
+      closeAbout();
       onHomeVisit?.();
     } else if (e.target.closest('[data-home-ride]')) {
-      closeHome();
+      closeAbout();
       onRide?.();
-    } else if (e.target.closest('[data-home-write]')) {
-      closeHome();
-      toggleHire(true, true);
     }
   });
 
@@ -668,48 +823,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     }
   });
 
-  $('#hire-for').textContent = owner.hireFor;
-  $('#hire-results').innerHTML = owner.results.map((r) => `<button class="result" data-slug="${r.slug}"><b>${esc(r.value)}</b><span>${esc(r.label)}</span></button>`).join('');
-  $('#hire-results').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-slug]');
-    if (b) {
-      toggleHire(false);
-      openProject(b.dataset.slug);
-    }
-  });
-  $('#hire-leader-line').textContent = LEADER.line;
-  $('#hire-impact').innerHTML = impactHtml(LEADER.impact);
-  $('#hire-lenses').innerHTML = LENSES.map((l) => `<div style="--l:${l.color}"><b>${l.icon} ${esc(l.name)}</b><span>${esc(l.ask)}</span></div>`).join('');
-  $('#hire-people').innerHTML = LEADER.people.map((t) => `<li>${esc(t)}</li>`).join('');
-  $('#hire-quote').innerHTML = `“${esc(LEADER.quote.text)}”<cite>${esc(LEADER.quote.who)}</cite>`;
-  hire.querySelector('[data-playbook]').addEventListener('click', () => {
-    toggleHire(false);
-    openPlaybook();
-  });
-  $('#hire-gallery').innerHTML = owner.gallery.map((g) => `<figure><img src="${esc(g.image)}" alt="${esc(g.caption)}" loading="lazy" /><figcaption>${esc(g.caption)}</figcaption></figure>`).join('');
-  $('#hire-numbers').innerHTML = owner.numbers.map((n) => `<div><b>${esc(n.value)}</b><span>${esc(n.label)}</span></div>`).join('');
-  $('#hire-pillars').innerHTML = pillars.map((p) => `<li><span class="rune">${esc(p.rune)}</span><div><b>${esc(p.name)}</b><p>${esc(p.text)}</p></div></li>`).join('');
-  $('#hire-path').innerHTML = owner.path.map((p) => `<li><span>${esc(p.years)}</span><b>${esc(p.org)}</b><p>${esc(p.role)}</p></li>`).join('');
-  $('#hire-awards').innerHTML = awards.map((a) => `<li>🏆 <b>${esc(a.name)}</b> ${esc(a.detail)}</li>`).join('');
-  $('#hire-links').innerHTML =
-    `<a class="btn" href="mailto:${esc(owner.email)}">${esc(owner.email)}</a>` +
-    owner.links.map((l) => `<a class="btn btn--ghost" href="${esc(l.href)}" target="_blank" rel="noopener">${esc(l.label)}</a>`).join('');
-  hire.addEventListener('click', (e) => {
-    if (e.target === hire || e.target.closest('[data-close]')) toggleHire(false);
-  });
-  function toggleHire(force, focusForm = false) {
-    const was = hire.classList.contains('is-open');
-    hire.classList.toggle('is-open', force ?? !was);
-    if (was !== hire.classList.contains('is-open')) sfx(was ? 'close' : 'open');
-    if (focusForm && hire.classList.contains('is-open')) {
-      setTimeout(() => {
-        $('#contact-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        $('#cf-name').focus({ preventScroll: true });
-      }, 250);
-    }
-  }
   // Contact form: posts to a form endpoint if configured, otherwise composes an email.
-  $('#cf-intent').innerHTML = contact.intents.map((i) => `<option>${esc(i)}</option>`).join('');
   $('#contact-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = e.target;
@@ -764,7 +878,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
   const overlays = [
     { isOpen: () => careerEl.classList.contains('is-open'), close: closeCareer },
     { isOpen: () => playbook.classList.contains('is-open'), close: closePlaybook },
-    { isOpen: () => homepop.classList.contains('is-open'), close: closeHome },
+    { isOpen: aboutOpen, close: closeAbout },
   ];
   function closeOverlays() {
     for (const o of overlays) {
@@ -772,10 +886,6 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
         o.close();
         return true;
       }
-    }
-    if (splashOpen()) {
-      closeSplash();
-      return true;
     }
     if (webpop.classList.contains('is-open')) {
       closeWeb();
@@ -785,15 +895,13 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
       caseStudy.close();
       return true;
     }
-    for (const el of [hire]) {
-      if (el.classList.contains('is-open')) {
-        el.classList.remove('is-open');
-        return true;
-      }
+    if (journalEl.classList.contains('is-open')) {
+      toggleJournal(false);
+      return true;
     }
     return false;
   }
-  const modalOpen = () => overlays.some((o) => o.isOpen()) || splashOpen() || caseStudy.isOpen() || hire.classList.contains('is-open') || webpop.classList.contains('is-open');
+  const modalOpen = () => overlays.some((o) => o.isOpen()) || caseStudy.isOpen() || webpop.classList.contains('is-open');
 
   // ----- Tour -----
   $('#tour-prev').addEventListener('click', () => onTourStep(-1));
@@ -807,11 +915,11 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     $('#btn-overview').classList.toggle('is-active', m === 'overview');
     $('#btn-walk').classList.toggle('is-active', m === 'walk');
     $('#btn-tour-hud').classList.toggle('is-active', m === 'tour');
-    $('#btn-tour-hud').querySelector('span').textContent = m === 'tour' ? 'Exit tour' : 'Tour';
+    $('#btn-tour-hud').querySelector('span').textContent = m === 'tour' ? 'End tour' : 'Tour';
     if (m === 'overview') toast('<b>Bird’s-eye view.</b> Drag to orbit, scroll to zoom, click a label to fly in.', 4500);
     if (m === 'walk' && !setMode.welcomed) {
       setMode.welcomed = true;
-      toast('<b>Welcome to the village.</b><br>Walk up to a billboard to open a project, or pick up a brief from the board under the jamun tree (<kbd>J</kbd>) and carry it across the teams.', 7000);
+      toast('<b>Welcome to the village.</b><br>Walk up to a billboard to open a project. Your <b>Journal</b> (<kbd>J</kbd>) holds missions, campaign briefs and the island’s secrets.', 7000);
     }
   }
   // Cards that lean towards the pointer
@@ -836,15 +944,20 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
 
   const api = {
     setGuide, placeLabel, showPlace, hidePlace, toast, toggleHire, toggleMissions, closeOverlays, modalOpen, setMode, setTourProgress,
-    ready, openProject, openWeb, openSplash, stepGallery, prompt, speech, thoughts, collectTrophy, visited, setClock, setTimeMode, showInfo, fade, setIndoor,
+    ready, openProject, openWeb, openSplash, openAbout, openJournal, toggleJournal, stepGallery, prompt, speech, thoughts, collectTrophy, visited, setClock, setTimeMode, showInfo, fade, setIndoor,
     addOverlay: (o) => overlays.push(o),
     openHome,
     openPlaybook,
     openCareer,
-    onHidden: (n, total) => {
-      hidden = [n, total];
+    onHidden: (n, total, spots = []) => {
+      hidden = { n, total, spots };
       renderMissions();
     },
+    attachQuest: (q) => {
+      quest = q;
+      renderMissions();
+    },
+    refreshJournal: () => journalEl.classList.contains('is-open') && renderJournal(),
     onCampaigns: (n, total) => {
       campaigns = [n, total];
       renderMissions();

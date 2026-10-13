@@ -400,6 +400,7 @@ function openMap() {
   setMode(state.mode === 'overview' ? 'walk' : 'overview');
 }
 ui.onCampaigns(quest.shipped(), quest.total);
+const hiddenList = () => hidden.spots.map((sp) => ({ org: sp.career.org, years: sp.career.years, found: found.has(sp.id) }));
 const found = (() => {
   try {
     return new Set(JSON.parse(localStorage.getItem('shire-found') || '[]'));
@@ -407,8 +408,8 @@ const found = (() => {
     return new Set();
   }
 })();
-ui.onHidden(found.size, hidden.spots.length);
-document.getElementById('btn-brief').addEventListener('click', () => quest.openChooser());
+ui.onHidden(found.size, hidden.spots.length, hiddenList());
+ui.attachQuest(quest);
 
 function setMode(mode, { snap = false } = {}) {
   const prev = state.mode;
@@ -1131,7 +1132,7 @@ function updateProximity(t) {
       } catch {}
       sfx('trophy');
       ui.toast(`<b>✨ You found a hidden place: ${sp.career.org}.</b><br>${sp.career.years}. Step inside and press <kbd>E</kbd>. (${found.size}/${hidden.spots.length})`, 6500);
-      ui.onHidden(found.size, hidden.spots.length);
+      ui.onHidden(found.size, hidden.spots.length, hiddenList());
     }
   }
   // trophies
@@ -1229,11 +1230,10 @@ function waveAtNeighbours() {
   ui.toast(n ? `<b>👋 You waved.</b> ${n} ${n === 1 ? 'person waves' : 'people wave'} back.` : '<b>👋</b> Nobody close enough to wave back.', 2200);
 }
 
-// The Home button: the about-me panel, reachable from anywhere
+// About Vibhor: the one about page, reachable from anywhere
 function showHome() {
-  ui.openHome();
+  ui.openAbout();
 }
-document.getElementById('btn-home').addEventListener('click', showHome);
 
 // sitting down somewhere (beside Nikita on the sofa): any move gets you up again
 function sitDown(seat) {

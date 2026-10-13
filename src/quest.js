@@ -85,60 +85,30 @@ export function createQuest({ scene, places, ui, camera, groundAt, travelTo, ope
   stage.id = 'stage';
   stage.setAttribute('role', 'dialog');
   document.body.appendChild(stage);
-  const chooser = document.createElement('div');
-  chooser.id = 'briefs';
-  chooser.className = 'modal';
-  chooser.setAttribute('role', 'dialog');
-  chooser.setAttribute('aria-modal', 'true');
-  document.body.appendChild(chooser);
-
-  function renderChooser() {
-    chooser.innerHTML = `
-      <div class="briefs__card">
-        <button class="close" data-close aria-label="Close">×</button>
-        <p class="eyebrow">Run a campaign</p>
-        <h2>Pick up a brief</h2>
-        <p class="briefs__lead">Every brief here was a real one. Carry it to each team it went through, and see how it was cracked: the insight, the idea, the craft, and what it did for the business.</p>
-        <div class="briefs__grid">
-          ${CAMPAIGNS.map((cp) => {
-            const pr = PROJECTS[cp.slug];
-            const done = shipped.has(cp.id);
-            const route = [...new Set(cp.stops.map((s) => P(s.place).name))];
-            return `<button class="brief${done ? ' is-done' : ''}" data-id="${cp.id}" style="--c:${CAMPAIGN_COLORS[cp.id]}">
-              <span class="brief__client">${esc(pr.client)} · ${esc(pr.year)}</span>
-              <b>${esc(cp.title)}</b>
-              <span class="brief__text">${esc(cp.brief)}</span>
-              <span class="brief__route">${route.map(esc).join(' → ')}</span>
-              <span class="brief__cta">${done ? '✓ Shipped · run it again' : `Take this brief · ${cp.stops.length} stops`}</span>
-            </button>`;
-          }).join('')}
-        </div>
-        <p class="briefs__foot">${shipped.size}/${CAMPAIGNS.length} campaigns shipped${active ? ` · You’re carrying <b>${esc(active.cp.title)}</b>. <button class="linkish" data-abandon>Drop it</button>` : ''}</p>
-      </div>`;
+  // The briefs live in the Journal (ui.js): this module keeps the campaign state and hands the
+  // Journal what it needs to list them.
+  function briefs() {
+    return CAMPAIGNS.map((cp) => {
+      const pr = PROJECTS[cp.slug];
+      return {
+        id: cp.id,
+        title: cp.title,
+        brief: cp.brief,
+        client: pr.client,
+        year: pr.year,
+        color: CAMPAIGN_COLORS[cp.id],
+        stops: cp.stops.length,
+        route: [...new Set(cp.stops.map((s) => P(s.place).name))],
+        done: shipped.has(cp.id),
+        active: active?.cp.id === cp.id,
+        step: active?.cp.id === cp.id ? active.i : 0,
+      };
+    });
   }
-  chooser.addEventListener('click', (e) => {
-    if (e.target === chooser || e.target.closest('[data-close]')) return closeChooser();
-    if (e.target.closest('[data-abandon]')) {
-      cancel();
-      renderChooser();
-      return;
-    }
-    const b = e.target.closest('[data-id]');
-    if (b) {
-      closeChooser();
-      start(b.dataset.id);
-    }
-  });
   function openChooser() {
-    renderChooser();
-    chooser.classList.add('is-open');
-    sfx('open');
+    ui.openJournal?.('campaigns');
   }
-  function closeChooser() {
-    if (!chooser.classList.contains('is-open')) return;
-    chooser.classList.remove('is-open');
-    sfx('close');
-  }
+  function closeChooser() {}
 
   function renderTracker() {
     if (!active) {
@@ -175,6 +145,7 @@ export function createQuest({ scene, places, ui, camera, groundAt, travelTo, ope
     sfx('stamp');
     ui.toast(`<b>📁 Brief taken: ${esc(cp.title)}.</b><br>Follow the light to ${esc(P(cp.stops[0].place).name)}.`, 4500);
     renderTracker();
+    ui.refreshJournal?.();
     readyAt = clock + 1.2;
   }
   function cancel() {
@@ -184,7 +155,8 @@ export function createQuest({ scene, places, ui, camera, groundAt, travelTo, ope
     renderTracker();
     beacon.g.visible = false;
     arrow.classList.remove('is-open');
-    ui.toast('<b>Brief dropped.</b> Pick up another from the board under the jamun tree.', 3000, { quiet: true });
+    ui.refreshJournal?.();
+    ui.toast('<b>Brief dropped.</b> Pick another from your Journal, or the board under the jamun tree.', 3000, { quiet: true });
   }
 
   // ---------- stop cards ----------
@@ -320,7 +292,8 @@ export function createQuest({ scene, places, ui, camera, groundAt, travelTo, ope
     closeChooser,
     start,
     cancel,
-    isOpen: () => chooser.classList.contains('is-open'),
+    isOpen: () => false,
+    briefs,
     activeId: () => active?.cp.id || null,
     shipped: () => shipped.size,
     total: CAMPAIGNS.length,

@@ -47,126 +47,61 @@
     <div id="thoughts"></div>
     <div id="speech"></div>
 
-    <!-- Intro: also the About card, reopened from the name chip and the About button -->
+    <!-- Title screen: one sidebar menu, and the bold line over the live island -->
     <section id="intro">
-      <!-- first screen: a hero over the live island -->
-      <div class="hero">
-        <div class="hero__stack">
-          <section class="hcard hcard--dark">
-            <div class="hcard__brand"><img data-owner-portrait alt="" /><b data-owner-name>Vibhor Mathur</b></div>
-            <div class="pager" aria-hidden="true"><i class="is-on"></i><i></i><i></i></div>
-            <div class="bigstat"><b id="hero-n1"></b><span id="hero-l1"></span></div>
-          </section>
-          <section class="hcard hcard--frost">
-            <span class="hcard__label" id="hero-l2"></span>
-            <div class="ring" aria-hidden="true"><svg viewBox="0 0 120 120"><circle class="ring__dots" cx="60" cy="60" r="52" /><circle class="ring__arc" cx="60" cy="60" r="52" pathLength="100" /></svg><b id="hero-n2"></b></div>
-          </section>
-          <section class="hcard hcard--dark">
-            <span class="hcard__label" id="hero-l3"></span>
-            <i class="hcard__icon" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8"/></svg></i>
-            <b class="hcard__big" id="hero-n3"></b>
-            <div class="ticks" id="hero-ticks" aria-hidden="true"></div>
-          </section>
-        </div>
-        <div class="hero__copy">
-          <p class="hero__eyebrow" data-owner-role></p>
-          <h1 class="hero__title">A portfolio<br />you can walk through.</h1>
-          <div class="hero__ctas">
-            <button id="btn-enter" class="cta"><i><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></i><span>Enter the island</span></button>
-            <button id="btn-tour" class="pill">Guided tour</button>
-            <button id="btn-brief-intro" class="pill">Run a campaign</button>
-            <button id="btn-about-intro" class="pill">About Vibhor</button>
-          </div>
-        </div>
-        <aside class="hero__note">
-          <div class="chip"><img data-owner-portrait alt="" /><span data-owner-short></span></div>
-          <p data-owner-tagline></p>
-          <p class="hero__keys keys-desktop"><kbd>WASD</kbd> walk · <kbd>E</kbd> interact · <kbd>J</kbd> briefs · <kbd>C</kbd> camera · drag to look</p>
-          <p class="hero__keys keys-touch">Left thumb to move · drag to look · tap anything that glows</p>
+      <div class="title">
+        <aside class="title__menu">
+          <div class="title__brand"><img data-owner-portrait alt="" /><span><b data-owner-name>Vibhor Mathur</b><em data-owner-short></em></span></div>
+          <nav class="title__nav" aria-label="Start">
+          <button id="btn-enter" class="tm tm--primary"><i><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg></i><span><b>Enter the island</b><em>Walk it at your own pace</em></span></button>
+          <button id="btn-tour" class="tm"><i><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h7.5a3 3 0 0 0 0-6h-7a3 3 0 0 1 0-6H16"/></svg></i><span><b>Guided tour</b><em>Every place, one after another</em></span></button>
+          <button id="btn-brief-intro" class="tm"><i><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7A1.5 1.5 0 0 1 5 5.5h4l2 2h8A1.5 1.5 0 0 1 20.5 9v9a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 18z"/></svg></i><span><b>Run a campaign</b><em>Carry a real brief across the teams</em></span></button>
+          <button id="btn-about-intro" class="tm"><i><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></i><span><b>About Vibhor</b><em>Work, awards and path</em></span></button>
+          <button id="btn-hire-intro" class="tm"><i><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="7.5" width="17" height="12" rx="2"/><path d="M9 7.5V6a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6v1.5M3.5 12.5h17"/></svg></i><span><b>Work with me</b><em>Roles, projects or a hello</em></span></button>
+          </nav>
+          <dl id="title-stats" class="title__stats"></dl>
+          <p class="title__keys keys-desktop"><kbd>WASD</kbd> walk <kbd>E</kbd> interact <kbd>J</kbd> journal <kbd>C</kbd> camera</p>
+          <p class="title__keys keys-touch">Left thumb to move · drag to look · tap anything that glows</p>
         </aside>
-      </div>
-
-      <!-- the about card, opened from About or the name card -->
-      <div class="sheet sheet--about" role="dialog" aria-label="About Vibhor Mathur">
-        <button id="splash-close" class="close" aria-label="Close">×</button>
-        <aside class="sheet__side">
-          <figure class="sheet__portrait"><img data-owner-portrait alt="Vibhor Mathur" /><figcaption>Jaipur → Bengaluru</figcaption></figure>
-          <p class="eyebrow">A portfolio you can walk through</p>
-          <h1 data-owner-name>Vibhor Mathur</h1>
-          <p class="sheet__role" data-owner-role></p>
-          <div id="intro-numbers" class="stats"></div>
-        </aside>
-        <div class="sheet__main">
-          <p class="sheet__tagline" data-owner-tagline></p>
-          <p class="sheet__body" data-owner-intro></p>
-          <h3 class="sheet__h" id="intro-leader-title">Creative leadership</h3>
-          <p class="sheet__line" id="intro-leader-line"></p>
-          <div id="intro-impact" class="impact"></div>
-          <h3 class="sheet__h">The island</h3>
-          <ul id="intro-legend" class="legend"></ul>
-          <ul id="intro-awards" class="intro__awards"></ul>
+        <div class="title__copy">
+          <p class="title__eyebrow" data-owner-role></p>
+          <h1 class="title__h">A portfolio<br />you can walk through.</h1>
+          <p class="title__tag" data-owner-tagline></p>
         </div>
       </div>
     </section>
 
-    <!-- HUD: a stat column on the left, pill navigation on top, controls on the right, the map below -->
+    <!-- HUD: every control in one rail on the left; the map in the corner -->
     <header id="hud">
-      <div class="stack">
-        <section class="profile hud__brand" role="button" tabindex="0" title="About Vibhor (I)">
-          <img data-owner-portrait alt="" />
-          <span class="profile__who"><b data-owner-name>Vibhor Mathur</b><em>Hello, explorer</em></span>
-          <span class="ring ring--mini" title="Your journey"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="ring__dots" cx="60" cy="60" r="52" /><circle class="ring__arc" id="journey-arc" cx="60" cy="60" r="52" pathLength="100" /></svg><b id="journey-pct">0%</b></span>
-        </section>
-        <aside id="missions" class="is-collapsed">
-          <button id="missions-toggle" class="missions__head" aria-expanded="false">
-            <i class="missions__icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4.5h11l-2.2 3.7L16 12H5"/></svg></i>
-            <span>Missions</span><em id="missions-sum"></em><kbd>M</kbd>
-            <svg class="ic missions__chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-          </button>
-          <div class="missions__body">
-            <div class="missions__stats">
-              <div><b id="stat-places">0</b><span>departments met</span></div>
-              <div><b id="stat-projects">0</b><span>project files opened</span></div>
-            </div>
-            <ul id="mission-list"></ul>
-            <div id="visited-dots" class="pager pager--places"></div>
-          </div>
-        </aside>
-      </div>
-
-      <nav class="topnav" aria-label="Main">
-        <button id="btn-home" class="round" title="About me (I)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span class="sr">Home</span></button>
-        <div class="pills">
-          <button id="btn-walk" class="pill is-active"><span>Explore</span></button>
-          <button id="btn-tour-hud" class="pill" title="Guided tour (T)"><span>Tour</span></button>
-          <button id="btn-brief" class="pill" title="Run a campaign (J)"><span>Briefs</span></button>
-          <button id="btn-about" class="pill" title="About Vibhor"><span>About</span></button>
-        </div>
-        <button id="btn-hire" class="pill pill--dark" title="Hire me (H)"><span>Hire me</span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="1.6"/><circle cx="16" cy="8" r="1.6"/><circle cx="8" cy="16" r="1.6"/><circle cx="16" cy="16" r="1.6"/></svg></button>
+      <nav id="rail" aria-label="Game menu">
+        <button id="btn-about" class="ri ri--me" title="About Vibhor (I)"><img data-owner-portrait alt="" /><span>About</span></button>
+        <i class="rail__sep"></i>
+        <button id="btn-walk" class="ri" title="Walk around"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg><span>Explore</span></button>
+        <button id="btn-tour-hud" class="ri" title="Guided tour (T)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h7.5a3 3 0 0 0 0-6h-7a3 3 0 0 1 0-6H16"/></svg><span>Tour</span></button>
+        <button id="btn-overview" class="ri" title="Map (O)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4.5-5 2v13l5-2 6 2 5-2v-13l-5 2z"/><path d="M9 4.5v13M15 6.5v13"/></svg><span>Map</span></button>
+        <i class="rail__sep"></i>
+        <button id="btn-journal" class="ri" title="Journal: missions, campaigns and secrets (J)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h11.5v17H6a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2z"/><path d="M4 18.5a2 2 0 0 1 2-2h11.5M9 8h5"/></svg><span>Journal</span><b class="ri__badge" id="journal-badge">0%</b></button>
+        <i class="rail__sep"></i>
+        <button id="btn-cam" class="ri" title="Camera (C)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3l1.5-2.5h7L17 8.5h3a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg><span>Classic</span></button>
+        <button id="btn-time" class="ri" title="Time of day (L)"><i id="clock-icon">☀️</i><span id="clock">09:30</span></button>
+        <button id="btn-sound" class="ri" title="Sound"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9.2a4 4 0 0 1 0 5.6"/><path d="M18 6.8a7.5 7.5 0 0 1 0 10.4"/></svg><span>Sound</span></button>
+        <button id="btn-keys" class="ri" title="Controls"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="11" rx="2"/><path d="M6.5 10.5h1M10 10.5h1M13.5 10.5h1M17 10.5h.5M8 14.5h8"/></svg><span>Keys</span></button>
+        <div id="indoor"></div>
+        <i class="rail__sep"></i>
+        <button id="btn-hire" class="ri ri--accent" title="Work with me (H)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="7.5" width="17" height="12" rx="2"/><path d="M9 7.5V6a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6v1.5M3.5 12.5h17"/></svg><span>Hire me</span></button>
       </nav>
 
-      <div class="iconbar">
-        <button id="btn-sound" class="round" title="Sound"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9.2a4 4 0 0 1 0 5.6"/><path d="M18 6.8a7.5 7.5 0 0 1 0 10.4"/></svg><span class="sr">Sound</span></button>
-        <button id="btn-keys" class="round" title="Controls"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="11" rx="2"/><path d="M6.5 10.5h1M10 10.5h1M13.5 10.5h1M17 10.5h.5M8 14.5h8"/></svg><span class="sr">Keys</span></button>
-        <button id="btn-contact" class="round" title="Write to Vibhor"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="m4 7 8 6 8-6"/></svg><span class="sr">Contact</span></button>
-      </div>
-
-      <button id="btn-time" class="timepill" title="Time of day (L)">
-        <i id="clock-icon">☀️</i><b id="clock">09:30</b><small id="clock-label">Morning · Auto</small>
-        <ol id="hours" class="timepill__hours"></ol>
-      </button>
-
-      <div class="capsule" aria-label="View">
-        <button id="btn-overview" class="round round--light" title="Map view (O)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span class="sr">Map</span></button>
-        <button id="btn-cam" class="round" title="Camera (C)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3.5 8.5 4.5-8.5 4.5L3.5 8z"/><path d="m3.5 12 8.5 4.5 8.5-4.5M3.5 16l8.5 4.5 8.5-4.5"/></svg><span>Classic</span></button>
-      </div>
-
-      <section class="mapcard hcard hcard--frost">
-        <div class="mapcard__head"><b id="map-title">Vibhor’s island</b><span id="map-sub">Jamun Tree</span></div>
+      <section id="btn-map" class="mapcard" role="button" tabindex="0" title="Open the map (O)">
+        <div class="mapcard__head"><b id="map-title">Vibhor’s island</b><span id="map-sub">Exploring</span></div>
         <canvas id="minimap" width="200" height="200"></canvas>
-        <button id="btn-map" class="cta cta--small"><i><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></i><span>Explore map</span></button>
       </section>
     </header>
+
+    <!-- Journal: missions, campaigns and secrets in one place -->
+    <aside id="journal" class="flyout" aria-label="Journal"></aside>
+
+    <!-- About: the one page about Vibhor (also where Hire me and Home lead) -->
+    <div id="about" class="modal" role="dialog" aria-modal="true" aria-label="About Vibhor Mathur"><div class="about"></div></div>
 
     <!-- touch: a floating thumb-stick on the left, buttons on the right -->
     <div id="stick-zone" aria-hidden="true"></div>
@@ -204,7 +139,7 @@
 
     <aside id="keys" class="keys-desktop">
       <div><kbd>WASD</kbd> walk <kbd>Shift</kbd> run <kbd>Space</kbd> jump <kbd>E</kbd> interact <kbd>F</kbd> wave</div>
-      <div><kbd>C</kbd> camera <kbd>L</kbd> time <kbd>O</kbd> map <kbd>T</kbd> tour <kbd>I</kbd> about <kbd>H</kbd> hire <kbd>J</kbd> briefs <kbd>0</kbd>–<kbd>9</kbd> travel</div>
+      <div><kbd>C</kbd> camera <kbd>L</kbd> time <kbd>O</kbd> map <kbd>T</kbd> tour <kbd>I</kbd> about <kbd>H</kbd> hire <kbd>J</kbd> journal <kbd>0</kbd>–<kbd>9</kbd> travel</div>
     </aside>
 
     <aside id="panel" aria-live="polite"></aside>
@@ -229,81 +164,6 @@
       </div>
     </div>
 
-    <div id="hire" class="modal" role="dialog" aria-modal="true" aria-labelledby="hire-title">
-      <div class="sheet sheet--hire">
-        <button class="close" data-close aria-label="Close">×</button>
-        <aside class="sheet__side">
-          <figure class="sheet__portrait"><img data-owner-portrait alt="" /><figcaption>Open to roles &amp; projects</figcaption></figure>
-          <p class="eyebrow">Hire me · or just say hi</p>
-          <h2 id="hire-title" data-owner-name>Vibhor Mathur</h2>
-          <p class="sheet__role" data-owner-role></p>
-          <p class="sheet__for"><b>Hire me for</b> <span id="hire-for"></span></p>
-          <div id="hire-links" class="hire__links"></div>
-          <form id="contact-form" class="contact-form">
-            <h3 class="sheet__h">Write to me</h3>
-            <div class="cf-row">
-              <label>Your name<input id="cf-name" name="name" required autocomplete="name" /></label>
-              <label>Email<input name="email" type="email" required autocomplete="email" /></label>
-            </div>
-            <label>I’d like to talk about<select id="cf-intent" name="intent"></select></label>
-            <label>Message<textarea name="message" rows="3" required placeholder="Tell me what you’re building…"></textarea></label>
-            <div class="cf-foot"><button class="btn" type="submit">Send message</button><span id="cf-status"></span></div>
-          </form>
-        </aside>
-        <div class="sheet__main">
-          <p class="sheet__tagline" data-owner-tagline></p>
-          <h3 class="sheet__h">Beyond any one team</h3>
-          <p class="sheet__line" id="hire-leader-line"></p>
-          <div id="hire-impact" class="impact"></div>
-          <h3 class="sheet__h">Numbers the work moved</h3>
-          <div id="hire-results" class="results"></div>
-          <h3 class="sheet__h">How I crack a campaign <button class="linkish" data-playbook>Open the playbook →</button></h3>
-          <div id="hire-lenses" class="lens-row"></div>
-          <h3 class="sheet__h">What I bring</h3>
-          <ul id="hire-pillars" class="pillars"></ul>
-          <h3 class="sheet__h">People</h3>
-          <ul id="hire-people" class="people"></ul>
-          <blockquote id="hire-quote" class="sheet__quote"></blockquote>
-          <div class="hire__cols">
-            <div><h3 class="sheet__h">Path</h3><ul id="hire-path" class="path"></ul></div>
-            <div><h3 class="sheet__h">Recognition</h3><ul id="hire-awards" class="hire__awards"></ul></div>
-          </div>
-          <h3 class="sheet__h">In pictures</h3>
-          <div id="hire-gallery" class="gallery"></div>
-          <div id="hire-numbers" hidden></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Home: the about-me postcard from the Jaipur pink house -->
-    <div id="homepop" class="modal" role="dialog" aria-modal="true" aria-label="Vibhor’s home">
-      <div class="sheet sheet--home">
-        <button class="close" data-close aria-label="Close">×</button>
-        <aside class="sheet__side">
-          <figure class="sheet__portrait"><img data-owner-portrait alt="" /><figcaption>Jaipur Pink House</figcaption></figure>
-          <p class="eyebrow">Home · About me</p>
-          <h2 data-owner-name>Vibhor Mathur</h2>
-          <p class="sheet__role" data-owner-role></p>
-          <div id="home-numbers" class="stats"></div>
-          <div class="sheet__btns">
-            <button class="btn" data-home-visit>🏡 Walk to Home</button>
-            <button class="btn btn--ghost" data-home-ride>🚲 Ride my bicycle</button>
-            <button class="btn btn--ghost" data-home-write>✉️ Write to me</button>
-          </div>
-        </aside>
-        <div class="sheet__main">
-          <p class="sheet__tagline" id="home-headline"></p>
-          <div id="home-intro" class="sheet__body"></div>
-          <h3 class="sheet__h">Path</h3>
-          <ol id="home-path" class="timeline"></ol>
-          <h3 class="sheet__h">How I lead</h3>
-          <div id="home-notes" class="notes"></div>
-          <h3 class="sheet__h">After hours</h3>
-          <p class="sheet__body" id="home-after"></p>
-        </div>
-      </div>
-    </div>
-
     <!-- The campaign playbook -->
     <div id="playbook" class="modal" role="dialog" aria-modal="true" aria-label="The campaign playbook">
       <div class="sheet sheet--wide">
@@ -312,7 +172,6 @@
       </div>
     </div>
 
-    <div id="indoor"></div>
     <div id="fader"></div>
 
     <script type="module" src="/src/main.js"></script>
