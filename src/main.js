@@ -929,7 +929,8 @@ function updateProximity(t) {
   const id = p ? p.id : null;
   if (id !== lastPlaceId) {
     lastPlaceId = id;
-    if (p) ui.showPlace(p);
+    // indoors the room's guide card tells the story, so the place card only opens on request
+    if (p && !state.indoor) ui.showPlace(p);
     else ui.hidePlace();
   }
   // things to interact with: project billboards, the mailbox, the poster wall...
