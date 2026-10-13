@@ -538,3 +538,28 @@ body.splash-open #intro { background: rgba(14, 16, 18, 0.5) !important; backdrop
 @media (prefers-reduced-motion: reduce) {
   .hero__stack .hcard, .hero__copy, .hero__note { animation: none; }
 }
+
+/* ---------- Room guide: the story of the room you're in ---------- */
+#guide { position: fixed; left: 16px; bottom: 16px; z-index: 11; width: 320px; padding: 16px 18px 14px; border-radius: var(--r-xl); background: rgba(30, 34, 38, 0.95); color: var(--text); box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.6); opacity: 0; transform: translateY(16px); pointer-events: none; transition: opacity 0.35s, transform 0.45s cubic-bezier(0.16, 1, 0.3, 1); }
+body.is-indoor #guide:not(:empty) { opacity: 1; transform: none; pointer-events: auto; }
+body.is-indoor #missions { display: none; }
+.guide__top { display: flex; justify-content: space-between; align-items: center; margin: 0 0 10px; font: 600 11.5px var(--sans); color: var(--muted); }
+.guide__top b { color: var(--accent); font-variant-numeric: tabular-nums; }
+.guide__ch { margin: 0 0 2px; font: 600 11px var(--sans); color: var(--accent); }
+#guide h3 { margin: 0 0 6px; font: 600 20px/1.15 var(--display); letter-spacing: -0.02em; }
+.guide__line { margin: 0 0 12px; font-size: 13px; line-height: 1.45; color: rgba(255, 255, 255, 0.82); }
+.guide__dots { list-style: none; margin: 0 0 10px; padding: 0; display: flex; gap: 6px; }
+.guide__dots li { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 700 11px var(--sans); color: var(--muted); border: 1.5px solid rgba(255, 255, 255, 0.25); }
+.guide__dots li.is-seen { background: rgba(61, 211, 109, 0.2); border-color: var(--accent); color: #fff; }
+.guide__dots li.is-now { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.guide__dots li.is-next { border-color: #fff; color: #fff; animation: guide-pulse 1.4s ease-in-out infinite; }
+@keyframes guide-pulse { 50% { box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.15); } }
+.guide__next { margin: 0; padding-top: 10px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+.guide__next b { color: #fff; font-weight: 600; }
+@media (max-width: 760px), (max-height: 540px) and (orientation: landscape) {
+  #guide { width: min(260px, 40vw); padding: 10px 12px; bottom: 10px; left: 10px; }
+  #guide h3 { font-size: 15px; }
+  .guide__line { font-size: 11.5px; margin-bottom: 8px; }
+  .guide__dots li { width: 20px; height: 20px; font-size: 10px; }
+  .guide__next { font-size: 10.5px; padding-top: 6px; }
+}

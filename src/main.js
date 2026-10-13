@@ -734,9 +734,9 @@ function jettyAt(x, z) {
 
 const savedFog = scene.fog;
 const INDOOR = {
-  ai: { bg: '#060b16', hemi: ['#cfe9ff', '#1a2440', 1.0], sun: ['#e6f4ff', 1.6], exp: 1.0, bloom: [0.3, 0.82] },
+  ai: { bg: '#060b16', hemi: ['#cfe9ff', '#24315a', 1.45], sun: ['#e6f4ff', 1.9], exp: 1.08, bloom: [0.28, 0.84] },
   home: { bg: '#f4e9db', hemi: ['#fff1de', '#8a6a4a', 1.35], sun: ['#ffe6c4', 2.2], exp: 1.0, bloom: [0.12, 0.95] },
-  fun: { bg: '#120a1c', hemi: ['#ffd9f0', '#2a1630', 0.85], sun: ['#ffd7a8', 1.3], exp: 1.05, bloom: [0.32, 0.8] },
+  fun: { bg: '#120a1c', hemi: ['#ffd9f0', '#3a2244', 1.3], sun: ['#ffd7a8', 1.7], exp: 1.12, bloom: [0.3, 0.82] },
   awards: { bg: '#121119', hemi: ['#fff4dc', '#2a2620', 1.0], sun: ['#fff1cf', 2.4], exp: 1.0, bloom: [0.22, 0.88] },
 };
 function applyIndoorLight(room) {
@@ -1263,7 +1263,12 @@ function frame() {
   lavWind.uTime.value = t;
   flowerWind.uTime.value = t;
   if (!state.indoor) dayNight.update(dt);
-  else for (const u of state.indoor.updaters) u.update(t, dt);
+  else {
+    for (const u of state.indoor.updaters) u.update(t, dt);
+    // the room's story: which chapter you're at, and which one glows next
+    const r = state.indoor;
+    if (r.story) ui.setGuide(r.story.update(t, state.pos.x - r.origin.x, state.pos.z - r.origin.z), r.id);
+  }
   ui.setClock(dayNight.label(), dayNight.state.hour);
   ocean.uniforms.uTime.value = t;
   const docked = coast.update(t, dayNight.state.night, dt, state.indoor || !player.root.visible ? null : state.pos);

@@ -7,6 +7,7 @@ import { rng } from './world.js';
 import { fillFit, fit, wrap, FONT } from './type.js';
 import { playerPos } from './village.js';
 import { sfx } from './audio.js';
+import { addStory } from './roomstory.js';
 
 // Indoor sets live far from the island; entering one hides the outdoors and relights the scene.
 
@@ -1467,6 +1468,10 @@ function trophyMesh(tier) {
   return g;
 }
 
+// clear glass for the award cases, and the light falling on them
+const CASE_GLASS = new THREE.MeshPhysicalMaterial({ color: '#ffffff', transparent: true, opacity: 0.12, roughness: 0.05, metalness: 0, depthWrite: false });
+const BEAM = new THREE.MeshBasicMaterial({ color: '#ffe6a8', transparent: true, opacity: 0.06, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
+
 function buildHallInterior(origin) {
   const C = HALL.color;
   const marble = canvasTexture(512, 512, (ctx, w) => {
@@ -1569,9 +1574,9 @@ function buildHallInterior(origin) {
     tr.position.y = 1.35;
     tr.userData.dynamic = true;
     ped.add(tr);
-    const glass = mesh(new THREE.BoxGeometry(1.3, 2.1, 1.3), GLASS, 0, 2.4, 0, false);
+    const glass = mesh(new THREE.BoxGeometry(1.3, 2.1, 1.3), CASE_GLASS, 0, 2.4, 0, false);
     ped.add(glass);
-    const card = plate(2.6, 1.5, (ctx, w, h) => {
+    const card = plate(3.1, 1.8, (ctx, w, h) => {
       ctx.fillStyle = '#1b1a24';
       ctx.fillRect(0, 0, w, h);
       ctx.fillStyle = a.tier === 'gold' ? '#f7d774' : '#dfe5ec';
@@ -1588,11 +1593,12 @@ function buildHallInterior(origin) {
       ctx.font = `600 ${h * 0.085}px Inter, sans-serif`;
       fillFit(ctx, a.project ? `for ${PROJECTS[a.project].title}` : 'for the Razorpay Creative & Design Team', 28, Math.min(y + 4, h * 0.92), w - 56);
     });
-    card.position.set(0, 2.1, 1.4);
+    card.position.set(0, 1.95, 1.45);
     card.userData.action = a.project ? { kind: 'project', slug: a.project } : { kind: 'toast', text: `<b>🏆 ${a.show} ${a.year}</b><br>${a.title}: ${a.category}` };
     ped.add(card);
     room.clickables.push(card);
-    const beam = new THREE.Mesh(new THREE.ConeGeometry(1, 6, 20, 1, true), new THREE.MeshBasicMaterial({ color: '#fff3c4', transparent: true, opacity: 0.07, depthWrite: false, side: THREE.DoubleSide }));
+    // a soft pool of light from above, added on top of whatever is behind it rather than greying it
+    const beam = new THREE.Mesh(new THREE.ConeGeometry(1, 6, 20, 1, true), BEAM);
     beam.position.y = 6.5;
     ped.add(beam);
     g.add(ped);
@@ -1665,8 +1671,11 @@ export function buildInteriors(root) {
     fun: buildPlayhouseInterior(new THREE.Vector3(3000, 0, 800)),
     awards: buildHallInterior(new THREE.Vector3(3000, 0, 1200)),
   };
-  for (const room of Object.values(rooms)) {
+  const theme = { ai: [AIHUB.color, true], home: ['#c8503c', false], fun: [FUN.color, true], awards: ['#d9a441', true] };
+  for (const [id, room] of Object.entries(rooms)) {
     settleFurniture(room);
+    // the room's story: numbered stops, lecterns and a path from the door
+    room.story = addStory(room, id, theme[id][0], { dark: theme[id][1] });
     room.group.visible = false;
     root.add(room.group);
     deepMerge(room.group);

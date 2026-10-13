@@ -311,8 +311,32 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     }, 380);
   }
   const indoorEl = $('#indoor');
+  // ----- Room guide: the room's story as chapters, following you round -----
+  const guideEl = document.createElement('aside');
+  guideEl.id = 'guide';
+  guideEl.setAttribute('aria-live', 'polite');
+  document.body.appendChild(guideEl);
+  let guideKey = '';
+  function setGuide(s, roomId) {
+    const key = `${roomId}|${s.current}|${s.next}|${s.seen.length}`;
+    if (key === guideKey) return;
+    const reached = s.seen.length;
+    if (guideKey && reached && guideKey.split('|')[3] !== String(reached)) sfx('tick');
+    guideKey = key;
+    const n = s.chapters.length;
+    const cur = s.current >= 0 ? s.chapters[s.current] : null;
+    const nxt = s.next >= 0 ? s.chapters[s.next] : null;
+    guideEl.innerHTML = `
+      <p class="guide__top"><span>${esc(s.title)}</span><b>${reached}/${n}</b></p>
+      ${cur ? `<p class="guide__ch">Chapter ${s.current + 1}</p><h3>${esc(cur.title)}</h3><p class="guide__line">${esc(cur.line)}</p>` : `<h3>${esc(s.intro)}</h3><p class="guide__line">Follow the numbered markers on the floor, from the door.</p>`}
+      <ol class="guide__dots">${s.chapters.map((c, k) => `<li class="${s.seen.includes(k) ? 'is-seen' : ''} ${k === s.current ? 'is-now' : ''} ${k === s.next ? 'is-next' : ''}" title="${esc(c.title)}">${k + 1}</li>`).join('')}</ol>
+      <p class="guide__next">${nxt ? `Next: <b>${s.next + 1} · ${esc(nxt.title)}</b>, the glowing marker` : 'Story complete. Walk out the door or press <kbd>Esc</kbd>.'}</p>`;
+  }
+
   function setIndoor(place) {
     document.body.classList.toggle('is-indoor', !!place);
+    guideKey = '';
+    guideEl.innerHTML = '';
     if (!place) {
       $('#map-title').textContent = 'Vibhor’s island';
       $('#map-sub').textContent = 'Exploring';
@@ -322,7 +346,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
       indoorEl.innerHTML = `<i></i><span>Inside</span><b>${esc(place.name)}</b><em>Walk out the door or press <kbd>Esc</kbd> to leave</em>`;
       $('#map-title').textContent = place.name;
       $('#map-sub').textContent = 'Inside · floor plan';
-      toast(`<b>Welcome to ${esc(place.name)}.</b> Walk around and press <kbd>E</kbd> near anything that glows.`, 4500);
+      toast(`<b>Welcome to ${esc(place.name)}.</b> Follow the numbered markers on the floor; press <kbd>E</kbd> at any exhibit to open it.`, 4500);
     }
   }
 
@@ -806,7 +830,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
   }
 
   const api = {
-    placeLabel, showPlace, hidePlace, toast, toggleHire, toggleMissions, closeOverlays, modalOpen, setMode, setTourProgress,
+    setGuide, placeLabel, showPlace, hidePlace, toast, toggleHire, toggleMissions, closeOverlays, modalOpen, setMode, setTourProgress,
     ready, openProject, openWeb, openSplash, stepGallery, prompt, speech, thoughts, collectTrophy, visited, setClock, setTimeMode, showInfo, fade, setIndoor,
     addOverlay: (o) => overlays.push(o),
     openHome,
