@@ -17,7 +17,7 @@ import {
 import { buildMonoliths, buildSkyRail, buildFloatingProps, buildStreetLamps, buildCoast, PIERS } from './landmarks.js';
 import { buildInteriors } from './interiors.js';
 import { createDayNight } from './daynight.js';
-import { buildVillage, playerPos } from './village.js';
+import { buildVillage, playerPos, setSolids, Walker } from './village.js';
 import { makePerson, animate, hit } from './characters.js';
 import { createUI } from './ui.js';
 import { createRide } from './ride.js';
@@ -287,6 +287,8 @@ declutter(outdoor, clutter, { merge: false });
 // what stays out on the island is the pair of hill boards seen from across it.
 const gallery = buildGallery(outdoor, { colliders, lamps: lampSpots, clickables: village.clickables, layout: galleryLayout.filter((it) => it.type === 'hill'), solve: new URLSearchParams(location.search).has('solve') });
 declutter(outdoor, clutter);
+// every walking villager now routes round (and is kept out of) the island's solid footprints
+setSolids(colliders);
 
 // ---------- UI ----------
 
@@ -1548,4 +1550,4 @@ await fitted;
 hideLoader();
 ui.ready();
 
-window.__shire = { useFromAfar, act, pathfind: { buildGrid, findPath }, sitDown, elapsed: () => elapsed, keys, nav, mapView, goTo, distToPath, PATHS, fit: () => fitResult, hidden, colliders, gallery, quest, story, ride, audioDebug, state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };
+window.__shire = { Walker, useFromAfar, act, pathfind: { buildGrid, findPath }, sitDown, elapsed: () => elapsed, keys, nav, mapView, goTo, distToPath, PATHS, fit: () => fitResult, hidden, colliders, gallery, quest, story, ride, audioDebug, state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };

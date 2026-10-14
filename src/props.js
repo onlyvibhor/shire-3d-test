@@ -37,11 +37,12 @@ export function makeDome(radius, color, { glass = false } = {}) {
     );
     g.add(frame);
   }
-  const base = mesh(new THREE.CylinderGeometry(radius * 1.04, radius * 1.08, 0.6, 32), BRUSHED, 0, 0.3, 0);
+  // the plinth is sunk so it stands just proud of the paving: nobody's feet disappear into it
+  const base = mesh(new THREE.CylinderGeometry(radius * 1.04, radius * 1.08, 0.6, 32), BRUSHED, 0, -0.18, 0);
   g.add(base);
   const band = new THREE.Mesh(new THREE.TorusGeometry(radius * 1.05, 0.08, 6, 48), glow(color, 2));
   band.rotation.x = Math.PI / 2;
-  band.position.y = 0.65;
+  band.position.y = 0.16;
   g.add(band);
   // entrance
   const door = mesh(new THREE.BoxGeometry(radius * 0.5, radius * 0.6, radius * 0.5), FACETED, 0, radius * 0.3, radius * 0.9);

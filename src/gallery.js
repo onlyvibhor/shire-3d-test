@@ -192,9 +192,11 @@ function hillBoard(color) {
   const lift = 5.5;
   const g = new THREE.Group();
   g.name = 'gal-hill';
+  // the board stands on the higher post's ground; masts and footings run 3 m further down, so on a
+  // slope the lower post still reaches its ground instead of either one sinking or floating
   for (const sx of [-1, 1]) {
-    g.add(mesh(new THREE.CylinderGeometry(0.22, 0.3, lift + H * 0.7, 10), frameMat, sx * 4.2, (lift + H * 0.7) / 2, -0.4));
-    g.add(mesh(new THREE.BoxGeometry(0.8, 0.2, 0.8), DARK, sx * 4.2, 0.1, -0.4));
+    g.add(mesh(new THREE.CylinderGeometry(0.22, 0.3, lift + H * 0.7 + 3, 10), frameMat, sx * 4.2, (lift + H * 0.7 - 3) / 2, -0.4));
+    g.add(mesh(new THREE.BoxGeometry(0.8, 3.2, 0.8), DARK, sx * 4.2, -1.5, -0.4));
   }
   for (const y of [lift * 0.45, lift - 0.2]) g.add(mesh(new THREE.BoxGeometry(8.8, 0.16, 0.16), frameMat, 0, y, -0.4));
   // one-sided: the back faces the woods and the sea, where nobody stands
@@ -407,7 +409,9 @@ export function buildGallery(scene, { colliders, lamps = [], clickables, layout 
     } else {
       b = banner();
     }
-    const y = item.y ?? (posts.length ? Math.min(...posts.map(([px, pz]) => groundAt(px, pz))) - 0.15 : 0);
+    // stand on today's ground: a saved layout's height goes stale whenever the terrain is reshaped
+    const grounds = posts.map(([px, pz]) => groundAt(px, pz));
+    const y = !posts.length ? item.y ?? 0 : type === 'hill' ? Math.max(...grounds) - 0.1 : Math.min(...grounds) - 0.15;
     b.g.userData.unit = true;
     b.g.position.set(x, y, z);
     b.g.rotation.y = type === 'tower' ? 0 : rot;

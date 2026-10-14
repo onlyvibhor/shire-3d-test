@@ -88,7 +88,10 @@ function buildSmoker(scene, ctx) {
   for (let k = 0; k < 5; k++) {
     const t = (k / 5) * Math.PI * 2 + 0.3;
     const tr = new THREE.Group();
-    tr.position.set(Math.sin(t) * 4.2, 0, Math.cos(t) * 4.2);
+    // each tree stands on its own patch of the slope, not at the grove's centre height
+    const twx = x + Math.sin(t + g.rotation.y) * 4.2;
+    const twz = z + Math.cos(t + g.rotation.y) * 4.2;
+    tr.position.set(Math.sin(t) * 4.2, groundAt(twx, twz) - g.position.y - 0.12, Math.cos(t) * 4.2);
     tr.add(mesh(new THREE.CylinderGeometry(0.22, 0.34, 3, 7), solid('#6e5038'), 0, 1.5, 0));
     tr.add(mesh(new THREE.IcosahedronGeometry(2, 1), k % 2 ? leaf : leaf2, 0, 4, 0));
     g.add(tr);

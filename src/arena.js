@@ -577,10 +577,12 @@ export function furnishArena(g, h, C, { collider, gateZ = 16 }) {
     b.position.set(x, 0, z);
     b.rotation.y = faceTo(x, z, 0, 0);
     g.add(b);
-    for (let k = -(w / 2) + 0.6; k <= w / 2 - 0.5; k += 1.2) {
-      const rx = x + Math.cos(b.rotation.y) * k;
-      const rz = z - Math.sin(b.rotation.y) * k;
-      collider(g, Math.min(0.75, d / 2 + 0.1), rx, rz);
+    // the whole bed is solid: a row of circles as wide as the bed is deep
+    const cr = d / 2 + 0.05;
+    const n = Math.max(1, Math.ceil((w - cr) / (cr * 1.2)));
+    for (let k = 0; k <= n; k++) {
+      const along = -w / 2 + cr * 0.8 + ((w - cr * 1.6) * k) / n;
+      collider(g, cr, x + Math.cos(b.rotation.y) * along, z - Math.sin(b.rotation.y) * along);
     }
   }
   // flanking beds outside the gate, framing the approach

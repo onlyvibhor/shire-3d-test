@@ -689,16 +689,28 @@ function buildFort(scene, ctx) {
   // round bastions with chhatris along the wall
   for (let i = 0; i < pts.length; i += 7) {
     const p = pts[i];
+    // on the ridge the ground falls away: the bastion's foot goes just under the lowest ground round
+    // it, and it stands its full height above the highest, so it rises out of the hill on every side
+    let gmin = Infinity;
+    let gmax = -Infinity;
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2;
+      const g = groundAt(p.x + Math.cos(a) * 3.1, p.z + Math.sin(a) * 3.1);
+      gmin = Math.min(gmin, g);
+      gmax = Math.max(gmax, g);
+    }
+    const foot = gmin - 0.4;
+    const BH = gmax + H + 1.9 - foot;
     const b = new THREE.Group();
-    b.position.set(p.x, p.y - 2.5, p.z);
-    b.add(mesh(new THREE.CylinderGeometry(2.6, 3.1, H + 4.4, 18), nicheMat(4, 1, '#e3b56a', '#cf9a4c'), 0, (H + 4.4) / 2, 0));
+    b.position.set(p.x, foot, p.z);
+    b.add(mesh(new THREE.CylinderGeometry(2.6, 3.1, BH, 18), nicheMat(4, 1, '#e3b56a', '#cf9a4c'), 0, BH / 2, 0));
     for (let k = 0; k < 12; k++) {
       const a = (k / 12) * Math.PI * 2;
-      b.add(mesh(new THREE.BoxGeometry(0.6, 0.7, 0.5), capMat, Math.cos(a) * 2.45, H + 4.75, Math.sin(a) * 2.45));
+      b.add(mesh(new THREE.BoxGeometry(0.6, 0.7, 0.5), capMat, Math.cos(a) * 2.45, BH + 0.35, Math.sin(a) * 2.45));
     }
     if ((i / 7) % 2 === 0) {
       const c = makeChhatri(1.5, '#f1dcae');
-      c.position.y = H + 4.4;
+      c.position.y = BH;
       b.add(c);
     }
     scene.add(b);
@@ -730,7 +742,11 @@ function buildFort(scene, ctx) {
   crown.position.set(0, y, -2.4);
   palace.add(crown);
   const gate = makePol({ w: 7, h: 6.5, a: 1.8, spring: 2.6, depth: 1.2, color: '#efc56c' });
-  gate.position.set(0, 1.5, 5.9);
+  // the gate stands on the ground in front of the palace, not on the palace's (lower) foundation
+  const gr = palace.rotation.y;
+  const gwx = px + Math.sin(gr) * 5.9;
+  const gwz = pz + Math.cos(gr) * 5.9;
+  gate.position.set(0, Math.max(1.5, groundAt(gwx, gwz) - palace.position.y - 0.1), 5.9);
   palace.add(gate);
   scene.add(palace);
   deepMerge(palace);
@@ -905,7 +921,7 @@ function buildBazaar(scene, ctx) {
     const z = az + uz * t + nz * 6.2;
     const shop = makeShopfront(r, w);
     const ys = [groundAt(x, z), groundAt(x - nx * 4, z - nz * 4), groundAt(x + ux * 2, z + uz * 2), groundAt(x - ux * 2, z - uz * 2)];
-    shop.position.set(x, Math.min(...ys) - 0.05, z);
+    shop.position.set(x, ys.reduce((a, b) => a + b, 0) / ys.length - 0.05, z); // the plinth below covers the low side
     shop.rotation.y = facing;
     // a plinth so no shop floats on the slope
     shop.add(mesh(new THREE.BoxGeometry(w, 3, 4.6), solid('#b8684c'), 0, -1.5 + 0.06, -1.9));

@@ -191,8 +191,9 @@ export function createRide({ scene, player, state, colliders, npcs, groundAt, wa
     R.steer = THREE.MathUtils.lerp(R.steer, want * maxSteer, Math.min(1, dt * 6));
     const yawRate = (R.v * Math.tan(R.steer)) / WHEELBASE;
     R.heading += yawRate * dt;
-    const leanTarget = THREE.MathUtils.clamp(-Math.atan((R.v * yawRate) / G), -0.62, 0.62);
-    R.leanAngle = THREE.MathUtils.lerp(R.leanAngle, leanTarget + Math.sin(t * 1.7) * 0.01 * Math.min(1, R.v), Math.min(1, dt * 5));
+    // a sturdy ride: the bike leans into turns but only so far, and doesn't wobble
+    const leanTarget = THREE.MathUtils.clamp(-Math.atan((R.v * yawRate) / G) * 0.7, -0.4, 0.4);
+    R.leanAngle = THREE.MathUtils.lerp(R.leanAngle, leanTarget, Math.min(1, dt * 6));
     R.pitch = THREE.MathUtils.lerp(R.pitch, -slope, Math.min(1, dt * 8));
 
     // hop
@@ -207,7 +208,8 @@ export function createRide({ scene, player, state, colliders, npcs, groundAt, wa
     let nx = pos.x + Math.sin(R.heading) * step;
     let nz = pos.z + Math.cos(R.heading) * step;
     if (water(nx, nz)) {
-      if (Math.abs(R.v) > 6) return crash(t, 'Splash!');
+      // the shore stops you; only a flat-out plunge goes in
+      if (Math.abs(R.v) > 13) return crash(t, 'Splash!');
       R.v = 0;
       nx = pos.x;
       nz = pos.z;
@@ -216,10 +218,10 @@ export function createRide({ scene, player, state, colliders, npcs, groundAt, wa
       if (c.box) {
         const b = c.box;
         if (nx > b.minX - 0.4 && nx < b.maxX + 0.4 && nz > b.minZ - 0.4 && nz < b.maxZ + 0.4) {
-          if (Math.abs(R.v) > 5.5) return crash(t, 'Crash!');
+          if (Math.abs(R.v) > 12) return crash(t, 'Crash!');
           nx = pos.x;
           nz = pos.z;
-          R.v *= -0.2;
+          R.v *= -0.15;
         }
         continue;
       }
@@ -228,21 +230,22 @@ export function createRide({ scene, player, state, colliders, npcs, groundAt, wa
       const d = Math.hypot(dx, dz);
       const min = c.r + 0.42;
       if (d < min && d > 1e-4) {
-        // how hard are we riding into it? head-on and fast throws you off; a glancing touch just slides you along
+        // how hard are we riding into it? only a flat-out head-on hit throws you off; anything less
+        // stops or slows you and slides you along
         const nxu = dx / d;
         const nzu = dz / d;
         const into = -(Math.sin(R.heading) * nxu + Math.cos(R.heading) * nzu) * R.v;
-        if (into > 5.5) return crash(t, 'Crash!');
+        if (into > 12) return crash(t, 'Crash!');
         nx = c.x + nxu * min;
         nz = c.z + nzu * min;
         if (into > 0) R.v *= into > 2.5 ? 0.45 : 0.85;
       }
     }
-    // people: a light brush knocks them over; at speed you go over too
+    // people: you brake hard rather than go over the handlebars
     for (const n of npcs) {
       if (!n.p.root.visible) continue;
       n.p.root.getWorldPosition(tmp);
-      if (Math.hypot(tmp.x - nx, tmp.z - nz) < 0.7 && Math.abs(tmp.y - state.pos.y) < 1.5 && Math.abs(R.v) > 6.5) return crash(t, 'Whoa!');
+      if (Math.hypot(tmp.x - nx, tmp.z - nz) < 0.7 && Math.abs(tmp.y - state.pos.y) < 1.5 && Math.abs(R.v) > 2) R.v *= 0.5;
     }
     pos.x = nx;
     pos.z = nz;
@@ -252,7 +255,8 @@ export function createRide({ scene, player, state, colliders, npcs, groundAt, wa
       R.vy -= 18 * dt;
       R.air += R.vy * dt;
       if (R.air <= 0) {
-        if (R.vy < -9 || Math.abs(R.leanAngle) > 0.5) {
+        // only a big drop throws you; the wheels soak up hops and kerbs
+        if (R.vy < -15) {
           R.air = 0;
           R.vy = 0;
           return crash(t, 'Bad landing!');

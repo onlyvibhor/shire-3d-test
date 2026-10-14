@@ -154,15 +154,38 @@ export const PADS = [
 HAMLETS.forEach((h) => (h.y = rawHeight(h.x, h.z)));
 LAB.y = rawHeight(LAB.x, LAB.z);
 for (const z of ZONES) z.y = rawHeight(z.x, z.z);
+// a corner's forecourt is part of the place on it: one level for both, so its paving lies on the ground
+for (const z of [AIHUB, HALL]) z.corner.y = z.y;
 JANTAR.y = rawHeight(JANTAR.x, JANTAR.z);
 
-function baseHeight(x, z) {
+// the terrain before any place levels it: the hill, the plaza round the tree and the café pads
+function preLevel(x, z) {
   let h = rawHeight(x, z);
   h = THREE.MathUtils.lerp(CENTER_LEVEL, h, smooth(9, 17, Math.hypot(x, z)));
   for (const p of PADS) h = THREE.MathUtils.lerp(p.y, h, smooth(p.r, p.r + 5, Math.hypot(x - p.x, z - p.z)));
+  return h;
+}
+// The bazaar street is level from side to side (it still follows the hill along its length), so the
+// shopfronts on its edge stand on flat ground instead of half-buried in a cross-slope. The places
+// at either end level their own ground on top of it.
+function bazaarLevel(x, z, h) {
+  const { ax, az, bx, bz } = BAZAAR;
+  const dx = bx - ax;
+  const dz = bz - az;
+  const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
+  const cx = ax + dx * t;
+  const cz = az + dz * t;
+  const d = Math.hypot(x - cx, z - cz);
+  if (d > 17) return h;
+  return THREE.MathUtils.lerp(preLevel(cx, cz), h, smooth(11.5, 17, d));
+}
+
+function baseHeight(x, z) {
+  let h = bazaarLevel(x, z, preLevel(x, z));
   for (const hm of HAMLETS) h = THREE.MathUtils.lerp(hm.y, h, smooth(16, 28, Math.hypot(x - hm.x, z - hm.z)));
   h = THREE.MathUtils.lerp(LAB.y, h, smooth(9, 14, Math.hypot(x - LAB.x, z - LAB.z)));
-  for (const zn of ZONES) h = THREE.MathUtils.lerp(zn.y, h, smooth(14, 22, Math.hypot(x - zn.x, z - zn.z)));
+  // the corner places have their beds, benches and billboards round them: a wider level setting
+  for (const zn of ZONES) h = zn.corner ? THREE.MathUtils.lerp(zn.y, h, smooth(22, 30, Math.hypot(x - zn.x, z - zn.z))) : THREE.MathUtils.lerp(zn.y, h, smooth(14, 22, Math.hypot(x - zn.x, z - zn.z)));
   h = THREE.MathUtils.lerp(JANTAR.y, h, smooth(JANTAR.r + 1, JANTAR.r + 8, Math.hypot(x - JANTAR.x, z - JANTAR.z)));
   return h;
 }
@@ -438,7 +461,7 @@ export function buildTerrain(scene) {
   const byKind = { spoke: [], ring: [], lane: [], plaza: [], edge: [] };
   const ribbon = (ax, az, bx, bz, half, lift) => {
     const len = Math.hypot(bx - ax, bz - az);
-    const steps = Math.ceil(len / 1.25);
+    const steps = Math.ceil(len / 0.6); // dense enough to follow the ground between terrain vertices
     const nx = -(bz - az) / len;
     const nz = (bx - ax) / len;
     const pos = [];
@@ -471,15 +494,19 @@ export function buildTerrain(scene) {
     byKind[kind].push(ribbon(ax, az, bx, bz, half, SURFACE));
     byKind.edge.push(ribbon(ax, az, bx, bz, half + 0.38, SURFACE - 0.012));
   }
-  const plaza = (x, z, rad, y) => {
-    const g = new THREE.CircleGeometry(rad, 56);
+  // plazas are laid on the ground like the roads: wherever two levelled areas meet, the paving
+  // still lies exactly where feet stand
+  const drape = (g, x, z, lift) => {
     g.rotateX(-Math.PI / 2);
-    g.translate(x, y + SURFACE + 0.004, z);
-    byKind.plaza.push(g);
-    const e = new THREE.RingGeometry(rad - 0.05, rad + 0.45, 56);
-    e.rotateX(-Math.PI / 2);
-    e.translate(x, y + SURFACE + 0.002, z);
-    byKind.edge.push(e);
+    g.translate(x, 0, z);
+    const p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) p.setY(i, groundAt(p.getX(i), p.getZ(i)) + lift);
+    g.computeVertexNormals();
+    return g;
+  };
+  const plaza = (x, z, rad) => {
+    byKind.plaza.push(drape(new THREE.RingGeometry(0.001, rad, 56, Math.ceil(rad / 1.25)), x, z, SURFACE + 0.004));
+    byKind.edge.push(drape(new THREE.RingGeometry(rad - 0.05, rad + 0.45, 56, 1), x, z, SURFACE + 0.002));
   };
   for (const h of HAMLETS) plaza(h.x, h.z, 9.4, h.y);
   plaza(0, 0, 9.2, heightAt(0, 0));

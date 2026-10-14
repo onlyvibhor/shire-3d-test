@@ -101,8 +101,70 @@ export function makeHobbitHole(doorColor, scale = 1, r = Math.random) {
 
 // ---------- Walkers ----------
 
+// The world's solid footprints (circles), set once the island is built: walkers route around them
+// and are kept out of them, so nobody walks through a building, a tree or a statue.
+const SOLID = { list: [], grid: new Map(), cell: 6 };
+const solidKey = (i, j) => i * 4096 + j;
+function solidNear(x, z) {
+  const i = Math.floor(x / SOLID.cell);
+  const j = Math.floor(z / SOLID.cell);
+  return SOLID.grid.get(solidKey(i, j)) || [];
+}
+const BODY = 0.38; // a person's radius
+// route a straight walk from a to b round any solid in the way, inserting waypoints at its side
+function detour(a, b, depth = 0) {
+  const dx = b[0] - a[0];
+  const dz = b[1] - a[1];
+  const L2 = dx * dx + dz * dz;
+  if (L2 < 1e-6 || depth > 7) return [];
+  let hit = null;
+  let hitT = Infinity;
+  for (const c of SOLID.list) {
+    const R = c.r + BODY;
+    // walks that start or end inside something were placed there on purpose (a desk, a stall)
+    if (Math.hypot(a[0] - c.x, a[1] - c.z) < R || Math.hypot(b[0] - c.x, b[1] - c.z) < R) continue;
+    const t = Math.max(0, Math.min(1, ((c.x - a[0]) * dx + (c.z - a[1]) * dz) / L2));
+    const px = a[0] + dx * t;
+    const pz = a[1] + dz * t;
+    if (Math.hypot(px - c.x, pz - c.z) < R && t < hitT) {
+      hit = { c, px, pz };
+      hitT = t;
+    }
+  }
+  if (!hit) return [];
+  const { c } = hit;
+  // go round on the side the walk was already passing
+  let nx = hit.px - c.x;
+  let nz = hit.pz - c.z;
+  let n = Math.hypot(nx, nz);
+  if (n < 1e-3) {
+    nx = -dz;
+    nz = dx;
+    n = Math.hypot(nx, nz);
+  }
+  const R = (c.r + BODY) * 1.18 + 0.15;
+  const w = [c.x + (nx / n) * R, c.z + (nz / n) * R];
+  return [...detour(a, w, depth + 1), w, ...detour(w, b, depth + 1)];
+}
+export function setSolids(colliders) {
+  SOLID.list = colliders.filter((c) => !c.box && c.r > 0.15);
+  SOLID.grid.clear();
+  for (const c of SOLID.list) {
+    const R = c.r + BODY;
+    for (let i = Math.floor((c.x - R) / SOLID.cell); i <= Math.floor((c.x + R) / SOLID.cell); i++)
+      for (let j = Math.floor((c.z - R) / SOLID.cell); j <= Math.floor((c.z + R) / SOLID.cell); j++) {
+        const k = solidKey(i, j);
+        if (!SOLID.grid.has(k)) SOLID.grid.set(k, []);
+        SOLID.grid.get(k).push(c);
+      }
+  }
+  for (const w of Walker.all) w.reroute();
+}
+
 export class Walker {
+  static all = [];
   constructor(parent, person, points, opts = {}) {
+    Walker.all.push(this);
     this.p = person;
     this.points = points;
     this.speed = opts.speed ?? 1.4;
@@ -146,7 +208,7 @@ export class Walker {
     if (d <= step) {
       root.position.x = tx;
       root.position.z = tz;
-      this.wait = this.pause;
+      this.wait = this.through?.has(this.idx) ? 0 : this.pause;
       if (this.loop) this.idx = (this.idx + 1) % this.points.length;
       else {
         if (this.idx + this.dir >= this.points.length || this.idx + this.dir < 0) this.dir *= -1;
@@ -159,8 +221,59 @@ export class Walker {
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       root.rotation.y += diff * Math.min(1, dt * 8);
     }
+    this.keepOut(root);
     if (this.heightFn) root.position.y = this.heightFn(root.position.x, root.position.z);
     animate(this.p, this.action, t, this.speed);
+  }
+  // the route in world space, repaired round solids, back into the walker's own frame
+  reroute() {
+    const parent = this.p.root.parent;
+    if (!parent || this.rerouted) return;
+    this.rerouted = true;
+    parent.updateMatrixWorld(true);
+    const m = parent.matrixWorld;
+    const inv = new THREE.Matrix4().copy(m).invert();
+    const v = new THREE.Vector3();
+    const world = this.points.map(([x, z]) => {
+      v.set(x, 0, z).applyMatrix4(m);
+      return [v.x, v.z];
+    });
+    // solids the route was deliberately placed in (a stall, a counter) don't push this walker out
+    this.inside = new Set(SOLID.list.filter((c) => world.some(([x, z]) => Math.hypot(x - c.x, z - c.z) < c.r + BODY)));
+    const fixed = [];
+    // a looping route also walks from its last point back to the first
+    const n = world.length;
+    for (let k = 0; k < n; k++) {
+      fixed.push({ p: world[k], orig: k });
+      if (k < n - 1 || this.loop) for (const w of detour(world[k], world[(k + 1) % n])) fixed.push({ p: w, orig: -1 });
+    }
+    if (fixed.length === n) return;
+    const local = fixed.map(({ p }) => {
+      v.set(p[0], 0, p[1]).applyMatrix4(inv);
+      return [v.x, v.z];
+    });
+    // keep the walker heading for the same original point it was going to
+    const target = fixed.findIndex((f) => f.orig === this.idx);
+    this.points = local;
+    this.idx = Math.max(0, target);
+    // only detour points are pass-throughs: no pause there
+    this.through = new Set(fixed.map((f, k) => (f.orig < 0 ? k : -1)).filter((k) => k >= 0));
+  }
+  // never inside a solid: if a step would end inside one, slide out to its edge
+  keepOut(root) {
+    if (!SOLID.list.length || root.parent.rotation.y !== 0 || root.parent.position.lengthSq() !== 0) return;
+    const p = root.position;
+    for (const c of solidNear(p.x, p.z)) {
+      const dx = p.x - c.x;
+      const dz = p.z - c.z;
+      const d = Math.hypot(dx, dz);
+      const R = c.r + BODY;
+      // something they were deliberately placed inside (a stall, a desk) doesn't count
+      if (d < R && d > 1e-4 && !this.inside?.has(c)) {
+        p.x = c.x + (dx / d) * R;
+        p.z = c.z + (dz / d) * R;
+      }
+    }
   }
 }
 
@@ -840,10 +953,10 @@ function buildLab(scene, ctx) {
   const LITE = new URLSearchParams(location.search).has('lite');
   const deck = solid('#3a3f4a', { roughness: 0.7 });
   // a dark timber deck, with a thin glowing edge for the evening
-  g.add(mesh(new THREE.CylinderGeometry(7.6, 7.7, 0.14, 48), deck, 0, 0.07, 0.6, false));
+  g.add(mesh(new THREE.CylinderGeometry(7.6, 7.7, 0.14, 48), deck, 0, -0.055, 0.6, false)); // flush: feet stand on it, not in it
   const rim = new THREE.Mesh(new THREE.TorusGeometry(7.62, 0.04, 6, 96), glow(LAB.color, 1.4));
   rim.rotation.x = Math.PI / 2;
-  rim.position.set(0, 0.15, 0.6);
+  rim.position.set(0, 0.03, 0.6);
   g.add(rim);
   // what's on show, and how each one is shown
   const VIDEO = { eyes: 'assets/vid/lab/eyes-01.mp4', birds: 'assets/vid/lab/birds-01.mp4', power: 'assets/vid/power.mp4', houseparty: 'assets/vid/hero/houseparty.mp4' };
@@ -1578,7 +1691,7 @@ function buildZoneDome(scene, ctx, place, { radius = 10, glass = false, extras }
   const dome = makeDome(radius, place.color, { glass });
   dome.position.z = -2;
   g.add(dome);
-  collider(g, radius + 0.2, 0, -2);
+  collider(g, radius * 1.08 + 0.1, 0, -2);
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(7, 1.75), new THREE.MeshBasicMaterial({ map: signPlateTexture(place.name, place.place, place.color), toneMapped: false }));
   sign.name = 'dome-sign';
   // glowing archway and a path of lights to the door
@@ -1704,7 +1817,7 @@ function buildHallDome(scene, ctx) {
       ctx.updaters.push({ update: (t) => (cup.rotation.y = t * 0.4) });
       const carpet = new THREE.Mesh(new THREE.PlaneGeometry(3, 9), solid('#a3182f', { roughness: 1 }));
       carpet.rotation.x = -Math.PI / 2;
-      carpet.position.set(0, 0.12, doorZ + 4.5);
+      carpet.position.set(0, 0.015, doorZ + 4.5); // laid flat on the paving
       g.add(carpet);
     },
   });
@@ -1754,8 +1867,23 @@ function dressCorner(scene, ctx, place, { ads, palette, sculpture, people }) {
   for (const sd of [-1, 1]) {
     for (const [lx, lz, w, d, rot, tree] of beds) {
       const b = makeBed(w, d, palette, Math.floor(r() * 1000), { tree });
+      // on the slope behind the dome: the bed's top follows the highest corner, and a stone skirt
+      // runs down to the ground on the low side, so it neither sinks nor floats
+      b.add(mesh(new THREE.BoxGeometry(w, 1.2, d), solid(TOKENS.stone.lime, { roughness: 0.75 }), 0, -0.6, 0));
       const [x, z] = put(b, sd * lx, lz, sd * rot);
-      ctx.colliderList.push({ x, z, r: Math.min(w, d) / 2 + 0.2 });
+      const c = Math.cos(b.rotation.y);
+      const s = Math.sin(b.rotation.y);
+      let top = -Infinity;
+      for (const [u, v] of [[-w / 2, -d / 2], [w / 2, -d / 2], [-w / 2, d / 2], [w / 2, d / 2]]) top = Math.max(top, groundAt(x + u * c + v * s, z - u * s + v * c));
+      b.position.y = top;
+      // solid along its whole length, not just round its middle
+      const cr = Math.min(w, d) / 2 + 0.1;
+      const L = Math.max(w, d);
+      const n = Math.max(1, Math.ceil((L - cr) / (cr * 1.2)));
+      for (let k = 0; k <= n; k++) {
+        const along = -L / 2 + cr * 0.8 + ((L - cr * 1.6) * k) / n;
+        ctx.colliderList.push(w >= d ? { x: x + along * c, z: z - along * s, r: cr } : { x: x + along * s, z: z + along * c, r: cr });
+      }
     }
     // a bench under each side's tree, facing out over the meadow
     const bench = makeBench();
