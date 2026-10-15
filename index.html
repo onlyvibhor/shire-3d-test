@@ -67,6 +67,13 @@
           <p class="title__eyebrow" data-owner-role></p>
           <h1 class="title__h">A portfolio<br />you can walk through.</h1>
           <p class="title__tag" data-owner-tagline></p>
+          <!-- phones held upright: two ways in, and nothing else in the way -->
+          <div class="title__m">
+            <p class="title__m-lead">Explore an island built around the work, ideas, teams, and stories behind my creative career.</p>
+            <button class="mcta mcta--primary" data-explore-island>Explore the 3D island <span aria-hidden="true">→</span></button>
+            <button class="mcta" data-browse-work>Browse my work</button>
+            <nav class="title__m-links" aria-label="More"><button data-about-full>About Vibhor</button><button data-hire-full>Work with me</button></nav>
+          </div>
         </div>
       </div>
     </section>
@@ -87,7 +94,8 @@
         <button id="btn-sound" class="ri" title="Sound"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9.2a4 4 0 0 1 0 5.6"/><path d="M18 6.8a7.5 7.5 0 0 1 0 10.4"/></svg><span>Sound</span></button>
         <button id="btn-keys" class="ri" title="Controls"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="11" rx="2"/><path d="M6.5 10.5h1M10 10.5h1M13.5 10.5h1M17 10.5h.5M8 14.5h8"/></svg><span>Keys</span></button>
         <div id="indoor"></div>
-        <i class="rail__sep"></i>
+        <button id="btn-more" class="ri ri--more" title="More" aria-haspopup="true"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/></svg><span>More</span></button>
+        <i class="rail__sep rail__sep--hire"></i>
         <button id="btn-hire" class="ri ri--accent" title="Work with me (H)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="7.5" width="17" height="12" rx="2"/><path d="M9 7.5V6a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6v1.5M3.5 12.5h17"/></svg><span>Hire me</span></button>
       </nav>
 
@@ -96,6 +104,9 @@
         <canvas id="minimap" width="200" height="200"></canvas>
       </section>
     </header>
+
+    <!-- phones: the utilities the rail folds away -->
+    <aside id="more" class="flyout" aria-label="More"></aside>
 
     <!-- Journal: missions, campaigns and secrets in one place -->
     <aside id="journal" class="flyout" aria-label="Journal"></aside>
@@ -113,16 +124,8 @@
       <button id="tb-off" class="tb tb--ride" aria-label="Get off the bike">Off</button>
     </div>
 
-    <!-- phones held upright: ask for landscape -->
-    <section id="rotate" role="dialog" aria-label="Turn your phone">
-      <div class="rotate__phone"><i></i></div>
-      <h2>Turn your phone sideways</h2>
-      <p>The island is built for landscape. Rotate your phone to walk around.</p>
-      <div class="rotate__actions">
-        <button class="btn" data-full>Go full screen</button>
-        <button class="btn btn--ghost" data-anyway>Continue anyway</button>
-      </div>
-    </section>
+    <!-- phones held upright, after choosing to explore: why landscape is worth it (built in mobile.js) -->
+    <section id="rotate" role="dialog" aria-label="Turn your phone"></section>
 
     <div id="ridebar" aria-live="off"><b><span id="ride-speed">0</span><small>km/h</small></b><span class="ridebar__keys"><kbd>W</kbd> pedal <kbd>S</kbd> brake <kbd>A</kbd><kbd>D</kbd> steer <kbd>Shift</kbd> sprint <kbd>Space</kbd> hop <kbd>B</kbd> bell <kbd>X</kbd> get off</span></div>
     <aside id="pass" aria-live="polite"></aside>
@@ -148,6 +151,7 @@
 
     <div id="tourbar">
       <button id="tour-prev" class="btn btn--hud" aria-label="Previous stop">←</button>
+      <span id="tour-label" class="tourbar__label"></span>
       <div class="tourbar__track"><i id="tour-progress"></i></div>
       <button id="tour-next" class="btn btn--hud" aria-label="Next stop">→</button>
       <button id="tour-exit" class="btn btn--hud">Explore from here</button>

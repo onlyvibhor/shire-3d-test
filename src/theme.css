@@ -350,7 +350,6 @@ body.splash-open #intro { background: rgba(14, 16, 18, 0.5) !important; backdrop
 .tb--big { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
 
 @media (max-width: 760px), (max-height: 540px) and (orientation: landscape) {
-  #panel { top: auto !important; bottom: 0; left: 0; right: 0; width: 100%; max-height: 46vh; border-radius: 24px 24px 0 0; transform: translateY(105%); }
   #pass { width: min(380px, calc(100vw - 24px)); bottom: 12px; grid-template-columns: 1fr 72px; }
   .pass__lead { display: none; }
   #prompt { bottom: 12px; }

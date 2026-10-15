@@ -18,6 +18,12 @@ export function stickKeys(keys) {
   return k;
 }
 
+// let go of the stick (an overlay opened over it mid-drag)
+let releaseStick = () => {};
+export function resetStick() {
+  releaseStick();
+}
+
 export function goLandscape() {
   const el = document.documentElement;
   const req = el.requestFullscreen || el.webkitRequestFullscreen;
@@ -34,12 +40,6 @@ export function goLandscape() {
 }
 
 export function initTouch({ onJump, onBell, onGetOff, onUse, isRiding }) {
-  // landscape card for phones held upright
-  const rotate = document.getElementById('rotate');
-  const canFull = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
-  rotate.querySelector('[data-full]').hidden = !canFull;
-  rotate.querySelector('[data-full]').addEventListener('click', goLandscape);
-  rotate.querySelector('[data-anyway]').addEventListener('click', () => document.body.classList.add('portrait-ok'));
   if (!isTouch) return;
   document.body.classList.add('is-touch');
 
@@ -81,6 +81,13 @@ export function initTouch({ onJump, onBell, onGetOff, onUse, isRiding }) {
   });
   const end = (e) => {
     if (e.pointerId !== id) return;
+    id = null;
+    stick.x = stick.y = 0;
+    stick.active = false;
+    knob.style.transform = '';
+    base.classList.remove('is-on');
+  };
+  releaseStick = () => {
     id = null;
     stick.x = stick.y = 0;
     stick.active = false;

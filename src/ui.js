@@ -2,6 +2,8 @@ import { createCaseStudy } from './casestudy.js';
 import { sfx, audioSettings, setLevel, toggleMute, onAudioChange, startAudio } from './audio.js';
 import { LEADER, LENSES, PLAYS, METHOD, CAREERS, PROJECTS as ALL_PROJECTS } from './data.js';
 import about from './content/about.json';
+import { GLYPH, isCompact, isPortraitPhone, COMPACT, createArrival, createProfileCard, createRotate, createBrowse, sheetGestures, keepPlace, placeLine, isTouch } from './mobile.js';
+import { goLandscape, resetStick } from './touch.js';
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
@@ -36,10 +38,15 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
   }, true);
 
   // ----- Title screen menu -----
-  $('#btn-enter').addEventListener('click', () => onEnter());
+  $('#btn-enter').addEventListener('click', () => explore());
   $('#btn-tour').addEventListener('click', () => onTour());
-  $('#btn-about-intro').addEventListener('click', () => openAbout());
+  $('#btn-about-intro').addEventListener('click', () => openAbout(undefined, { full: true }));
   $('#btn-hire-intro').addEventListener('click', () => openAbout('contact'));
+  // the portrait welcome on phones: explore the island, or browse the work as a publication
+  document.querySelectorAll('[data-explore-island]').forEach((b) => b.addEventListener('click', () => explore()));
+  document.querySelectorAll('[data-browse-work]').forEach((b) => b.addEventListener('click', () => browse.open()));
+  document.querySelectorAll('[data-about-full]').forEach((b) => b.addEventListener('click', () => openAbout(undefined, { full: true })));
+  document.querySelectorAll('[data-hire-full]').forEach((b) => b.addEventListener('click', () => openAbout('contact')));
   $('#btn-brief-intro').addEventListener('click', () => {
     onEnter();
     setTimeout(() => openJournal('campaigns'), 250);
@@ -113,6 +120,50 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     toggleJournal(false);
     document.body.classList.toggle('show-keys');
   });
+  // ----- More: on phones the utilities fold into one menu, so the rail stays short -----
+  const moreEl = $('#more');
+  const MORE = [
+    ['btn-walk', 'Explore', 'Walk freely'],
+    ['btn-tour-hud', 'Guided tour', 'Every place, one after another'],
+    ['btn-cam', 'Camera', ''],
+    ['btn-time', 'Time of day', ''],
+    ['btn-sound', 'Sound', 'Music, ambience, effects'],
+    ['btn-hire', 'Work with me', 'Roles, projects or a hello'],
+  ];
+  function renderMore() {
+    moreEl.innerHTML = `<header class="more__head"><b>More</b><button class="close" data-close aria-label="Close">×</button></header>
+      <div class="more__list">${MORE.map(([id, name, sub]) => {
+        const b = document.getElementById(id);
+        const ic = b.querySelector('svg, #clock-icon')?.outerHTML.replace('id="clock-icon"', '') || '';
+        const now = b.querySelector('span')?.textContent || '';
+        return `<button class="more__row${b.classList.contains('is-active') ? ' is-on' : ''}${id === 'btn-hire' ? ' more__row--accent' : ''}" data-for="${id}"><i>${ic}</i><span><b>${esc(name)}</b><em>${esc(sub || now)}</em></span></button>`;
+      }).join('')}</div>`;
+  }
+  function toggleMore(force) {
+    const open = force ?? !moreEl.classList.contains('is-open');
+    if (open) {
+      renderMore();
+      toggleJournal(false);
+      soundEl.classList.remove('is-open');
+    }
+    moreEl.classList.toggle('is-open', open);
+    $('#btn-more').classList.toggle('is-active', open);
+  }
+  $('#btn-more').addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleMore();
+  });
+  moreEl.addEventListener('click', (e) => {
+    if (e.target.closest('[data-close]')) return toggleMore(false);
+    const row = e.target.closest('[data-for]');
+    if (!row) return;
+    toggleMore(false);
+    document.getElementById(row.dataset.for).click();
+  });
+  document.addEventListener('pointerdown', (e) => {
+    if (!e.target.closest('#more, #btn-more')) toggleMore(false);
+  });
+
   // ----- Journal: missions, campaigns and secrets, together -----
   const journalEl = $('#journal');
   let journalTab = 'missions';
@@ -243,9 +294,27 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
 
   // ----- Department panel -----
   const panel = $('#panel');
-  function showPlace(p, { tour = false, index = 0, total = 0 } = {}) {
+  // phones: arriving somewhere (or a tour stop) shows a small card; the drawer is one tap away
+  const arrival = createArrival({ onOpen: (p) => showPlace(p, { expand: true, ...(mode === 'tour' ? tourAt : {}) }) });
+  let tourAt = {};
+  function showPlace(p, opts = {}) {
+    const { tour = false, index = 0, total = 0, auto = false, expand = false } = opts;
+    if (tour) {
+      tourAt = { tour, index, total };
+      const tl = $('#tour-label');
+      if (tl) tl.innerHTML = `<b>${index + 1}/${total}</b> ${esc(p.name)}`;
+    }
+    if (isCompact() && !expand && (auto || tour)) {
+      if (panel.classList.contains('is-open')) hidePlace();
+      markVisited(p.id);
+      arrival.show(p, { tour, index, total });
+      return;
+    }
+    arrival.hide();
     if (!panel.classList.contains('is-open') || panel.dataset.id !== p.id) sfx('open');
     panel.dataset.id = p.id;
+    panel.dataset.kind = 'place';
+    lastPlace = { p, opts };
     const idx = places.findIndex((q) => q.id === p.id);
     const next = places[(idx + 1) % places.length];
     panel.style.setProperty('--c', p.color);
@@ -261,24 +330,45 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
       })
       .join('');
     hidePass();
-    panel.innerHTML = `
+    const howTitle = { hq: 'What I do', lab: 'What happens here', home: 'About me', fun: 'After hours' }[p.id] || 'How I work with this team';
+    const how = `<ul>${p.how.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>${p.makes ? `<div class="chips">${p.makes.map((m) => `<span class="chip">${esc(m)}</span>`).join('')}</div>` : ''}`;
+    const nums = p.id === 'home' || p.id === 'hq' ? `<div class="numbers">${owner.numbers.map((n) => `<div><b>${esc(n.value)}</b><span>${esc(n.label)}</span></div>`).join('')}</div>` : '';
+    const homeBtns = p.id === 'home' ? `<button class="btn btn--wide" data-contact>✉️ Write to Vibhor</button><button class="btn btn--wide btn--ghost" data-ride>🚲 Ride my bicycle</button>` : '';
+    const foot = tour
+      ? `<p class="step">Stop ${index + 1} of ${total}</p>`
+      : `<div class="actions">
+          <button class="btn btn--ghost" data-next="${next.id}">Next: ${esc(next.name)} →</button>
+          <button class="btn" data-hire>Hire me</button>
+        </div>`;
+    if (isCompact()) {
+      // the drawer: who, one line, then straight to the work; the rest folds away
+      const { count } = placeLine(p);
+      panel.innerHTML = `
+        <i class="sheet-grip" aria-hidden="true"></i>
+        <header class="dr-head">
+          <i class="place__glyph">${GLYPH[p.id] || '📍'}</i>
+          <div><b>${esc(p.name)}</b><em>${esc([p.place, count].filter(Boolean).join(' · '))}</em></div>
+          <button class="close" aria-label="Close">×</button>
+        </header>
+        <div class="dr-body">
+          <p class="dr-lead">${esc(p.lead)}</p>
+          ${work ? `<p class="dr-h">Work shipped together <span>${p.projects.length}</span></p><div class="works">${work}</div>` : ''}
+          <details class="dr-more"${work ? '' : ' open'}><summary>${howTitle}</summary>${how}${nums}</details>
+          ${p.id === 'fun' ? `<details class="dr-more"><summary>Films &amp; favourites</summary>${funExtra()}</details>` : ''}
+          ${homeBtns}
+          ${foot}
+        </div>`;
+    } else {
+      panel.innerHTML = `
       <button class="close" aria-label="Close">×</button>
       ${placeHead(p)}
-      <div class="card-head"><b>${{ hq: 'What I do', lab: 'What happens here', home: 'About me', fun: 'After hours' }[p.id] || 'How I work with this team'}</b></div>
-      <ul>${p.how.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
-      ${p.makes ? `<div class="chips">${p.makes.map((m) => `<span class="chip">${esc(m)}</span>`).join('')}</div>` : ''}
+      <div class="card-head"><b>${howTitle}</b></div>
+      ${how}
       ${work ? `<div class="card-head"><b>Work shipped together</b><span>${p.projects.length} ${p.projects.length === 1 ? 'project' : 'projects'}</span></div><div class="works">${work}</div>` : ''}
       ${p.id === 'fun' ? funExtra() : ''}
-      ${p.id === 'home' ? `<div class="numbers">${owner.numbers.map((n) => `<div><b>${esc(n.value)}</b><span>${esc(n.label)}</span></div>`).join('')}</div><button class="btn btn--wide" data-contact>✉️ Write to Vibhor</button><button class="btn btn--wide btn--ghost" data-ride>🚲 Ride my bicycle</button>` : ''}
-      ${p.id === 'hq' ? `<div class="numbers">${owner.numbers.map((n) => `<div><b>${esc(n.value)}</b><span>${esc(n.label)}</span></div>`).join('')}</div>` : ''}
-      ${
-        tour
-          ? `<p class="step">Stop ${index + 1} of ${total}</p>`
-          : `<div class="actions">
-              <button class="btn btn--ghost" data-next="${next.id}">Next: ${esc(next.name)} →</button>
-              <button class="btn" data-hire>Hire me</button>
-            </div>`
-      }`;
+      ${nums}${homeBtns}
+      ${foot}`;
+    }
     panel.querySelector('.close').onclick = () => hidePlace();
     panel.querySelector('[data-next]')?.addEventListener('click', (e) => onTravel(e.currentTarget.dataset.next));
     panel.querySelector('[data-hire]')?.addEventListener('click', () => toggleHire(true));
@@ -288,11 +378,23 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
       onRide?.();
     });
     panel.querySelectorAll('[data-project]').forEach((b) => b.addEventListener('click', () => openProject(b.dataset.project)));
-    panel.scrollTop = 0;
-    panel.classList.add('is-open');
-    document.body.classList.add('panel-open');
+    openPanel();
     markVisited(p.id);
   }
+  let lastPlace = null;
+  function openPanel() {
+    panel.scrollTop = 0;
+    panel.querySelector('.dr-body')?.scrollTo(0, 0);
+    panel.classList.remove('is-full');
+    panel.classList.add('is-open');
+    document.body.classList.add('panel-open');
+    if (isPortraitPhone()) resetStick();
+  }
+  sheetGestures(panel, { onClose: () => hidePlace() });
+  // turning the phone between the drawer layouts redraws it in the right shape
+  COMPACT.addEventListener('change', () => {
+    if (panel.classList.contains('is-open') && panel.dataset.kind === 'place' && lastPlace) showPlace(lastPlace.p, { ...lastPlace.opts, expand: true });
+  });
   function funExtra() {
     const list = (title, items) =>
       items.length ? `<h3>${title}</h3><ul class="favs">${items.map((i) => `<li><b>${esc(i.title)}</b>${i.year ? ` <em>${esc(i.year)}</em>` : ''}${i.note ? `<span>${esc(i.note)}</span>` : ''}</li>`).join('')}</ul>` : '';
@@ -319,11 +421,13 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     hidePass();
     sfx('open');
     panel.style.setProperty('--c', C);
-    panel.innerHTML = `<button class="close" aria-label="Close">×</button>${body}`;
+    panel.dataset.kind = 'info';
+    panel.innerHTML = isCompact()
+      ? `<i class="sheet-grip" aria-hidden="true"></i><header class="dr-head dr-head--bare"><button class="close" aria-label="Close">×</button></header><div class="dr-body dr-info">${body}</div>`
+      : `<button class="close" aria-label="Close">×</button>${body}`;
     panel.querySelector('.close').onclick = () => hidePlace();
-    panel.scrollTop = 0;
-    panel.classList.add('is-open');
-    document.body.classList.add('panel-open');
+    arrival.hide();
+    openPanel();
   }
 
   // Fade to black and back, for doors.
@@ -353,6 +457,13 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
   guideEl.setAttribute('aria-live', 'polite');
   document.body.appendChild(guideEl);
   let guideKey = '';
+  // phones: the guide is one line (room · chapter); a tap opens the whole story
+  guideEl.addEventListener('click', () => {
+    if (!isCompact()) return;
+    guideEl.classList.toggle('is-open');
+    const m = guideEl.querySelector('.guide__more');
+    if (m) m.textContent = guideEl.classList.contains('is-open') ? 'Hide' : 'View story';
+  });
   function setGuide(s, roomId) {
     const key = `${roomId}|${s.current}|${s.next}|${s.seen.length}`;
     if (key === guideKey) return;
@@ -363,7 +474,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     const cur = s.current >= 0 ? s.chapters[s.current] : null;
     const nxt = s.next >= 0 ? s.chapters[s.next] : null;
     guideEl.innerHTML = `
-      <p class="guide__top"><span>${esc(s.title)}</span><b>${reached}/${n}</b></p>
+      <p class="guide__top"><span>${esc(s.title)}</span><b>${reached}/${n}</b><em class="guide__more">${guideEl.classList.contains('is-open') ? 'Hide' : 'View story'}</em></p>
       ${cur ? `<p class="guide__ch">Chapter ${s.current + 1}</p><h3>${esc(cur.title)}</h3><p class="guide__line">${esc(cur.line)}</p>` : `<h3>${esc(s.intro)}</h3><p class="guide__line">Walk through the rooms: each numbered medallion in the floor marks a stop. The floor plan shows the way.</p>`}
       <ol class="guide__dots">${s.chapters.map((c, k) => `<li class="${s.seen.includes(k) ? 'is-seen' : ''} ${k === s.current ? 'is-now' : ''} ${k === s.next ? 'is-next' : ''}" title="${esc(c.title)}">${k + 1}</li>`).join('')}</ol>
       <p class="guide__next">${nxt ? `Next: <b>${s.next + 1} · ${esc(nxt.title)}</b>` : 'Story complete. Exit to the island whenever you like.'}</p>`;
@@ -391,7 +502,6 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
 
   // The place "pass": a ticket with the department's name, numbers and a colour stub
   const passEl = $('#pass');
-  const GLYPH = { gallery: '🖼️', hq: '🌳', brand: '🎬', pmm: '🚀', product: '🧩', social: '📣', copy: '✍️', design: '🎨', lab: '🌙', fun: '🍿', home: '🏡', ai: '🤖', awards: '🏆' };
   // the head of a place card: its name, where it is and what it is, then the numbers, all in one block
   function placeHead(p) {
     const kind = { hq: 'Island pass', home: 'Home pass', fun: 'Playground pass', lab: 'Night Lab pass', ai: 'Lab pass', awards: 'Hall pass' }[p.id] || 'Department pass';
@@ -436,10 +546,12 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     }
   }
 
-  function hidePlace() {
+  function hidePlace({ auto = false } = {}) {
     if (panel.classList.contains('is-open')) sfx('close');
     hidePass();
-    panel.classList.remove('is-open');
+    // leaving a place takes its arrival card with it; closing the drawer by hand leaves the tour card
+    if (auto || mode !== 'tour') arrival.hide();
+    panel.classList.remove('is-open', 'is-full');
     document.body.classList.remove('panel-open');
   }
   function markVisited(id) {
@@ -447,7 +559,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     visited.add(id);
     renderMissions();
     if (visited.size === places.length)
-      setTimeout(() => toast(`<b>You’ve met the whole organisation.</b><br>Every team, one voice. That’s the job. <a href="#" data-hire-link>Let’s talk →</a>`, 9000), 1500);
+      setTimeout(() => toast(`<b>You’ve met the whole organisation.</b><br>Every team, one voice. That’s the job. <a href="#" data-hire-link>Let’s talk →</a>`, 9000, { priority: 2, kind: 'reward' }), 1500);
   }
 
   // ----- Case studies -----
@@ -539,24 +651,58 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     trophies.add(award.id);
     sfx('trophy');
     renderMissions();
-    toast(`<b>🏆 Trophy found! ${trophies.size}/${awards.length}</b><br>${esc(award.name)}: ${esc(award.detail)}`, 6500);
-    if (trophies.size === awards.length) setTimeout(() => toast('<b>All trophies found.</b><br>The work wins rooms. <a href="#" data-hire-link>Hire me →</a>', 8000), 6800);
+    toast(`<b>🏆 Trophy found! ${trophies.size}/${awards.length}</b><br>${esc(award.name)}: ${esc(award.detail)}`, 6500, { priority: 2, kind: 'reward' });
+    if (trophies.size === awards.length) setTimeout(() => toast('<b>All trophies found.</b><br>The work wins rooms. <a href="#" data-hire-link>Hire me →</a>', 8000, { priority: 2, kind: 'reward' }), 6800);
   }
 
   // ----- Toast -----
+  // One notice at a time. A more important one replaces a lesser one; an equal one waits its turn;
+  // a trivial one (quiet) is dropped if something is already showing. Tap a notice to dismiss it.
   const toastEl = $('#toast');
   let toastTimer = 0;
-  function toast(html, ms = 4000, { quiet = false } = {}) {
-    if (!quiet) sfx('toast');
-    toastEl.innerHTML = html;
+  let toastNow = null;
+  const toastQueue = [];
+  function toast(html, ms = 4000, { quiet = false, priority = quiet ? 0 : 1, kind = '' } = {}) {
+    const item = { html, ms, quiet, priority, kind };
+    if (toastNow) {
+      if (priority < toastNow.priority) {
+        if (priority > 0 && toastQueue.length < 3) toastQueue.push(item);
+        return;
+      }
+      if (priority === toastNow.priority && priority > 0 && toastNow.html !== html && performance.now() - toastNow.at < 1500) {
+        if (toastQueue.length < 3) toastQueue.push(item);
+        return;
+      }
+    }
+    showToast(item);
+  }
+  function showToast(item) {
+    if (!item.quiet) sfx('toast');
+    item.at = performance.now();
+    toastNow = item;
+    toastEl.innerHTML = item.html;
+    toastEl.dataset.kind = item.kind || (/🏆/.test(item.html) ? 'reward' : '');
     toastEl.classList.add('is-open');
     toastEl.querySelector('[data-hire-link]')?.addEventListener('click', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       toggleHire(true);
     });
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toastEl.classList.remove('is-open'), ms);
+    // phones: shorter, so the island is back sooner (rewards keep a little longer)
+    const ms = isCompact() ? Math.min(item.ms, toastEl.dataset.kind === 'reward' ? 5200 : 3800) : item.ms;
+    toastTimer = setTimeout(endToast, ms);
   }
+  function endToast() {
+    clearTimeout(toastTimer);
+    toastEl.classList.remove('is-open');
+    toastNow = null;
+    const next = toastQueue.shift();
+    if (next) toastTimer = setTimeout(() => showToast(next), 260);
+  }
+  toastEl.addEventListener('click', (e) => {
+    if (!e.target.closest('a')) endToast();
+  });
 
   // ----- About: the one page about Vibhor. Hire me, Home and the name card all open it -----
   const aboutEl = $('#about');
@@ -580,6 +726,11 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
   ];
   aboutEl.querySelector('.about').innerHTML = `
     <button class="close" data-close aria-label="Close">×</button>
+    <nav class="about__bar" aria-label="Chapters">
+      <div class="about__chips">${SECTIONS.filter(([id]) => id !== 'contact').map(([id, name]) => `<button data-jump="${id}">${name}</button>`).join('')}</div>
+      <button class="about__barbtn about__barbtn--accent" data-jump="contact" aria-label="Contact">✉️<span> Contact</span></button>
+      <button class="about__barbtn" data-close aria-label="Close">×</button>
+    </nav>
     <aside class="about__side">
       <figure class="about__portrait"><img src="${esc(owner.portrait)}" alt="${esc(owner.name)}" /><figcaption>${esc(about.portrait_caption)}</figcaption></figure>
       <h2>${esc(owner.name)}</h2>
@@ -656,38 +807,82 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
         <div class="about__links"><a class="btn" href="mailto:${esc(owner.email)}">${esc(owner.email)}</a>${owner.links.map((l) => `<a class="btn btn--ghost" href="${esc(l.href)}" target="_blank" rel="noopener">${esc(l.label)}</a>`).join('')}</div>
         <form id="contact-form" class="contact-form">
           <div class="cf-row">
-            <label>Your name<input id="cf-name" name="name" required autocomplete="name" /></label>
-            <label>Email<input name="email" type="email" required autocomplete="email" /></label>
+            <label>Your name<input id="cf-name" name="name" required autocomplete="name" autocapitalize="words" enterkeyhint="next" /></label>
+            <label>Email<input name="email" type="email" inputmode="email" required autocomplete="email" autocapitalize="off" spellcheck="false" enterkeyhint="next" /></label>
           </div>
           <label>I’d like to talk about<select id="cf-intent" name="intent">${contact.intents.map((i) => `<option>${esc(i)}</option>`).join('')}</select></label>
-          <label>Message<textarea name="message" rows="3" required placeholder="Tell me what you’re building…"></textarea></label>
+          <label>Message<textarea name="message" rows="3" required enterkeyhint="send" placeholder="Tell me what you’re building…"></textarea></label>
           <div class="cf-foot"><button class="btn" type="submit">Send message</button><span id="cf-status"></span></div>
         </form>
       </section>
     </div>`;
   const aboutOpen = () => aboutEl.classList.contains('is-open');
-  const aboutScroller = () => (window.innerWidth > 860 ? aboutEl.querySelector('.about__main') : aboutEl.querySelector('.about'));
+  // one scroller: the right-hand column on wide screens, the whole page on phones and narrow windows
+  const ABOUT_NARROW = matchMedia('(max-width: 860px), (max-height: 540px) and (orientation: landscape)');
+  const aboutScroller = () => (ABOUT_NARROW.matches ? aboutEl.querySelector('.about') : aboutEl.querySelector('.about__main'));
+  const aboutSections = () => [...aboutEl.querySelectorAll('.about__main > section')];
+  const REDUCED = matchMedia('(prefers-reduced-motion: reduce)');
   function jump(id) {
     const target = aboutEl.querySelector(`#ab-${id}`);
     if (!target) return;
     const sc = aboutScroller();
-    sc.scrollTo({ top: target.offsetTop - 16, behavior: 'smooth' });
+    const bar = ABOUT_NARROW.matches ? aboutEl.querySelector('.about__bar').offsetHeight : 0;
+    const top = target.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - bar - 12;
+    sc.scrollTo({ top, behavior: REDUCED.matches ? 'auto' : 'smooth' });
   }
-  function openAbout(section) {
+  // the chapter bar follows the reading, and the reading survives the phone turning
+  const aboutPlace = keepPlace(aboutScroller, aboutSections, aboutOpen);
+  let chipOn = '';
+  const onAboutScroll = () => {
+    aboutPlace.measure();
+    const sc = aboutScroller();
+    const top = sc.getBoundingClientRect().top + 90;
+    let cur = '';
+    for (const sec of aboutSections()) if (sec.getBoundingClientRect().top <= top) cur = sec.id.slice(3);
+    if (cur === chipOn) return;
+    chipOn = cur;
+    aboutEl.querySelectorAll('.about__chips button').forEach((b) => {
+      const on = b.dataset.jump === cur;
+      b.classList.toggle('is-on', on);
+      if (on && ABOUT_NARROW.matches) b.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'auto' });
+    });
+  };
+  aboutEl.querySelector('.about').addEventListener('scroll', onAboutScroll, { passive: true });
+  aboutEl.querySelector('.about__main').addEventListener('scroll', onAboutScroll, { passive: true });
+  // the quick profile: on phones, About from the game is a card first, the full page on request
+  const profileCard = createProfileCard({
+    owner,
+    onFull: () => openAbout(undefined, { full: true }),
+    onContact: () => openAbout('contact'),
+    onHome: () => onHomeVisit?.(),
+  });
+  function openAbout(section, { full = false } = {}) {
+    if (isCompact() && !section && !full && mode !== 'intro' && !aboutOpen()) {
+      arrival.hide();
+      if (panel.classList.contains('is-open')) hidePlace();
+      toggleJournal(false);
+      sfx('open');
+      return profileCard.open();
+    }
+    profileCard.close();
     if (!aboutOpen()) {
       aboutEl.classList.add('is-open');
+      document.body.classList.add('about-open');
+      resetStick();
       sfx('open');
       aboutEl.querySelector('.about__main').scrollTop = 0;
       aboutEl.querySelector('.about').scrollTop = 0;
     }
     if (section) setTimeout(() => {
       jump(section);
-      if (section === 'contact') $('#cf-name').focus({ preventScroll: true });
+      // phones: don't throw the keyboard up over the page; the form is right there to tap
+      if (section === 'contact' && !isTouch) $('#cf-name').focus({ preventScroll: true });
     }, 120);
   }
   function closeAbout() {
     if (!aboutOpen()) return;
     aboutEl.classList.remove('is-open');
+    document.body.classList.remove('about-open');
     sfx('close');
   }
   // the old entry points, kept as names the rest of the game calls
@@ -824,9 +1019,27 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
   });
 
   // Contact form: posts to a form endpoint if configured, otherwise composes an email.
-  $('#contact-form').addEventListener('submit', async (e) => {
+  const cform = $('#contact-form');
+  // phones: keep the field you're typing in above the keyboard
+  cform.addEventListener('focusin', (e) => {
+    if (!isTouch || !e.target.matches('input, textarea, select')) return;
+    setTimeout(() => e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 320);
+  });
+  cform.addEventListener('invalid', () => {
+    const st = $('#cf-status');
+    st.textContent = 'Please add your name, a valid email and a message.';
+    st.dataset.state = 'error';
+  }, true);
+  cform.addEventListener('input', () => {
+    if ($('#cf-status').dataset.state === 'error') {
+      $('#cf-status').textContent = '';
+      delete $('#cf-status').dataset.state;
+    }
+  });
+  cform.addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = e.target;
+    $('#cf-status').dataset.state = 'ok';
     const data = { name: f.name.value.trim(), email: f.email.value.trim(), intent: f.intent.value, message: f.message.value.trim() };
     const status = $('#cf-status');
     if (contact.endpoint) {
@@ -836,7 +1049,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
         if (!res.ok) throw new Error(res.status);
         status.textContent = 'Sent! Vibhor will get back to you soon.';
         f.reset();
-        toast('<b>✉️ Message sent.</b> Thanks for writing!', 4000);
+        toast('<b>✉️ Message sent.</b> Thanks for writing!', 4000, { priority: 2, kind: 'success' });
         return;
       } catch {
         status.textContent = 'Could not send from here, opening your email app instead.';
@@ -875,12 +1088,53 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     openWeb(a.href, a.dataset.title || a.textContent.replace('↗', '').trim());
   });
 
+  // ----- Phones: explore (with the invitation to turn sideways), or browse the work -----
+  const canRotateForMe = isTouch && !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen) && !!screen.orientation?.lock;
+  const rotate = createRotate({
+    places,
+    canFullscreen: canRotateForMe,
+    onLandscape: () => onEnter(),
+    onPortrait: () => onEnter({ portrait: true }),
+    onBrowse: () => browse.open(),
+    onFullscreen: () => goLandscape(),
+  });
+  function explore() {
+    if (browse.isOpen()) browse.close();
+    // phones held upright: once a visit, show why landscape is worth it; never block the way in
+    if (isTouch && isPortraitPhone()) {
+      if (!rotate.seen()) return rotate.show();
+      return onEnter({ portrait: true });
+    }
+    onEnter();
+  }
+  const browse = createBrowse({
+    owner,
+    places,
+    projects,
+    careers: CAREERS,
+    onProject: (slug) => openProject(slug),
+    onAbout: () => openAbout(undefined, { full: true }),
+    onCareer: (id) => openCareer(id),
+    onPlaybook: () => openPlaybook(),
+    onContact: () => openAbout('contact'),
+    onExplore: () => explore(),
+  });
+
   const overlays = [
     { isOpen: () => careerEl.classList.contains('is-open'), close: closeCareer },
     { isOpen: () => playbook.classList.contains('is-open'), close: closePlaybook },
     { isOpen: aboutOpen, close: closeAbout },
+    { isOpen: () => browse.isOpen(), close: () => browse.close() },
   ];
   function closeOverlays() {
+    if (profileCard.isOpen()) {
+      profileCard.close();
+      return true;
+    }
+    if (moreEl.classList.contains('is-open')) {
+      toggleMore(false);
+      return true;
+    }
     for (const o of overlays) {
       if (o.isOpen()) {
         o.close();

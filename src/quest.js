@@ -143,7 +143,7 @@ export function createQuest({ scene, places, ui, camera, groundAt, travelTo, ope
     active = { cp, i: 0 };
     hideStage();
     sfx('stamp');
-    ui.toast(`<b>📁 Brief taken: ${esc(cp.title)}.</b><br>Follow the light to ${esc(P(cp.stops[0].place).name)}.`, 4500);
+    ui.toast(`<b>📁 Brief taken: ${esc(cp.title)}.</b><br>Follow the light to ${esc(P(cp.stops[0].place).name)}.`, 4500, { priority: 2 });
     renderTracker();
     ui.refreshJournal?.();
     readyAt = clock + 1.2;
@@ -229,7 +229,7 @@ export function createQuest({ scene, places, ui, camera, groundAt, travelTo, ope
     stage.classList.add('is-open');
     sfx('trophy');
     ui.onCampaigns?.(shipped.size, CAMPAIGNS.length);
-    if (shipped.size === CAMPAIGNS.length) setTimeout(() => ui.toast('<b>Every brief shipped.</b><br>One studio, every team, one story. <a href="#" data-hire-link>Let’s work together →</a>', 9000), 1200);
+    if (shipped.size === CAMPAIGNS.length) setTimeout(() => ui.toast('<b>Every brief shipped.</b><br>One studio, every team, one story. <a href="#" data-hire-link>Let’s work together →</a>', 9000, { priority: 2, kind: 'reward' }), 1200);
   }
   function closeFinal() {
     stage.classList.remove('is-open', 'is-final');

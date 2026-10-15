@@ -9,6 +9,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import './style.css';
 import './theme.css';
+import './mobile.css';
 import { OWNER, PILLARS, CENTER, HAMLETS, DEPARTMENTS, LAB, HOME, FUN, AIHUB, HALL, PROJECTS, AWARDS, ASSETS, NPC_TALK, CONTACT, FAVOURITES, TOOLS, AWARD_LIST } from './data.js';
 import {
   buildSky, makeSkyMaterial, buildClouds, buildTerrain, buildGrass, buildLavender, buildFlowers, buildMountains, buildTrees, buildPollen,
@@ -33,7 +34,7 @@ import { createQuest } from './quest.js';
 import { createNav } from './nav.js';
 import { buildGrid, findPath } from './pathfind.js';
 import { createMapView } from './mapview.js';
-import { isTouch, stick, stickKeys, initTouch, goLandscape } from './touch.js';
+import { isTouch, stick, stickKeys, initTouch, goLandscape, resetStick } from './touch.js';
 
 // ---------- Renderer, scene, light ----------
 
@@ -302,9 +303,10 @@ const ui = createUI({
   favourites: FAVOURITES,
   tools: TOOLS,
   awardList: AWARD_LIST,
-  onEnter: () => {
-    // on phones, ask for full screen and landscape (Android Chrome honours it; iPhone Safari shows the rotate card instead)
-    if (isTouch) goLandscape();
+  onEnter: ({ portrait = false } = {}) => {
+    // on phones in landscape, ask for full screen (Android Chrome honours it; iPhone Safari can't);
+    // someone who chose to stay upright isn't swung round
+    if (isTouch && !portrait) goLandscape();
     setMode('walk');
   },
   onPromptTap: (a) => act(a),
@@ -549,6 +551,7 @@ window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
 
 // ---------- Touch ----------
 let touchHop = false;
+let modalWas = false;
 initTouch({
   onJump: () => {
     if (ride.active) touchHop = true;
@@ -752,7 +755,11 @@ function movePlayer(dt) {
   let ix = 0;
   let iz = 0;
   const playing = (state.mode === 'walk' || state.mode === 'overview') && elapsed > ride.stunned;
-  if (playing && !ui.modalOpen()) {
+  // an overlay opening over a held thumb-stick lets go of it, so you don't walk off on closing it
+  const modalNow = ui.modalOpen();
+  if (modalNow && !modalWas) resetStick();
+  modalWas = modalNow;
+  if (playing && !modalNow) {
     if (keys.has('w') || keys.has('arrowup')) iz += 1;
     if (keys.has('s') || keys.has('arrowdown')) iz -= 1;
     if (keys.has('a') || keys.has('arrowleft')) ix -= 1;
@@ -1088,13 +1095,20 @@ function updateProximity(t) {
     ui.thoughts([]);
     return;
   }
-  const p = state.indoor ? PLACES.find((q) => q.id === state.indoor.id) : nearestPlace(state.pos.x, state.pos.z);
+  let p = state.indoor ? PLACES.find((q) => q.id === state.indoor.id) : nearestPlace(state.pos.x, state.pos.z);
+  // you're in a place from 60% of its reach and stay in it until 75%: standing on the edge
+  // doesn't make it come and go
+  if (!state.indoor && !p && lastPlaceId) {
+    const was = PLACES.find((q) => q.id === lastPlaceId);
+    if (was && Math.hypot(state.pos.x - was.x, state.pos.z - was.z) < was.reach * 0.75) p = was;
+  }
   const id = p ? p.id : null;
   if (id !== lastPlaceId) {
     lastPlaceId = id;
-    // indoors the room's guide card tells the story, so the place card only opens on request
-    if (p && !state.indoor) ui.showPlace(p);
-    else ui.hidePlace();
+    // indoors the room's guide card tells the story, so the place card only opens on request;
+    // on phones walking in shows a small arrival card rather than the whole panel
+    if (p && !state.indoor) ui.showPlace(p, { auto: true });
+    else ui.hidePlace({ auto: true });
   }
   // things to interact with: project billboards, the mailbox, the poster wall...
   let best = null;
@@ -1133,7 +1147,7 @@ function updateProximity(t) {
         localStorage.setItem('shire-found', JSON.stringify([...found]));
       } catch {}
       sfx('trophy');
-      ui.toast(`<b>✨ You found a hidden place: ${sp.career.org}.</b><br>${sp.career.years}. Step inside and press <kbd>E</kbd>. (${found.size}/${hidden.spots.length})`, 6500);
+      ui.toast(`<b>✨ You found a hidden place: ${sp.career.org}.</b><br>${sp.career.years}. Step inside and press <kbd>E</kbd>. (${found.size}/${hidden.spots.length})`, 6500, { priority: 2, kind: 'reward' });
       ui.onHidden(found.size, hidden.spots.length, hiddenList());
     }
   }
@@ -1550,4 +1564,4 @@ await fitted;
 hideLoader();
 ui.ready();
 
-window.__shire = { Walker, useFromAfar, act, pathfind: { buildGrid, findPath }, sitDown, elapsed: () => elapsed, keys, nav, mapView, goTo, distToPath, PATHS, fit: () => fitResult, hidden, colliders, gallery, quest, story, ride, audioDebug, state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };
+window.__shire = { places: PLACES, Walker, useFromAfar, act, pathfind: { buildGrid, findPath }, sitDown, elapsed: () => elapsed, keys, nav, mapView, goTo, distToPath, PATHS, fit: () => fitResult, hidden, colliders, gallery, quest, story, ride, audioDebug, state, setMode, travelTo, ui, renderer, scene, dayNight, village, rooms, coast, enterRoom, exitRoom, walkY, groundAt, THREE };
