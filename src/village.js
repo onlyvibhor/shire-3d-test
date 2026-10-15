@@ -4,6 +4,7 @@ import { groundAt, walkY, rng, PATHS, ROAD_HALF, distToPath, SURFACE, BAZAAR } f
 import { makeDome, makeDrone, makeScooter, makeDesk, makeMonitorWall, dashboardTexture, makeCafe, makeAdBoard, screenMat } from './props.js';
 import { makePerson, giveProp, animate } from './characters.js';
 import { buildCreatures } from './creatures.js';
+import { buildSocialStudio, buildBrandShoot, buildLaunchCentre, buildMentorStudio } from './ambient/departments.js';
 import { makePillar } from './pillars.js';
 import { projectPlateTexture, metricTexture, signPlateTexture, FONT, fit, fitWrap, fillFit } from './type.js';
 import { buildTraffic } from './traffic.js';
@@ -596,14 +597,16 @@ function buildHamlet(scene, h, i, ctx) {
 
   switch (h.activity) {
     case 'arena': {
-      // A cricket pitch where founders are being filmed for the T20 spots.
-      L.add(mesh(new THREE.BoxGeometry(2.2, 0.04, 9), solid('#d8c79a'), 0, 0.02, -0.5, false));
-      for (const z of [-4.5, 3.5]) for (const x of [-0.18, 0, 0.18]) L.add(mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.75, 6), solid('#f3ead0'), x, 0.38, z));
-      person('cheer', 0, -3, 0, { top: '#1a4fd6', pants: '#1a4fd6', beard: true });
-      const cam = person('camera', 2.6, 0.5, face(2.6, 0.5, 0, -3));
+      // The TV commercial shoot: a living-room set, actor, camera crew, lights, sound and the
+      // director's monitors (src/ambient). The T20 founder shoot carries on as a small vignette
+      // front-right: a strip of pitch, stumps, a founder in the jersey and a handheld camera.
+      buildBrandShoot(g, { color: h.color, collider, r, playerPos, updaters: U });
+      L.add(mesh(new THREE.BoxGeometry(3.4, 0.04, 1.1), solid('#d8c79a'), 6.2, 0.02, 4.3, false));
+      for (const x of [-0.12, 0, 0.12]) L.add(mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.75, 6), solid('#f3ead0'), 7.75, 0.38, 4.3 + x));
+      collider(L, 0.3, 7.75, 4.3);
+      person('cheer', 5.0, 4.3, face(5.0, 4.3, 6.3, 6.0), { top: '#1a4fd6', pants: '#1a4fd6', beard: true });
+      const cam = person('camera', 6.3, 6.0, face(6.3, 6.0, 5.0, 4.3));
       giveProp(cam, 'camera');
-      person('point', -2.6, 1, face(-2.6, 1, 0, -3));
-      person('talk', -3.4, -1.2, face(-3.4, -1.2, 0, -3), {});
       // floodlight masts at the back corners of the pitch, clear of the ring road
       for (const sx of [-1, 1]) {
         const x = sx * 7.2;
@@ -626,7 +629,7 @@ function buildHamlet(scene, h, i, ctx) {
       const globe = new THREE.Group();
       // centrepieces stand at the back of the plaza, between and behind the two rear billboards,
       // so they frame the work instead of standing in front of it
-      globe.position.set(0, 4.2, -12);
+      globe.position.set(0, 6.4, -12);
       globe.add(mesh(new THREE.SphereGeometry(1.5, 32, 20), glow(h.color, 0.6)));
       for (let k = 0; k < 4; k++) {
         const ring = mesh(new THREE.TorusGeometry(2.1, 0.07, 8, 64), CHROME);
@@ -637,19 +640,11 @@ function buildHamlet(scene, h, i, ctx) {
       eq.rotation.x = Math.PI / 2;
       globe.add(eq);
       L.add(globe);
-      L.add(mesh(new THREE.CylinderGeometry(0.9, 1.3, 2.2, 24), WHITE_METAL, 0, 1.1, -12));
+      // a tall pedestal: the globe reads above the launch screen in front of it
+      L.add(mesh(new THREE.CylinderGeometry(0.75, 1.3, 4.4, 24), WHITE_METAL, 0, 2.2, -12));
       collider(L, 1.6, 0, -12);
-      const deskX = -7;
-      L.add(mesh(new THREE.BoxGeometry(1.6, 0.08, 0.8), WHITE_METAL, deskX, 1.05, -1.5));
-      L.add(mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.05, 8), BRUSHED, deskX, 0.52, -1.5));
-      const lap = mesh(new THREE.BoxGeometry(0.5, 0.32, 0.02), DARK, deskX, 1.27, -1.4);
-      lap.rotation.x = -0.25;
-      L.add(lap);
-      collider(L, 0.9, deskX, -1.5);
-      person('type', deskX, -2.15, 0);
-      person('present', -1.8, -1.2, face(-1.8, -1.2, 0, 6));
-      person('talk', -3.5, 2.5, face(-3.5, 2.5, -1.8, -1.2));
-      person('talk', -1.2, 3.4, face(-1.2, 3.4, -1.8, -1.2));
+      // the launch itself and the product lab (src/ambient)
+      buildLaunchCentre(g, { color: h.color, collider, r, playerPos, updaters: U });
       // Hot air balloons: launches going up
       const balloons = [];
       for (const [x, y, z, c] of [[6, 13, -2, h.color], [-7, 16, 1, '#ffffff']]) {
@@ -754,29 +749,20 @@ function buildHamlet(scene, h, i, ctx) {
       tower.add(light);
       L.add(tower);
       collider(L, 2, 0, -12);
-      // Ring light and creators filming reels
-      const rl = new THREE.Group();
-      rl.position.set(4.2, 0, 2.2);
-      rl.add(mesh(new THREE.CylinderGeometry(0.04, 0.05, 1.6, 6), DARK, 0, 0.8, 0));
-      const ringLight = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.05, 8, 32), glow('#ffffff', 3));
-      ringLight.position.y = 1.75;
-      rl.add(ringLight);
-      rl.rotation.y = face(4.2, 2.2, 2.6, 4.4);
-      L.add(rl);
-      const creator = person('phone', 2.6, 4.4, face(2.6, 4.4, 4.2, 2.2), { longHair: true });
-      giveProp(creator, 'phone');
-      const c2 = person('phone', -3, 1.5, face(-3, 1.5, 0, -12));
-      giveProp(c2, 'phone');
-      person('wave', -1.5, 4, Math.PI * 0.1);
-      person('cheer', 1.6, -0.6, face(1.6, -0.6, -3, 1.5));
+      // The reel studio: creators, crew, ring lights and a giant vertical feed (src/ambient)
+      buildSocialStudio(g, { color: h.color, collider, r, playerPos, updaters: U });
+      // engagement drifting up off the shoot and the feed: hearts, comments, shares, follows, and
+      // the department's own numbers from its project data
       floaters(L, ctx, [
-        { t: '♥ 6.55M', bg: '#ff4f8b', fg: '#ffffff' },
-        { t: '129 reels', bg: '#ffffff' },
-        { t: '♥ ♥ ♥', bg: '#ff4f8b', fg: '#ffffff', w: 1.6 },
-        { t: '200+ posts', bg: '#ffffff' },
-        { t: '💬 New comment', bg: '#ffffff' },
-        { t: '♥', bg: '#ff4f8b', fg: '#ffffff', w: 1 },
-      ], { x: 0, z: -1, w: 10, d: 6 }, 10);
+        { t: '♥', bg: '#ff4f8b', fg: '#ffffff', w: 0.9 },
+        { t: '💬 Comment', bg: '#ffffff', w: 2.2 },
+        { t: '♥', bg: '#ff4f8b', fg: '#ffffff', w: 0.7 },
+        { t: '➤ Share', bg: '#ffffff', w: 1.9 },
+        { t: '+ Follow', bg: '#ff4f8b', fg: '#ffffff', w: 2.0 },
+        { t: '▶ 6.55M views', bg: '#ffffff', w: 2.8 },
+        { t: '♥', bg: '#ff4f8b', fg: '#ffffff', w: 1.1 },
+        { t: '129 reels', bg: '#ffffff', w: 2.2 },
+      ], { x: 0, z: -6.2, w: 7, d: 3 }, 8);
       U.push({
         update: (t) => {
           halo.rotation.z = t * 0.8;
@@ -860,6 +846,8 @@ function buildHamlet(scene, h, i, ctx) {
         person('talk', x - 0.75, -3.2, Math.PI / 2, sx < 0 ? { top: h.color, beard: true } : {});
         person('think', x + 0.75, -3.2, -Math.PI / 2);
       }
+      // a portfolio crit at a shared table, and the writers' wall (src/ambient)
+      buildMentorStudio(g, { color: h.color, collider, r, playerPos, updaters: U });
       floaters(L, ctx, [
         { t: 'Can you review my portfolio?', bg: '#ffffff', w: 3.8 },
         { t: 'Where should I push next?', bg: h.color, w: 3.4 },

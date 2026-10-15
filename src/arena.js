@@ -450,9 +450,10 @@ export const ARENAS = {
     lead: [3, 6.8],
     walk: [[6.5, 5.5], [9, 0], [6.8, -6]],
     belief: [330, 18.5],
-    beds: [[150, 12.7, 6.4, 1.1, 'cool'], [36, 12.4, 3, 1.3, 'white', true], [324, 12.4, 3, 1.3, 'cool'], [196, 9.9, 2.4, 1, 'green']],
+    // the launch stage and its audience take the back of the plaza: no bed or benches there
+    beds: [[150, 12.7, 6.4, 1.1, 'cool'], [36, 12.4, 3, 1.3, 'white', true], [324, 12.4, 3, 1.3, 'cool']],
     lamps: [[36, 10.2], [324, 10.2], [124, 10.4], [236, 10.4]],
-    benches: [[200, 8.6], [160, 8.6]],
+    benches: [],
     walls: [],
   },
   product: {

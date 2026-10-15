@@ -77,6 +77,50 @@ export function giveProp(person, kind, color = '#1c1f26') {
   return m;
 }
 
+// Extra actions registered by other modules (the department production scenes): fn(p, parts, ph, t)
+// poses the body from neutral, like a case in pose(); grip is [left, right] finger curl.
+const EXTRA = {};
+export function registerPose(name, fn, grip) {
+  EXTRA[name] = fn;
+  if (grip) GRIP[name] = grip;
+}
+
+// Ease from one action into another: both poses are computed and the joints mixed, so a character
+// moves between jobs instead of snapping (w goes 0 → 1 over the change).
+const _snap = new Float32Array(48);
+function joints(p) {
+  const { hips, chest, head, armL, armR, legL, legR } = p.parts;
+  return (p._joints ||= [hips, chest, head, armL.shoulder, armL.elbow, armR.shoulder, armR.elbow, legL.hip, legL.knee, legR.hip, legR.knee]);
+}
+export function animateBlend(p, from, to, w, t, speed = 0) {
+  if (w >= 0.999 || from === to || !from) return animate(p, to, t, speed);
+  const J = joints(p);
+  const hp = p.parts.hips.position;
+  pose(p, from, t, speed);
+  J.forEach((o, i) => {
+    _snap[i * 3] = o.rotation.x;
+    _snap[i * 3 + 1] = o.rotation.y;
+    _snap[i * 3 + 2] = o.rotation.z;
+  });
+  const hx = hp.x;
+  const hy = hp.y;
+  const hz = hp.z;
+  pose(p, to, t, speed);
+  const e = w * w * (3 - 2 * w);
+  J.forEach((o, i) => {
+    o.rotation.x = _snap[i * 3] + (o.rotation.x - _snap[i * 3]) * e;
+    o.rotation.y = _snap[i * 3 + 1] + (o.rotation.y - _snap[i * 3 + 1]) * e;
+    o.rotation.z = _snap[i * 3 + 2] + (o.rotation.z - _snap[i * 3 + 2]) * e;
+  });
+  hp.set(hx + (hp.x - hx) * e, hy + (hp.y - hy) * e, hz + (hp.z - hz) * e);
+  if (p.lookW > 0.01) {
+    p.parts.head.rotation.y = THREE.MathUtils.lerp(p.parts.head.rotation.y, p.look, p.lookW);
+    p.parts.chest.rotation.y += p.look * 0.25 * p.lookW;
+  }
+  applyReaction(p, t);
+  settle(p, to);
+}
+
 /** Pose a person for an action at time t, then layer look-at and physical reactions on top. */
 export function animate(p, action, t, speed = 0) {
   const r = p.react;
@@ -193,9 +237,9 @@ function applyReaction(p, t) {
 
 // Two-bone reach in the side plane: the angles that put the end of a limb at (dy, dz) from its root joint.
 // bend = +1 bends the middle joint like a knee (forward), -1 like an elbow.
-const LEG = [0.44, 0.45];
-const ARM = [0.3, 0.29];
-function reach([L1, L2], dy, dz, bend) {
+export const LEG = [0.44, 0.45];
+export const ARM = [0.3, 0.29];
+export function reach([L1, L2], dy, dz, bend) {
   let D = Math.hypot(dy, dz);
   D = Math.min(Math.max(D, Math.abs(L1 - L2) + 1e-3), L1 + L2 - 1e-3);
   const phi = Math.atan2(-dz, -dy);
@@ -241,6 +285,7 @@ function pose(p, action, t, speed = 0) {
   const { hips, chest, head, armL, armR, legL, legR } = p.parts;
   const ph = t + p.phase;
   // neutral
+  hips.position.x = 0;
   hips.position.y = 0.95;
   hips.position.z = 0;
   hips.rotation.set(0, 0, 0);
@@ -258,6 +303,10 @@ function pose(p, action, t, speed = 0) {
   }
   const breathe = Math.sin(ph * 1.8) * 0.012;
   chest.rotation.x = breathe;
+  if (EXTRA[action]) {
+    EXTRA[action](p, p.parts, ph, t);
+    return;
+  }
 
   if (action === 'walk' || action === 'carry') {
     const a = Math.min(1, speed / 2.2);
