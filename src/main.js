@@ -1,3 +1,4 @@
+import { capRenderer } from './compat.js'; // first: Safari fixes and the phone texture limit
 import * as THREE from 'three';
 import { step, finishLoading, hideLoader } from './loading.js';
 import { loadFonts } from './type.js';
@@ -43,6 +44,7 @@ const canvas = document.getElementById('scene');
 const LITE = new URLSearchParams(location.search).has('lite') || matchMedia('(hover: none)').matches;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, LITE ? 1.25 : 1.75));
+capRenderer(renderer);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;

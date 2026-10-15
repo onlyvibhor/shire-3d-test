@@ -31,6 +31,11 @@
       @keyframes ld-sweep { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
       .ld__meta { display: flex; justify-content: space-between; margin: 10px 0 0; font-family: 'DM Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: .04em; color: rgba(226,234,255,.5); font-variant-numeric: tabular-nums; }
       @media (prefers-reduced-motion: reduce) { .ld__bar i { transition: none; animation: none !important; } }
+      .ld__fail { display: none; margin: 18px 0 0; font-size: 13px; line-height: 1.5; color: rgba(226,234,255,.75); }
+      .ld__fail code { display: block; margin: 8px 0 12px; font: 11px/1.4 'DM Mono', ui-monospace, monospace; color: rgba(226,234,255,.5); word-break: break-word; }
+      .ld__fail button { min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: #3dd36d; color: #0b2a15; font: 600 14px Inter, system-ui, sans-serif; }
+      body.load-failed .ld__fail { display: block; }
+      body.load-failed .ld__bar { display: none; }
     </style>
   </head>
   <body data-mode="intro">
@@ -40,8 +45,25 @@
         <p class="ld__sub">A portfolio you can walk through</p>
         <div class="ld__bar"><i id="ld-fill"></i></div>
         <p class="ld__meta"><span id="ld-step">Loading</span><span id="ld-pct"></span></p>
+        <div class="ld__fail" id="ld-fail"><span id="ld-why">The island couldn’t start on this device.</span><code id="ld-err"></code><button type="button" onclick="location.reload()">Try again</button></div>
       </div>
     </div>
+    <script>
+      // if anything stops the island from starting, say so on the loading screen instead of hanging
+      window.__shireFail = function (why, detail) {
+        document.body.classList.add('load-failed');
+        document.getElementById('loader').style.cssText = 'opacity:1;visibility:visible;pointer-events:auto';
+        if (why) document.getElementById('ld-why').textContent = why;
+        if (detail) document.getElementById('ld-err').textContent = String(detail).slice(0, 300);
+      };
+      // a stray error mid-load is only fatal if the island still isn't up a little later
+      var failLater = function (detail) {
+        if (document.body.classList.contains('is-ready')) return;
+        setTimeout(function () { if (!document.body.classList.contains('is-ready')) window.__shireFail(null, detail); }, 12000);
+      };
+      addEventListener('error', function (e) { failLater(e.message || 'error'); });
+      addEventListener('unhandledrejection', function (e) { failLater((e.reason && (e.reason.message || e.reason)) || 'rejected'); });
+    </script>
     <canvas id="scene"></canvas>
     <div id="labels"></div>
     <div id="thoughts"></div>
