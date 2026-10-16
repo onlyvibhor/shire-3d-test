@@ -800,7 +800,7 @@ function arrive(stuck = false) {
   state.speed = 0; // stop, turn to it, use it
   act(p.action);
 }
-function movePlayer(dt) {
+function movePlayer(dt, rawDt = dt) {
   let rideKeys = ui.modalOpen() || state.mode !== 'walk' ? new Set() : stickKeys(keys);
   if (touchHop) {
     rideKeys = new Set(rideKeys).add(' ');
@@ -895,7 +895,9 @@ function movePlayer(dt) {
   }
   const running = keys.has('shift') || (stick.active && stickMag > 0.93) || (state.target && !state.indoor && Math.hypot(state.target.x - state.pos.x, state.target.z - state.pos.z) > 18);
   const want = moving ? (running ? 9 : 4.2 * Math.max(0.35, stickMag)) : 0;
-  state.speed = THREE.MathUtils.lerp(state.speed, want, Math.min(1, dt * 7));
+  // speeding up follows the (capped) frame step; slowing down follows real time, so letting go
+  // stops you just as quickly on a slow device as a fast one
+  state.speed = THREE.MathUtils.lerp(state.speed, want, want === 0 && state.speed > want ? 1 - Math.exp(-7 * rawDt) : Math.min(1, dt * 7));
   if (moving) {
     let diff = Math.atan2(dir.x, dir.y) - state.heading;
     diff = Math.atan2(Math.sin(diff), Math.cos(diff));
@@ -1569,9 +1571,10 @@ let elapsed = 0;
 let mapDrawn = 0;
 function frame() {
   timer.update();
-  const dt = Math.min(timer.getDelta(), 0.05);
+  const rawDt = timer.getDelta();
+  const dt = Math.min(rawDt, 0.05);
   const t = (elapsed = timer.getElapsed());
-  movePlayer(dt);
+  movePlayer(dt, rawDt);
   village.update(t, dt);
   village.creatures.update(t, dt, { state, player, ui, npcs: village.npcs, respawn: () => travelTo('hq') });
   grassWind.uTime.value = t;
