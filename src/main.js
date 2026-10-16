@@ -22,7 +22,7 @@ import { createDayNight } from './daynight.js';
 import { buildVillage, playerPos, setSolids, Walker } from './village.js';
 import { makePerson, animate, hit } from './characters.js';
 import { createUI } from './ui.js';
-import { makeSignPair } from './jaipur.js';
+import { placeSignPairs } from './signpairs.js';
 import { AMBIENT_TALKERS } from './ambient/scene.js';
 import { createRide } from './ride.js';
 import { buildStory } from './story.js';
@@ -293,60 +293,22 @@ declutter(outdoor, clutter, { merge: false });
 const gallery = buildGallery(outdoor, { colliders, lamps: lampSpots, clickables: village.clickables, layout: galleryLayout.filter((it) => it.type === 'hill'), solve: new URLSearchParams(location.search).has('solve') });
 declutter(outdoor, clutter);
 // every walking villager now routes round (and is kept out of) the island's solid footprints
-// Each place's two signs: one with what I believe about working there, one with the place's
-// name, standing one each side of the road just outside its gate, boards running along the road
-// so they read as you walk in or out. Same copy on both faces of each.
-{
-  const T = THREE;
-  const spokeHalf = 2.3;
-  const laneHalf = 1.35;
-  const entries = [];
-  // departments: out along the spoke, past the gateway and its lanterns
-  for (const h of DEPARTMENTS) {
+// each place's two signs (belief, name), one each side of the road just outside its gate
+placeSignPairs(outdoor, {
+  departments: DEPARTMENTS,
+  // a department's road runs from its gateway towards the tree: 23 m out from its centre
+  deptEntrance: (h) => {
     const g = outdoor.getObjectByName('hamlet:' + h.id);
-    if (!g) continue;
+    if (!g) return null;
     g.updateMatrixWorld(true);
-    const e = new T.Vector3(0, 0, 23).applyMatrix4(g.matrixWorld);
-    const o = new T.Vector3(0, 0, 0).applyMatrix4(g.matrixWorld);
-    const u = e.clone().sub(o).setY(0).normalize();
-    entries.push({ place: h, e, u, half: spokeHalf });
-  }
-  // the places on lanes: out along the lane from their gate
-  for (const [place, out] of [[AIHUB, 13], [HALL, 13], [HOME, 13], [FUN, 13], [LAB, 9.5]]) {
-    const f = place.facing ?? Math.atan2(-place.x, -place.z);
-    const u = new T.Vector3(Math.sin(f), 0, Math.cos(f));
-    entries.push({ place, e: new T.Vector3(place.x, 0, place.z).addScaledVector(u, out), u, half: laneHalf });
-  }
-  // the tree: on the spoke that faces where you arrive
-  {
-    const h = [...HAMLETS].sort((a, b) => Math.sin(b.angle) - Math.sin(a.angle))[0];
-    const u = new T.Vector3(Math.cos(h.angle), 0, Math.sin(h.angle));
-    entries.push({ place: CENTER, e: u.clone().multiplyScalar(15.5), u, half: spokeHalf });
-  }
-  for (const { place, e, u, half } of entries) {
-    if (!BELIEFS[place.id]) continue;
-    const n = new T.Vector3(-u.z, 0, u.x); // across the road
-    const off = half + 1.7;
-    // step further out if a street lamp stands where a sign would
-    for (let k = 0; k < 5; k++) {
-      const clash = lampSpots.some((l) => [1, -1].some((side) => Math.hypot(l.x - (e.x + n.x * off * side), l.z - (e.z + n.z * off * side)) < 2.4));
-      if (!clash) break;
-      e.addScaledVector(u, 2.2);
-    }
-    const pair = makeSignPair(place, BELIEFS[place.id]);
-    const rot = Math.atan2(-u.z, u.x); // the board's width runs along the road
-    [[pair.belief, -1], [pair.name, 1]].forEach(([sign, side]) => {
-      const x = e.x + n.x * off * side;
-      const z = e.z + n.z * off * side;
-      const p1 = [x + u.x * 1.71, z + u.z * 1.71];
-      const p2 = [x - u.x * 1.71, z - u.z * 1.71];
-      sign.position.set(x, Math.min(groundAt(...p1), groundAt(...p2), groundAt(x, z)) - 0.05, z);
-      sign.rotation.y = rot;
-      outdoor.add(sign);
-      for (const [cx, cz] of [p1, p2, [x, z]]) colliders.push({ x: cx, z: cz, r: 0.4 });
-    });
-  }
-}
+    const e = new THREE.Vector3(0, 0, 23).applyMatrix4(g.matrixWorld);
+    const o = new THREE.Vector3(0, 0, 0).applyMatrix4(g.matrixWorld);
+    return { e, u: e.clone().sub(o).setY(0).normalize() };
+  },
+  groundAt,
+  lamps: lampSpots,
+  colliders,
+});
 
 setSolids(colliders);
 

@@ -10,6 +10,7 @@ import * as THREE from 'three';
 import { makePerson, animate } from '../characters.js';
 import { buildSocialStudio, buildBrandShoot, buildLaunchCentre, buildMentorStudio } from '../ambient/departments.js';
 import { AMBIENT_TALKERS } from '../ambient/scene.js';
+import { onPhone } from '../loadplan.js';
 
 const rng = (seed) => () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
 
@@ -39,7 +40,7 @@ export function buildExtras(scene, { PATHS, PLACES, POND, coastR, lite = false }
   const col = new THREE.Color();
 
   // ---------- the meadow ----------
-  const GRASS = lite ? 4000 : 9000;
+  const GRASS = !onPhone('meadow') ? 0 : lite ? 4000 : 9000;
   const blade = new THREE.ConeGeometry(0.06, 0.42, 3);
   blade.translate(0, 0.21, 0);
   const grass = new THREE.InstancedMesh(blade, new THREE.MeshLambertMaterial({ color: '#ffffff' }), GRASS);
@@ -58,7 +59,7 @@ export function buildExtras(scene, { PATHS, PLACES, POND, coastR, lite = false }
   grass.count = n;
   scene.add(grass);
 
-  const FLOWERS = lite ? 900 : 2000;
+  const FLOWERS = !onPhone('meadow') ? 0 : lite ? 900 : 2000;
   const PALETTE = ['#ff6fa3', '#ffd34d', '#b28cff', '#ffffff', '#ff7a4d', '#7fd2ff'];
   const head = new THREE.IcosahedronGeometry(0.2, 0);
   head.translate(0, 0.55, 0);
@@ -81,7 +82,7 @@ export function buildExtras(scene, { PATHS, PLACES, POND, coastR, lite = false }
 
   // ---------- lamps along the spokes ----------
   const lampSpots = [];
-  for (const [ax, az, bx, bz, half, kind] of PATHS) {
+  for (const [ax, az, bx, bz, half, kind] of onPhone('lamps') ? PATHS : []) {
     if (kind !== 'spoke') continue;
     const len = Math.hypot(bx - ax, bz - az);
     const ux = (bx - ax) / len;
@@ -119,7 +120,7 @@ export function buildExtras(scene, { PATHS, PLACES, POND, coastR, lite = false }
   kiteShape.lineTo(-0.65, 0);
   kiteShape.closePath();
   const kiteGeo = new THREE.ShapeGeometry(kiteShape);
-  for (let k = 0; k < 8; k++) {
+  for (let k = 0; k < (onPhone('kites') ? 8 : 0); k++) {
     const a = (k / 8) * Math.PI * 2 + rnd();
     const r = 18 + rnd() * 30;
     const anchor = new THREE.Vector3(Math.cos(a) * (r * 0.4), 0.5, Math.sin(a) * (r * 0.4));
@@ -132,7 +133,7 @@ export function buildExtras(scene, { PATHS, PLACES, POND, coastR, lite = false }
   }
   const clouds = [];
   const cloudMat = new THREE.MeshLambertMaterial({ color: '#ffffff', flatShading: true, transparent: true, opacity: 0.92 });
-  for (let k = 0; k < 7; k++) {
+  for (let k = 0; k < (onPhone('clouds') ? 7 : 0); k++) {
     const g = new THREE.Group();
     for (let j = 0; j < 4; j++) {
       const m = new THREE.Mesh(new THREE.IcosahedronGeometry(4 + rnd() * 4, 0), cloudMat);
@@ -149,7 +150,7 @@ export function buildExtras(scene, { PATHS, PLACES, POND, coastR, lite = false }
   // ---------- villagers on the roads ----------
   const walkers = [];
   const roads = PATHS.filter((s) => s[5] !== 'lane');
-  const WALKERS = lite ? 8 : 14;
+  const WALKERS = !onPhone('villagers') ? 0 : lite ? 8 : 14;
   for (let k = 0; k < WALKERS; k++) {
     const p = makePerson({ seed: (k * 0.137 + 0.21) % 1, accent: PLACES[1 + (k % (PLACES.length - 1))].color });
     const seg = roads[Math.floor(rnd() * roads.length)];
@@ -176,7 +177,7 @@ export function buildExtras(scene, { PATHS, PLACES, POND, coastR, lite = false }
   // ---------- the departments' own scenes, streamed ----------
   const BUILDERS = { brand: buildBrandShoot, pmm: buildLaunchCentre, social: buildSocialStudio, mentorship: buildMentorStudio };
   const streamPos = new THREE.Vector3(1e6, 0, 1e6);
-  const streamed = PLACES.filter((p) => BUILDERS[p.id]).map((p) => ({ p, g: null, updaters: [], solids: [] }));
+  const streamed = PLACES.filter((p) => BUILDERS[p.id] && onPhone('dept-scenes')).map((p) => ({ p, g: null, updaters: [], solids: [] }));
   let busy = false;
   function load(s) {
     const g = new THREE.Group();
@@ -233,6 +234,7 @@ export function buildExtras(scene, { PATHS, PLACES, POND, coastR, lite = false }
   let solidsCache = solidsNow();
 
   return {
+    lamps: lampSpots.map(([x, z]) => ({ x, z })),
     get solids() {
       return solidsCache;
     },

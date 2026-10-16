@@ -14,13 +14,17 @@ import { startAudio, sfx, updateAudio } from '../audio.js';
 import '../style.css';
 import '../theme.css';
 import '../mobile.css';
-import { OWNER, PILLARS, PROJECTS, AWARDS, CONTACT, FAVOURITES, TOOLS, AWARD_LIST, CAREERS } from '../data.js';
+import { OWNER, PILLARS, PROJECTS, AWARDS, CONTACT, FAVOURITES, TOOLS, AWARD_LIST, CAREERS, NPC_TALK } from '../data.js';
+import { onPhone } from '../loadplan.js';
+import { makePillar } from '../pillars.js';
+import { placeSignPairs } from '../signpairs.js';
 import { PLACES, PATHS, POND, coastR } from './layout.js';
 import { makePerson, animate } from '../characters.js';
 import { createUI } from '../ui.js';
 import { createQuest } from '../quest.js';
 import { createMapView } from '../mapview.js';
 import { buildExtras } from './extras.js';
+import { mergeByMaterial } from './merge.js';
 import { isTouch, stick, initTouch, goLandscape, resetStick } from '../touch.js';
 
 document.body.classList.add('is-mini');
@@ -268,13 +272,13 @@ for (const p of PLACES) {
 
 // ---------- The guides: one person at each team, who talks as you pass ----------
 const guides = [];
-for (const p of PLACES.filter((q) => q.reach === 22)) {
+for (const p of onPhone('guides') ? PLACES.filter((q) => q.reach === 22) : []) {
   const g = makePerson({ seed: (Math.abs(p.x * 0.013 + p.z * 0.007) + 0.37) % 1, accent: p.color });
   const a = facingTree(p);
   g.root.position.set(p.x + Math.sin(a) * 11 + Math.cos(a) * 5, 0, p.z + Math.cos(a) * 11 - Math.sin(a) * 5);
   g.root.rotation.y = a;
   scene.add(g.root);
-  guides.push({ p: g, place: p, lines: p.quotes || [] });
+  guides.push({ p: g, place: p, lines: p.quotes || [], asks: NPC_TALK[p.id]?.asks || [] });
   solids.push([g.root.position.x, g.root.position.z, 0.5]);
 }
 
@@ -282,9 +286,43 @@ for (const p of PLACES.filter((q) => q.reach === 22)) {
 await step('Planting the meadow', 0.45);
 const extras = buildExtras(scene, { PATHS, PLACES, POND, coastR, lite: Math.min(screen.width, screen.height) < 380 });
 
+// ---------- The sculptures round the tree, and each place's pair of signs at its gate ----------
+const pillarAnim = [];
+const stones = [];
+if (onPhone('sculptures'))
+  PILLARS.forEach((pl, k) => {
+    const a = THREE.MathUtils.degToRad(-120 + 36 + k * 72);
+    const x = Math.cos(a) * 9.8;
+    const z = Math.sin(a) * 9.8 - 2; // round the tree, which stands a little back
+    const s = makePillar(pl, pillarAnim);
+    s.position.set(x, 0, z);
+    s.rotation.y = Math.atan2(-x, -(z + 2)); // facing the tree, its name tag on the tree side
+    scene.add(s);
+    solids.push([x, z, 1.4]);
+    stones.push({ pillar: pl, x, z });
+  });
+if (onPhone('signs')) {
+  const cols = [];
+  // built apart, then baked into a few meshes: 22 boards of ~30 parts each would cost the phone
+  // 600+ draw calls
+  const signGroup = new THREE.Group();
+  placeSignPairs(signGroup, {
+    departments: PLACES.filter((q) => q.reach === 22),
+    // the light island's gate stands 13.5 m out: the signs a little past it, towards the tree
+    deptEntrance: (h) => {
+      const u = new THREE.Vector3(-h.x, 0, -h.z).normalize();
+      return { e: new THREE.Vector3(h.x, 0, h.z).addScaledVector(u, 20), u };
+    },
+    lamps: extras.lamps,
+    colliders: cols,
+  });
+  scene.add(mergeByMaterial(signGroup));
+  for (const c of cols) solids.push([c.x, c.z, c.r]);
+}
+
 // ---------- Trophies and the hidden places ----------
 const trophyMeshes = [];
-AWARDS.forEach((aw, k) => {
+(onPhone('trophies') ? AWARDS : []).forEach((aw, k) => {
   // between the departments, a little off the ring road
   const a = -Math.PI / 2 + ((k + 0.5) / 6) * Math.PI * 2 + 0.6;
   const r = 52;
@@ -297,7 +335,7 @@ AWARDS.forEach((aw, k) => {
   scene.add(g);
   trophyMeshes.push({ g, award: aw, taken: false });
 });
-const HIDDEN = Object.values(CAREERS).map((c, k) => {
+const HIDDEN = (onPhone('hidden') ? Object.values(CAREERS) : []).map((c, k) => {
   const a = k ? 2.4 : -0.9;
   const r = coastR(a) - 22;
   const x = Math.cos(a) * r;
@@ -641,6 +679,7 @@ function move(dt) {
   }
 }
 
+let lastStone = null;
 function proximity(t) {
   if (state.mode !== 'walk') {
     ui.prompt(null);
@@ -684,6 +723,13 @@ function proximity(t) {
   }
   nearThing = best;
   ui.prompt(best);
+  // the sculptures round the tree: stand by one to read it
+  let stone = null;
+  for (const st of stones) if (Math.hypot(state.pos.x - st.x, state.pos.z - st.z) < 2.8) stone = st;
+  if (stone !== lastStone) {
+    lastStone = stone;
+    if (stone) ui.toast(`<b>${stone.pillar.rune} ${stone.pillar.name}</b><br>${stone.pillar.text}`, 6000);
+  }
   // trophies
   for (const tr of trophyMeshes) {
     if (tr.taken) continue;
@@ -699,9 +745,13 @@ function proximity(t) {
   let say = null;
   for (const g of guides) {
     const d = g.p.root.position.distanceTo(state.pos);
-    if (d < 7 && g.lines.length) {
+    if (d < 7 && (g.lines.length || g.asks.length)) {
       v.copy(g.p.root.position).setY(2.3).project(camera);
-      if (v.z < 1) say = { name: `${g.place.name} lead`, text: g.lines[Math.floor(t / 6) % g.lines.length], color: g.place.color, x: (v.x * 0.5 + 0.5) * innerWidth, y: (-v.y * 0.5 + 0.5) * innerHeight };
+      // a line about the team, then a work question for you, turn about
+      const turn = Math.floor(t / 6);
+      const asking = g.asks.length && (turn % 2 === 1 || !g.lines.length);
+      const pool = asking ? g.asks : g.lines;
+      if (v.z < 1) say = { name: asking ? `${g.place.name} lead asks you` : `${g.place.name} lead`, text: pool[Math.floor(turn / 2) % pool.length], color: g.place.color, x: (v.x * 0.5 + 0.5) * innerWidth, y: (-v.y * 0.5 + 0.5) * innerHeight };
     }
   }
   ui.speech(say);
@@ -750,12 +800,19 @@ function frame() {
     camPos.set(state.pos.x + Math.sin(state.yaw) * c.dist, c.height, state.pos.z + Math.cos(state.yaw) * c.dist);
     look.set(state.pos.x, 1.5, state.pos.z);
   }
+  // a fixed shot, for screenshots and debugging: __shire.state.shot = { pos: [x, y, z], look: [x, y, z] }
+  if (state.shot) {
+    camPos.fromArray(state.shot.pos);
+    look.fromArray(state.shot.look);
+    snap = true;
+  }
   if (snap) {
     camera.position.copy(camPos);
     snap = false;
   } else camera.position.lerp(camPos, Math.min(1, dt * (state.mode === 'intro' ? 1 : 6)));
   camera.lookAt(look);
 
+  for (const f of pillarAnim) f(t);
   extras.update(t, dt, state.mode === 'intro' ? camera.position : state.pos, state.mode !== 'intro');
   proximity(t);
   labels();

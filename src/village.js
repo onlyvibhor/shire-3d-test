@@ -1296,11 +1296,9 @@ function buildCentre(scene, ctx) {
     const z = Math.sin(a) * 9.8;
     const s = makePillar(p, pillarAnim);
     s.position.set(x, groundAt(x, z) - y0 - 0.05, z);
-    s.rotation.y = Math.atan2(x, z); // plaque faces out, toward the roads
+    s.rotation.y = Math.atan2(-x, -z); // facing the tree, its name tag on the tree side
     g.add(s);
     collider(g, 1.4, x, z);
-    // the plaque in front of it is solid too
-    collider(g, 0.7, x + Math.sin(Math.atan2(x, z)) * 1.85, z + Math.cos(Math.atan2(x, z)) * 1.85);
     ctx.stones.push({ pillar: p, x, z });
   });
 

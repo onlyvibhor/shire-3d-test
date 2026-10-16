@@ -1,7 +1,7 @@
 // The five pillars round the jamun tree, each shaped like its own idea:
 // Make it better (a rough stack refined into a gem), Award-winning (a trophy column),
 // Scale (one cube multiplying as it rises), Automate (turning gears and a conveyor),
-// Innovate (a spiral climbing to a light bulb). Each carries a clear name plaque.
+// Innovate (a spiral climbing to a light bulb). Each faces the tree, its name on a tag under it.
 import * as THREE from 'three';
 import { WHITE_METAL, CHROME, GOLD, CONCRETE, solid, glow, mesh, canvasTexture } from './materials.js';
 import { fillFit } from './type.js';
@@ -14,57 +14,37 @@ export const PILLAR_STYLE = {
   innovate: { color: '#a26bff', icon: '✺' },
 };
 
-// A plaque at eye level: the idea's name, big and plain, with its one-line proof underneath.
-function plaque(p, color) {
-  const tex = canvasTexture(768, 300, (c, w, h) => {
-    c.fillStyle = '#0f172a';
-    c.fillRect(0, 0, w, h);
-    c.fillStyle = color;
-    c.fillRect(0, 0, 16, h);
-    c.font = '700 88px "Bricolage Grotesque", Inter, sans-serif';
-    c.fillStyle = color;
-    c.textBaseline = 'middle';
-    c.fillText(PILLAR_STYLE[p.id].icon, 52, 92);
-    c.fillStyle = '#ffffff';
-    c.font = '800 72px "Bricolage Grotesque", Inter, sans-serif';
-    fillFit(c, p.name, 150, 96, w - 180);
-    c.fillStyle = 'rgba(226,234,255,0.82)';
-    c.font = '500 30px Inter, sans-serif';
-    // wrap the proof line onto two lines
-    const words = p.text.split(' ');
-    let line = '';
-    let y = 188;
-    for (const word of words) {
-      const test = line ? `${line} ${word}` : word;
-      if (c.measureText(test).width > w - 90 && line) {
-        c.fillText(line, 52, y);
-        line = word;
-        y += 42;
-        if (y > 240) break;
-      } else line = test;
-    }
-    if (y <= 240) c.fillText(line, 52, y);
-  });
-  const g = new THREE.Group();
-  const mat = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false });
-  for (const side of [1, -1]) {
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 0.78), mat);
-    m.position.z = side * 0.06;
-    if (side < 0) m.rotation.y = Math.PI;
-    m.userData.dynamic = true;
-    g.add(m);
-  }
-  g.add(mesh(new THREE.BoxGeometry(2.1, 0.86, 0.1), solid('#0b1020', { roughness: 0.6 }), 0, 0, 0, false));
-  for (const x of [-0.75, 0.75]) g.add(mesh(new THREE.BoxGeometry(0.08, 0.75, 0.08), CHROME, x, -0.76, 0));
-  return g;
-}
-
-// A shared plinth so all five read as a set
 function plinth(color) {
   const g = new THREE.Group();
   g.add(mesh(new THREE.CylinderGeometry(1.35, 1.5, 0.35, 8), CONCRETE, 0, 0.17, 0));
   g.add(mesh(new THREE.CylinderGeometry(1.36, 1.36, 0.06, 8), glow(color, 1.1), 0, 0.37, 0, false));
+  // turned an eighth so a flat face looks straight ahead, where the name tag goes
+  g.rotation.y = Math.PI / 8;
   return g;
+}
+
+// The name tag on the plinth's front face, right under the sculpture: its mark and its name
+function tag(p, color) {
+  const tex = canvasTexture(640, 176, (c, w, h) => {
+    c.fillStyle = '#0f172a';
+    c.fillRect(0, 0, w, h);
+    c.fillStyle = color;
+    c.fillRect(0, h - 12, w, 12);
+    c.textBaseline = 'middle';
+    c.font = '700 84px "Bricolage Grotesque", Inter, sans-serif';
+    c.fillStyle = color;
+    c.fillText(PILLAR_STYLE[p.id].icon, 34, h / 2 - 4);
+    c.fillStyle = '#ffffff';
+    c.font = '800 70px "Bricolage Grotesque", Inter, sans-serif';
+    fillFit(c, p.name, 130, h / 2 - 2, w - 160);
+  });
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.275), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
+  // the plinth's front face leans back a little, and the tag lies on it
+  m.position.set(0, 0.18, 1.335);
+  m.rotation.x = -0.38;
+  m.userData.dynamic = true; // keep it its own mesh (and out of the ground fit)
+  m.userData.noFit = true;
+  return m;
 }
 
 // ---------- Make it better: rough at the base, refined at the top ----------
@@ -287,13 +267,8 @@ export function makePillar(p, anim) {
   g.name = 'pillar';
   g.add(plinth(st.color));
   g.add((BUILD[p.id] || better)(st.color, anim));
-  const pl = plaque(p, st.color);
-  // right in front of the sculpture and square to the path, low enough that the sculpture reads
-  // above it, its legs standing on the ground
-  pl.position.set(0, 1.0, 1.85);
-  pl.rotation.set(-0.12, 0, 0);
-  pl.scale.setScalar(0.95);
-  g.add(pl);
+  // its name on a tag right under it, on the face that looks at the tree
+  g.add(tag(p, st.color));
   g.traverse((o) => {
     if (o.isMesh) o.castShadow = true;
   });
