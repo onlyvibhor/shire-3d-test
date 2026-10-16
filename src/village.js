@@ -261,7 +261,7 @@ export class Walker {
     };
     _lp.copy(playerPos);
     parent.worldToLocal(_lp);
-    push(_lp.x, _lp.z, 0.45);
+    push(_lp.x, _lp.z, 0.95); // a wide berth for the player: passing close would jostle them
     for (const w of Walker.all) {
       if (w === this) continue;
       const o = w.p.root;
