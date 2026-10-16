@@ -197,12 +197,12 @@ export class Walker {
     const dx = tx - root.position.x;
     const dz = tz - root.position.z;
     const d = Math.hypot(dx, dz);
-    // wait politely only if the player is right on top of them; otherwise step round
+    // wait politely if the player is right in front; further off, they step round (avoid)
     root.getWorldPosition(_wp);
     const px = playerPos.x - _wp.x;
     const pz = playerPos.z - _wp.z;
     const pd = Math.hypot(px, pz);
-    if (pd < 0.8 && Math.abs(playerPos.y - _wp.y) < 1.5 && Math.sin(root.rotation.y + root.parent.rotation.y) * px + Math.cos(root.rotation.y + root.parent.rotation.y) * pz > 0.2) {
+    if (pd < 1.1 && Math.abs(playerPos.y - _wp.y) < 1.5 && Math.sin(root.rotation.y + root.parent.rotation.y) * px + Math.cos(root.rotation.y + root.parent.rotation.y) * pz > 0.2) {
       animate(this.p, this.action === 'walk' || this.action === 'carry' ? 'idle' : this.action, t, 0);
       return;
     }
