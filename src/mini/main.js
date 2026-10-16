@@ -20,6 +20,7 @@ import { makePerson, animate } from '../characters.js';
 import { createUI } from '../ui.js';
 import { createQuest } from '../quest.js';
 import { createMapView } from '../mapview.js';
+import { buildExtras } from './extras.js';
 import { isTouch, stick, initTouch, goLandscape, resetStick } from '../touch.js';
 
 document.body.classList.add('is-mini');
@@ -181,6 +182,7 @@ function gate(p, r) {
   g.add(mesh(new THREE.BoxGeometry(8, 0.9, 1), c, 0, 5.2, 0));
   g.add(mesh(new THREE.BoxGeometry(6, 0.18, 0.2), mat('#ffffff'), 0, 4.6, 0.5));
   scene.add(g);
+  landmarks.push({ mesh: g, place: p });
   const gx = g.position.x;
   const gz = g.position.z;
   solids.push([gx + Math.cos(a) * 3.2, gz - Math.sin(a) * 3.2, 0.7], [gx - Math.cos(a) * 3.2, gz + Math.sin(a) * 3.2, 0.7]);
@@ -234,14 +236,11 @@ for (const p of PLACES) {
   }
   const dept = p.reach === 22;
   if (dept) {
-    plaza(p, 11);
-    gate(p, 11.5);
-    arcOfBoards(p, p.projects.slice(0, 5), 9.5, 2.0);
-    // the gate stands on the tree side; a small sign post in the middle marks the team
-    const post = mesh(new THREE.CylinderGeometry(0.5, 0.6, 1.4, 12), mat(p.color), p.x, 0.7, p.z);
-    scene.add(post);
-    landmarks.push({ mesh: post, place: p });
-    solids.push([p.x, p.z, 0.8]);
+    // the plaza's middle is kept clear for the team's production scene (streamed in as you come
+    // near, see extras.js); the gate faces the tree and the work stands round the back
+    plaza(p, 12);
+    gate(p, 13.5);
+    arcOfBoards(p, p.projects.slice(0, 6), 16, 2.3);
   } else {
     plaza(p, p.id === 'lab' ? 7 : 9);
     if (p.id === 'ai') {
@@ -272,12 +271,16 @@ const guides = [];
 for (const p of PLACES.filter((q) => q.reach === 22)) {
   const g = makePerson({ seed: (Math.abs(p.x * 0.013 + p.z * 0.007) + 0.37) % 1, accent: p.color });
   const a = facingTree(p);
-  g.root.position.set(p.x + Math.sin(a) * 4 + Math.cos(a) * 2.5, 0, p.z + Math.cos(a) * 4 - Math.sin(a) * 2.5);
+  g.root.position.set(p.x + Math.sin(a) * 11 + Math.cos(a) * 5, 0, p.z + Math.cos(a) * 11 - Math.sin(a) * 5);
   g.root.rotation.y = a;
   scene.add(g.root);
   guides.push({ p: g, place: p, lines: p.quotes || [] });
   solids.push([g.root.position.x, g.root.position.z, 0.5]);
 }
+
+// ---------- More of the full island: meadow, lamps, kites, villagers, the teams at work ----------
+await step('Planting the meadow', 0.45);
+const extras = buildExtras(scene, { PATHS, PLACES, POND, coastR, lite: Math.min(screen.width, screen.height) < 380 });
 
 // ---------- Trophies and the hidden places ----------
 const trophyMeshes = [];
@@ -412,7 +415,7 @@ function setMode(mode) {
 function placeFront(p) {
   if (p.id === 'hq') return [0, 15];
   const a = facingTree(p);
-  const back = p.reach === 22 ? 15 : p.id === 'lab' ? 9 : 13;
+  const back = p.reach === 22 ? 19 : p.id === 'lab' ? 9 : 13;
   return [p.x + Math.sin(a) * back, p.z + Math.cos(a) * back];
 }
 function teleport(x, z, lookX, lookZ) {
@@ -458,6 +461,7 @@ function applyTime() {
   sun.intensity = t.id === 'night' ? 0.25 : t.id === 'sunset' ? 1.2 : 1.7;
   sun.color.set(t.id === 'sunset' ? '#ffb27a' : t.id === 'night' ? '#9fb4ff' : '#fff4e0');
   state.night = t.id === 'night' ? 1 : 0;
+  extras.setNight(state.night);
   const h = Math.floor(t.hour);
   ui.setClock(`${String(h).padStart(2, '0')}:${String(Math.round((t.hour - h) * 60)).padStart(2, '0')}`, t.hour);
 }
@@ -625,7 +629,7 @@ function move(dt) {
   const r = Math.hypot(state.pos.x, state.pos.z);
   const edge = coastR(a) - 9;
   if (r > edge) state.pos.multiplyScalar(edge / r);
-  for (const [x, z, rr] of solids) {
+  for (const [x, z, rr] of solids.concat(extras.solids)) {
     const dx = state.pos.x - x;
     const dz = state.pos.z - z;
     const d = Math.hypot(dx, dz);
@@ -752,6 +756,7 @@ function frame() {
   } else camera.position.lerp(camPos, Math.min(1, dt * (state.mode === 'intro' ? 1 : 6)));
   camera.lookAt(look);
 
+  extras.update(t, dt, state.mode === 'intro' ? camera.position : state.pos, state.mode !== 'intro');
   proximity(t);
   labels();
   quest.update(t, dt, { pos: state.pos, indoorId: null, mode: state.mode, blocked: modalNow });
