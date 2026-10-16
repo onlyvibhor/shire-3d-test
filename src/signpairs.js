@@ -16,7 +16,7 @@ export function placeSignPairs(parent, { departments, deptEntrance, groundAt = (
     if (en) entries.push({ place: h, ...en, half: SPOKE_HALF });
   }
   // the places on lanes: out along the lane from their gate
-  for (const [place, out] of [[AIHUB, 13], [HALL, 13], [HOME, 13], [FUN, 13], [LAB, 9.5]]) {
+  for (const [place, out] of [[AIHUB, 13], [HALL, 13], [HOME, 13], [FUN, 13]]) {
     const f = place.facing ?? Math.atan2(-place.x, -place.z);
     const u = new THREE.Vector3(Math.sin(f), 0, Math.cos(f));
     entries.push({ place, e: new THREE.Vector3(place.x, 0, place.z).addScaledVector(u, out), u, half: LANE_HALF });
@@ -28,6 +28,25 @@ export function placeSignPairs(parent, { departments, deptEntrance, groundAt = (
     entries.push({ place: CENTER, e: u.clone().multiplyScalar(15.5), u, half: SPOKE_HALF });
   }
   const placed = [];
+  // the Night Lab has no gate: its two signs stand on the grass at the edge of the ring stage,
+  // either side of the way in from the tree, boards following the ring and facing you as you come
+  if (BELIEFS[LAB.id]) {
+    const r = Math.atan2(-LAB.x, -LAB.z) + Math.PI; // the stage's frame: +z towards the pond
+    const local = (x, z) => new THREE.Vector3(LAB.x + x * Math.cos(r) + z * Math.sin(r), 0, LAB.z - x * Math.sin(r) + z * Math.cos(r));
+    const pair = makeSignPair(LAB, BELIEFS[LAB.id]);
+    [[pair.belief, -1], [pair.name, 1]].forEach(([sign, side]) => {
+      const a = THREE.MathUtils.degToRad(side * 146);
+      const c = local(Math.sin(a) * 9.3, 0.6 + Math.cos(a) * 9.3);
+      const t = local(Math.cos(a), 0.6 - Math.sin(a)).sub(local(0, 0.6)); // along the ring
+      const p1 = [c.x + t.x * 1.71, c.z + t.z * 1.71];
+      const p2 = [c.x - t.x * 1.71, c.z - t.z * 1.71];
+      sign.position.set(c.x, Math.min(groundAt(...p1), groundAt(...p2), groundAt(c.x, c.z)) - 0.05, c.z);
+      sign.rotation.y = Math.atan2(-t.z, t.x);
+      parent.add(sign);
+      for (const [cx, cz] of [p1, p2, [c.x, c.z]]) colliders.push({ x: cx, z: cz, r: 0.4 });
+      placed.push(sign);
+    });
+  }
   for (const { place, e, u, half } of entries) {
     if (!BELIEFS[place.id]) continue;
     const n = new THREE.Vector3(-u.z, 0, u.x); // across the road

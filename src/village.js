@@ -1295,7 +1295,11 @@ function buildCentre(scene, ctx) {
     const x = Math.cos(a) * 9.8;
     const z = Math.sin(a) * 9.8;
     const s = makePillar(p, pillarAnim);
-    s.position.set(x, groundAt(x, z) - y0 - 0.05, z);
+    // on the highest ground under the plinth, so no side of it (or its tag) sinks into a slope;
+    // the plinth's skirt runs down into the lower side
+    let hi = groundAt(x, z);
+    for (let k = 0; k < 12; k++) hi = Math.max(hi, groundAt(x + Math.cos((k / 12) * Math.PI * 2) * 1.55, z + Math.sin((k / 12) * Math.PI * 2) * 1.55));
+    s.position.set(x, hi - y0 - 0.02, z);
     s.rotation.y = Math.atan2(-x, -z); // facing the tree, its name tag on the tree side
     g.add(s);
     collider(g, 1.4, x, z);

@@ -1,14 +1,15 @@
 // Two hidden places, off every path: the Grofers years in the woods (an orange pavilion with a
-// giant grocery bag on its roof) and the Razorpay years by the sea (a
-// white pavilion with a giant ₹ coin turning above it). Each is an open ring of columns with that
+// giant grocery bag on its roof, the Grofers logo turning above) and the Razorpay years by the sea
+// (a white pavilion with the Razorpay logo turning above it). Each is an open ring of columns with that
 // era's work on screens inside, a signboard, and a career sheet you open at its centre.
 import * as THREE from 'three';
 import manifest from './content/billboards.json';
 import { CAREERS, PROJECTS } from './data.js';
 import { groundAt, coastR, SEA_LEVEL } from './world.js';
-import { WHITE_METAL, GOLD, solid, glow, mesh, canvasTexture } from './materials.js';
+import { WHITE_METAL, solid, glow, mesh, canvasTexture } from './materials.js';
 import { makeSignboard, makeChhatri, INDIGO, PINK } from './jaipur.js';
 import { FONT, fit, fitWrap, projectPlateTexture } from './type.js';
+import { razorpayLogo, grofersLogo } from './logo3d.js';
 
 const loader = new THREE.TextureLoader();
 const LITE = new URLSearchParams(location.search).has('lite') || matchMedia('(hover: none)').matches;
@@ -242,74 +243,28 @@ function buildGrofers(clickables) {
   gourd.position.set(-7.6, 0, -4.8);
   gourd.userData.onGround = true;
   g.add(gourd);
-  return { g, career: C, colliders: [[-8.6, 3.4, 0.8], [8.4, 2.8, 1.2], [-7.6, -4.8, 1.0]] };
+  // the Grofers logo, from the brand artwork, turning slowly above the bag
+  const logo = grofersLogo(8.5);
+  logo.userData.baseY = 13.4;
+  logo.position.y = logo.userData.baseY;
+  g.add(logo);
+  return { g, career: C, coin: logo, colliders: [[-8.6, 3.4, 0.8], [8.4, 2.8, 1.2], [-7.6, -4.8, 1.0]] };
 }
 
-// ---------- Razorpay: white and blue, a ₹ coin turning above ----------
-function coinFace() {
-  return canvasTexture(512, 512, (c, w, h) => {
-    const g = c.createRadialGradient(w * 0.4, h * 0.35, 20, w / 2, h / 2, w / 2);
-    g.addColorStop(0, '#ffe08a');
-    g.addColorStop(1, '#c99a2e');
-    c.fillStyle = g;
-    c.fillRect(0, 0, w, h);
-    c.strokeStyle = 'rgba(120,80,10,0.55)';
-    c.lineWidth = 10;
-    c.beginPath();
-    c.arc(w / 2, h / 2, w / 2 - 26, 0, Math.PI * 2);
-    c.stroke();
-    c.fillStyle = '#8a5f12';
-    c.textAlign = 'center';
-    c.textBaseline = 'middle';
-    // the ₹ drawn as strokes, since not every font carries the glyph
-    const rupee = (dx, dy, colour) => {
-      c.save();
-      c.translate(dx, dy);
-      c.strokeStyle = colour;
-      c.lineWidth = 30;
-      c.lineCap = 'round';
-      c.lineJoin = 'round';
-      c.beginPath();
-      c.moveTo(176, 140); c.lineTo(340, 140); // top bar
-      c.moveTo(176, 196); c.lineTo(340, 196); // second bar
-      c.moveTo(176, 140); c.lineTo(236, 140); // the bowl
-      c.bezierCurveTo(318, 140, 318, 262, 236, 262);
-      c.lineTo(180, 262);
-      c.lineTo(322, 392); // the leg
-      c.stroke();
-      c.restore();
-    };
-    rupee(6, 8, '#8a5f12');
-    rupee(0, 0, '#fff2c4');
-    c.fillStyle = '#7a520c';
-    c.font = `600 34px ${FONT.mono}`;
-    c.fillText('RAZORPAY · 2021', w / 2, h - 70);
-  });
-}
+// ---------- Razorpay: white and blue, the logo turning above ----------
 function buildRazorpay(clickables) {
   const C = CAREERS.razorpay;
   const blue = solid('#2f6bff', { roughness: 0.4, metalness: 0.2, emissive: '#2f6bff', emissiveIntensity: 0.15 });
   const g = pavilion({ career: C, columnMat: WHITE_METAL, ringMat: blue, plinthMat: solid('#eef2f7', { roughness: 0.6 }), accent: C.color, clickables });
-  // a shallow glass roof under the coin
+  // a shallow glass roof under the logo
   g.add(mesh(new THREE.CylinderGeometry(5.9, 6.3, 0.3, 48), new THREE.MeshPhysicalMaterial({ color: '#cfe6ff', roughness: 0.1, transmission: 0.4, transparent: true, opacity: 0.7 }), 0, 5.65, 0, false));
-  // the coin, upright, turning slowly
-  const coin = new THREE.Group();
-  coin.position.y = 10.2;
-  const face = coinFace();
-  // the cap's UVs turn with the disc; turn the face back upright
-  face.center.set(0.5, 0.5);
-  face.rotation = Math.PI / 2;
-  const faceMat = new THREE.MeshStandardMaterial({ map: face, roughness: 0.3, metalness: 0.6, emissive: '#6b4a10', emissiveIntensity: 0.2 });
-  const disc = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 3.2, 0.5, 64), [GOLD, faceMat, faceMat]);
-  disc.rotation.x = Math.PI / 2;
-  disc.castShadow = true;
-  coin.add(disc);
-  // reeded edge
-  const reed = new THREE.Mesh(new THREE.TorusGeometry(3.22, 0.06, 6, 96), GOLD);
-  coin.add(reed);
+  // the Razorpay logo, from the brand artwork, turning slowly above the roof
+  const coin = razorpayLogo(9);
+  coin.userData.baseY = 9.2;
+  coin.position.y = coin.userData.baseY;
   g.add(coin);
-  // a slim mast from the roof to the coin
-  g.add(mesh(new THREE.CylinderGeometry(0.12, 0.18, 1.6, 10), WHITE_METAL, 0, 6.6, 0));
+  // a slim mast from the roof to the logo
+  g.add(mesh(new THREE.CylinderGeometry(0.12, 0.18, 2.6, 10), WHITE_METAL, 0, 7.1, 0));
   return { g, career: C, coin, colliders: [] };
 }
 
@@ -394,8 +349,8 @@ export function buildHidden(scene, { colliders, interactables, clickables }) {
     spots,
     update(t) {
       for (const c of spinning) {
-        c.rotation.y = t * 0.6;
-        c.position.y = 10.2 + Math.sin(t * 1.2) * 0.25;
+        c.rotation.y = t * 0.35;
+        c.position.y = c.userData.baseY + Math.sin(t * 1.2) * 0.25;
       }
     },
   };

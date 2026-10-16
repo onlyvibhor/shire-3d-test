@@ -17,6 +17,8 @@ export const PILLAR_STYLE = {
 function plinth(color) {
   const g = new THREE.Group();
   g.add(mesh(new THREE.CylinderGeometry(1.35, 1.5, 0.35, 8), CONCRETE, 0, 0.17, 0));
+  // a skirt into the ground, for when the plinth stands on a slope
+  g.add(mesh(new THREE.CylinderGeometry(1.5, 1.56, 1.2, 8), CONCRETE, 0, -0.6, 0));
   g.add(mesh(new THREE.CylinderGeometry(1.36, 1.36, 0.06, 8), glow(color, 1.1), 0, 0.37, 0, false));
   // turned an eighth so a flat face looks straight ahead, where the name tag goes
   g.rotation.y = Math.PI / 8;

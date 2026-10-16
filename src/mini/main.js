@@ -25,6 +25,7 @@ import { createQuest } from '../quest.js';
 import { createMapView } from '../mapview.js';
 import { buildExtras } from './extras.js';
 import { mergeByMaterial } from './merge.js';
+import { razorpayLogo, grofersLogo } from '../logo3d.js';
 import { isTouch, stick, initTouch, goLandscape, resetStick } from '../touch.js';
 
 document.body.classList.add('is-mini');
@@ -342,6 +343,11 @@ const HIDDEN = (onPhone('hidden') ? Object.values(CAREERS) : []).map((c, k) => {
   const z = Math.sin(a) * r;
   house({ x, z, color: c.color, facing: Math.atan2(-x, -z) }, { roof: c.color, w: 5, d: 4.5, h: 3 });
   landmarks.pop(); // not a place: found by walking up to it
+  // the company's logo turning slowly above the roof
+  const logo = (c.id === 'razorpay' ? razorpayLogo : grofersLogo)(6);
+  logo.position.set(x, 7.6, z);
+  scene.add(logo);
+  pillarAnim.push((t) => (logo.rotation.y = t * 0.35));
   return { id: c.id, career: c, x, z };
 });
 const FOUND_KEY = 'shire-mini-found';
