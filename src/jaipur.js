@@ -1135,16 +1135,25 @@ function buildBicycles(scene, ctx) {
     for (const u of [0.25, 0.5, 0.75]) ring.push([h.x + (n.x - h.x) * u, h.z + (n.z - h.z) * u]);
     ring.push([h.x - Math.cos(h.angle) * 12, h.z - Math.sin(h.angle) * 12]);
   });
-  for (let k = 0; k < 4; k++) {
-    const p = makePerson({ seed: r(), accent: colours[k] });
+  // seven on the ring road, three more out and back along the spokes from the tree
+  const spoke = (h, lane = 1.3) => {
+    const ca = Math.cos(h.angle);
+    const sa = Math.sin(h.angle);
+    const far = Math.hypot(h.x, h.z) - 17;
+    const at = (d, side) => [ca * d - sa * side, sa * d + ca * side];
+    return [at(16, lane), at(far * 0.5, lane), at(far, lane), at(far, -lane), at(far * 0.5, -lane), at(16, -lane)];
+  };
+  for (let k = 0; k < 10; k++) {
+    const route = k < 7 ? ring : spoke(HAMLETS[(k * 2) % HAMLETS.length]);
+    const p = makePerson({ seed: r(), accent: colours[k % colours.length] });
     const bike = makeBicycle(colours[(k + 2) % colours.length]);
     bike.scale.setScalar(1 / p.root.scale.x);
     bike.position.y = 0;
     p.root.add(bike);
     p.mount = bike.userData.mount;
-    const w = new ctx.Walker(scene, p, ring, { loop: true, speed: 3.4, pause: 0.01, heightFn: walkY, action: 'cycle', idle: 'cycle' });
-    w.idx = (k * 6 + 1) % ring.length;
-    const [x, z] = ring[(k * 6) % ring.length];
+    const w = new ctx.Walker(scene, p, route, { loop: true, speed: 3.2 + (k % 3) * 0.3, pause: 0.01, heightFn: walkY, action: 'cycle', idle: 'cycle' });
+    w.idx = (k * 3 + 1) % route.length;
+    const [x, z] = route[(k * 3) % route.length];
     p.root.position.set(x, walkY(x, z), z);
     const last = new THREE.Vector3().copy(p.root.position);
     ctx.updaters.push(w, {
@@ -1156,7 +1165,7 @@ function buildBicycles(scene, ctx) {
         last.copy(p.root.position);
       },
     });
-    ctx.npcs.push({ p, dept: HAMLETS[k].id, rider: true });
+    ctx.npcs.push({ p, dept: HAMLETS[k % HAMLETS.length].id, rider: true });
   }
 }
 

@@ -1256,6 +1256,8 @@ function buildCentre(scene, ctx) {
     s.rotation.y = Math.atan2(x, z); // plaque faces out, toward the roads
     g.add(s);
     collider(g, 1.4, x, z);
+    // the plaque in front of it is solid too
+    collider(g, 0.7, x + Math.sin(Math.atan2(x, z)) * 1.85, z + Math.cos(Math.atan2(x, z)) * 1.85);
     ctx.stones.push({ pillar: p, x, z });
   });
 
@@ -2116,19 +2118,30 @@ function buildDrones(scene, ctx) {
 
 // ---------- Delivery scooters on the ring road ----------
 
+// out along a spoke from the tree towards a hamlet and back, keeping to one side each way
+export function spokeRoute(h, lane = 1.1) {
+  const ca = Math.cos(h.angle);
+  const sa = Math.sin(h.angle);
+  const far = Math.hypot(h.x, h.z) - 16;
+  const at = (d, side) => [ca * d - sa * side, sa * d + ca * side];
+  return [at(15, lane), at(far * 0.5, lane), at(far, lane), at(far, -lane), at(far * 0.5, -lane), at(15, -lane)];
+}
+
 function buildScooters(scene, ctx) {
   const r = rng(808);
   const ring = ringRoute();
-  for (let k = 0; k < 3; k++) {
+  // six on the ring road, and three more running deliveries up and down the spokes
+  for (let k = 0; k < 9; k++) {
     const h = DEPARTMENTS[k % DEPARTMENTS.length];
+    const route = k < 6 ? ring : spokeRoute(HAMLETS[(k * 2 + 1) % HAMLETS.length]);
     const p = makePerson({ seed: r(), accent: h.color, top: h.color });
     const sc = makeScooter(h.color);
     sc.scale.setScalar(1 / p.root.scale.x);
     p.root.add(sc);
     p.mount = sc.userData.mount;
-    const w = new Walker(scene, p, ring, { loop: true, speed: 7, pause: 0.05, heightFn: walkY, action: 'scoot', idle: 'scoot' });
-    w.idx = (k * 6 + 3) % ring.length;
-    const [x, z] = ring[(k * 6 + 2) % ring.length];
+    const w = new Walker(scene, p, route, { loop: true, speed: k < 6 ? 7 : 6, pause: 0.05, heightFn: walkY, action: 'scoot', idle: 'scoot' });
+    w.idx = (k * 3 + 3) % route.length;
+    const [x, z] = route[(k * 3 + 2) % route.length];
     p.root.position.set(x, groundAt(x, z), z);
     const last = new THREE.Vector3().copy(p.root.position);
     ctx.updaters.push(w, {

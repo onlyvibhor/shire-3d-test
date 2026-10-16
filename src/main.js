@@ -1226,11 +1226,12 @@ function updateNpcs(t) {
     npcPos.copy(asker.p.parts.head.getWorldPosition(npcPos));
     npcPos.y += 0.45;
     npcPos.project(camera);
+    // one line at a time, and who's talking in plain words: a named guide by name, anyone else
+    // by the team they belong to (people walk between teams, so the plaza alone doesn't say)
     const lines = asker.lines || asker.talk.asks;
     const text = lines[(asker.i + Math.floor(elapsed / 6)) % lines.length];
-    const th = asker.thoughts || asker.talk.thoughts;
-    const thought = th ? th[(asker.i * 3 + Math.floor(elapsed / 8)) % th.length] : '';
-    if (npcPos.z < 1) ui.speech({ text, thought, name: `${asker.role}${asker.deptName && !asker.lines ? ' · ' + asker.deptName : ''}`, color: asker.color, x: (npcPos.x * 0.5 + 0.5) * innerWidth, y: (-npcPos.y * 0.5 + 0.5) * innerHeight });
+    const name = asker.lines ? asker.role : asker.deptName ? `${asker.deptName} team` : asker.role;
+    if (npcPos.z < 1) ui.speech({ text, name, color: asker.color, x: (npcPos.x * 0.5 + 0.5) * innerWidth, y: (-npcPos.y * 0.5 + 0.5) * innerHeight });
     else ui.speech(null);
   } else ui.speech(null);
   ui.thoughts([]);

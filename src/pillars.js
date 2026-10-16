@@ -55,7 +55,7 @@ function plaque(p, color) {
     g.add(m);
   }
   g.add(mesh(new THREE.BoxGeometry(2.1, 0.86, 0.1), solid('#0b1020', { roughness: 0.6 }), 0, 0, 0, false));
-  for (const x of [-0.75, 0.75]) g.add(mesh(new THREE.BoxGeometry(0.08, 0.7, 0.08), CHROME, x, -0.75, 0));
+  for (const x of [-0.75, 0.75]) g.add(mesh(new THREE.BoxGeometry(0.08, 0.75, 0.08), CHROME, x, -0.76, 0));
   return g;
 }
 
@@ -288,10 +288,11 @@ export function makePillar(p, anim) {
   g.add(plinth(st.color));
   g.add((BUILD[p.id] || better)(st.color, anim));
   const pl = plaque(p, st.color);
-  // low and to one side, so the sculpture reads above it
-  pl.position.set(1.15, 1.05, 1.55);
-  pl.rotation.set(-0.18, -0.35, 0);
-  pl.scale.setScalar(0.92);
+  // right in front of the sculpture and square to the path, low enough that the sculpture reads
+  // above it, its legs standing on the ground
+  pl.position.set(0, 1.0, 1.85);
+  pl.rotation.set(-0.12, 0, 0);
+  pl.scale.setScalar(0.95);
   g.add(pl);
   g.traverse((o) => {
     if (o.isMesh) o.castShadow = true;

@@ -299,7 +299,7 @@ export function walkY(x, z) {
 
 // Places where nothing should grow (plazas, roads, water).
 function isClearing(x, z, pad = 0) {
-  if (Math.hypot(x, z) < 10 + pad) return true;
+  if (Math.hypot(x, z) < 13.5 + pad) return true; // the tree's plaza and the sculptures' fronts
   if (Math.hypot(x - LAB.x, z - LAB.z) < 8.8 + pad) return true;
   for (const zn of ZONES) if (Math.hypot(x - zn.x, z - zn.z) < 13 + pad) return true;
   if (Math.hypot(x - POND.x, z - POND.z) < POND.bank + 1 + pad) return true;
