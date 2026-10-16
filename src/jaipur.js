@@ -946,6 +946,8 @@ function buildBazaar(scene, ctx) {
     scene.add(shop);
     deepMerge(shop);
     ctx.colliderList.push({ x: x - nx * 1.6, z: z - nz * 1.6, r: 2.2 });
+    // the shop and its raised plinth behind the counter (w wide, 4.2 m deep, away from the road)
+    for (const lx of [-w / 4, w / 4]) for (const back of [0.6, 2.9]) ctx.colliderList.push({ x: x + ux * lx + nx * back, z: z + uz * lx + nz * back, r: 1.25 });
   }
   // city gates at both ends, spanning the road like Tripolia and Sanganeri gate
   for (const t of [-2.5, L + 2.5]) {

@@ -988,6 +988,8 @@ function buildLab(scene, ctx) {
   const deck = solid('#3a3f4a', { roughness: 0.7 });
   // a dark timber deck, with a thin glowing edge for the evening
   g.add(mesh(new THREE.CylinderGeometry(7.6, 7.7, 0.14, 48), deck, 0, -0.055, 0.6, false)); // flush: feet stand on it, not in it
+  // a sandstone terrace wall on the pond side, where the bank falls away under the deck's edge
+  g.add(mesh(new THREE.CylinderGeometry(7.7, 7.7, 1.2, 48, 1, true), solid('#e2b9a6', { roughness: 0.95 }), 0, -0.72, 0.6, false));
   const rim = new THREE.Mesh(new THREE.TorusGeometry(7.62, 0.04, 6, 96), glow(LAB.color, 1.4));
   rim.rotation.x = Math.PI / 2;
   rim.position.set(0, 0.03, 0.6);

@@ -306,6 +306,7 @@ placeSignPairs(outdoor, {
     return { e, u: e.clone().sub(o).setY(0).normalize() };
   },
   groundAt,
+  roadDist: distToPath,
   lamps: lampSpots,
   colliders,
 });

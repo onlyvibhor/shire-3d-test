@@ -226,13 +226,26 @@ export function pondBank(x, z) {
   const along = dx * ga + dz * gb;
   const side = -dx * gb + dz * ga;
   if (Math.abs(side) < GHAT_HALF && along > GHAT_IN && along < GHAT_OUT) {
-    // four steps down to the water
-    const k = Math.min(3, Math.floor(((GHAT_OUT - along) / (GHAT_OUT - GHAT_IN)) * 4));
-    y = POND.y + 0.12 - k * 0.2;
+    // steps down to the water, from the bank's top at the Lab's side
+    const { n, top: t0, low } = ghatSteps();
+    const k = Math.min(n - 1, Math.floor(((GHAT_OUT - along) / (GHAT_OUT - GHAT_IN)) * n));
+    y = t0 - (k * (t0 - low)) / (n - 1);
   }
   return y;
 }
-export const GHAT = { half: GHAT_HALF, inner: GHAT_IN, outer: GHAT_OUT };
+// the ghat's flight: its top step is level with the bank where it meets the Lab's terrace (which
+// stands higher than the pond), its bottom step just above the water, about 22 cm a step
+let STEPS = null;
+function ghatSteps() {
+  if (STEPS) return STEPS;
+  const x = POND.x + Math.cos(POND.ghat) * GHAT_OUT;
+  const z = POND.z + Math.sin(POND.ghat) * GHAT_OUT;
+  const top = terrace(x, z, GHAT_OUT) + 0.03;
+  const low = POND.y - 0.48;
+  const n = Math.max(4, Math.min(10, Math.round((top - low) / 0.22) + 1));
+  return (STEPS = { n, top, low });
+}
+export const GHAT = { half: GHAT_HALF, inner: GHAT_IN, outer: GHAT_OUT, steps: () => ghatSteps() };
 
 export function heightAt(x, z) {
   const d = Math.hypot(x - POND.x, z - POND.z);
@@ -259,6 +272,9 @@ const GRID = { size: 640, n: 256, heights: null };
 export const SURFACE = 0.03; // roads and plazas sit this far above the grass
 
 export function groundAt(x, z) {
+  // the Night Lab's level pad: its deck and paving cover the terrain, which the pond's scoop drags
+  // down under the deck's far edge
+  if ((x - LAB.x) ** 2 + (z - LAB.z) ** 2 < 8.9 * 8.9) return Math.max(gridAt(x, z), LAB.y);
   if (Math.abs(x - POND.x) < POND.bank + 1 && Math.abs(z - POND.z) < POND.bank + 1) return Math.max(gridAt(x, z), pondBank(x, z));
   return gridAt(x, z);
 }
@@ -428,12 +444,26 @@ export function groundColor(x, z, y, c) {
   return c;
 }
 
+// the terrain mesh's height: heightAt, except that the pond's scoop may not drag the grid down
+// under the Night Lab's deck (its 2.5 m triangles would reach in under the deck's far edge)
+function meshHeight(x, z) {
+  const h = heightAt(x, z);
+  const dLab = Math.hypot(x - LAB.x, z - LAB.z);
+  if (dLab > 12.5) return h;
+  const dPond = Math.hypot(x - POND.x, z - POND.z);
+  // off the pond's bank: up to the Lab's level
+  if (dPond > POND.bank + 0.5) return dLab < 10.4 ? Math.max(h, LAB.y - 0.06) : h;
+  // on the bank's flat top, just under the bank's own surface (the slope to the water keeps its scoop)
+  if (dPond > POND.bank - 1.2) return Math.max(h, Math.min(LAB.y - 0.06, pondBank(x, z) - 0.08));
+  return h;
+}
+
 export function buildTerrain(scene) {
   const size = 640;
   const geo = new THREE.PlaneGeometry(size, size, 256, 256);
   const heights = new Float32Array(257 * 257);
   const step = size / 256;
-  for (let iz = 0; iz <= 256; iz++) for (let ix = 0; ix <= 256; ix++) heights[iz * 257 + ix] = heightAt(ix * step - size / 2, iz * step - size / 2);
+  for (let iz = 0; iz <= 256; iz++) for (let ix = 0; ix <= 256; ix++) heights[iz * 257 + ix] = meshHeight(ix * step - size / 2, iz * step - size / 2);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position;
   const colors = new Float32Array(pos.count * 3);
@@ -441,7 +471,7 @@ export function buildTerrain(scene) {
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i);
     const z = pos.getZ(i);
-    const y = heightAt(x, z);
+    const y = meshHeight(x, z);
     pos.setY(i, y);
     groundColor(x, z, y, c);
     colors.set([c.r, c.g, c.b], i * 3);
@@ -459,6 +489,17 @@ export function buildTerrain(scene) {
   // sand. Every road and plaza sits on a slightly wider band of pink Jaipur sandstone: the edge.
   const ROAD_TONE = { spoke: '#e7e3da', ring: '#dcd9d1', lane: '#e9dfcb', plaza: '#e7e3da' };
   const byKind = { spoke: [], ring: [], lane: [], plaza: [], edge: [] };
+  // the ground under a paving vertex, raised by however much the terrain bulges between it and its
+  // neighbours: on a crest the terrain's triangles rise above the straight run from one paving
+  // vertex to the next, and the grass would show through the road (a plain slope adds nothing)
+  const groundUnder = (x, z) => {
+    const g = groundAt(x, z);
+    let bulge = 0;
+    for (const [dx, dz] of [[0.4, 0], [-0.4, 0], [0, 0.4], [0, -0.4], [0.28, 0.28], [-0.28, 0.28], [0.28, -0.28], [-0.28, -0.28]]) {
+      bulge = Math.max(bulge, groundAt(x + dx, z + dz) - (g + groundAt(x + dx * 2, z + dz * 2)) / 2);
+    }
+    return g + Math.min(bulge, 0.1);
+  };
   const ribbon = (ax, az, bx, bz, half, lift) => {
     const len = Math.hypot(bx - ax, bz - az);
     const steps = Math.ceil(len / 0.6); // dense enough to follow the ground between terrain vertices
@@ -475,7 +516,7 @@ export function buildTerrain(scene) {
       for (const side of across) {
         const x = px + nx * half * side;
         const z = pz + nz * half * side;
-        pos.push(x, groundAt(x, z) + lift, z);
+        pos.push(x, groundUnder(x, z) + lift, z);
       }
       if (k < steps) {
         for (let j = 0; j < W - 1; j++) {
@@ -500,7 +541,7 @@ export function buildTerrain(scene) {
     g.rotateX(-Math.PI / 2);
     g.translate(x, 0, z);
     const p = g.attributes.position;
-    for (let i = 0; i < p.count; i++) p.setY(i, groundAt(p.getX(i), p.getZ(i)) + lift);
+    for (let i = 0; i < p.count; i++) p.setY(i, groundUnder(p.getX(i), p.getZ(i)) + lift);
     g.computeVertexNormals();
     return g;
   };

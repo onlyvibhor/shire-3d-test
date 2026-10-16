@@ -136,7 +136,8 @@ export function makeGateway({ name, sub = '', color = '#2f6bff', variant = 'bast
   }
   // the flanks
   const colliders = [];
-  for (let x = a + 0.5; x <= w / 2; x += 0.9) for (const sx of [-1, 1]) colliders.push([sx * x, 0, 0.6]);
+  // the piers and their plinths, front to back ([x, z along the way through, r])
+  for (let x = a + 0.5; x <= w / 2; x += 0.9) for (const sx of [-1, 1]) for (const dz of [-(depth / 2 - 0.25), 0, depth / 2 - 0.25]) colliders.push([sx * x, dz, 0.6]);
   for (const sx of [-1, 1]) {
     const fx = sx * (w / 2 + 1.05);
     if (variant === 'bastion') {
@@ -555,7 +556,7 @@ export function furnishArena(g, h, C, { collider, gateZ = 16 }) {
   const gw = makeGateway({ name: h.name, sub: h.place, color: h.color, ...C.gate });
   gw.g.position.set(0, 0, gateZ);
   g.add(gw.g);
-  for (const [x, , r] of gw.colliders) collider(g, r, x, gateZ);
+  for (const [x, dz, r] of gw.colliders) collider(g, r, x, gateZ + dz);
   // lanterns either side of the gate on the approach, and where the ring road comes in
   for (const sx of [-1, 1]) {
     const l = makeLantern(3);

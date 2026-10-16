@@ -132,7 +132,7 @@ export function buildPond(scene, colliders) {
   stones.castShadow = stones.receiveShadow = true;
   g.add(stones);
 
-  // sandstone ghat: four steps down to the water, with a low chhatri-topped post either side
+  // sandstone ghat: steps down to the water, with a low chhatri-topped post either side
   const stoneMat = solid(SAND, { roughness: 0.75 });
   const edgeMat = solid('#e8a866', { roughness: 0.7 });
   const ghat = new THREE.Group();
@@ -141,10 +141,11 @@ export function buildPond(scene, colliders) {
   g.add(ghat);
   // local +z points from the pond centre towards the Lab
   const span = GHAT.outer - GHAT.inner;
-  for (let k = 0; k < 4; k++) {
-    const z0 = GHAT.outer - (span / 4) * (k + 1);
-    const top = POND.y + 0.12 - k * 0.2;
-    const depth = span / 4;
+  const { n: steps, top: t0, low } = GHAT.steps();
+  for (let k = 0; k < steps; k++) {
+    const z0 = GHAT.outer - (span / steps) * (k + 1);
+    const top = t0 - (k * (t0 - low)) / (steps - 1);
+    const depth = span / steps;
     const b = mesh(new THREE.BoxGeometry(GHAT.half * 2, top - (W - 1.2), depth + 0.02), stoneMat, 0, (top + W - 1.2) / 2 + 0.02, z0 + depth / 2);
     ghat.add(b);
     ghat.add(mesh(new THREE.BoxGeometry(GHAT.half * 2, 0.05, 0.12), edgeMat, 0, top + 0.045, z0 + 0.06, false));
@@ -152,8 +153,10 @@ export function buildPond(scene, colliders) {
   for (const sx of [-1, 1]) {
     const x = sx * (GHAT.half + 0.25);
     const z = GHAT.outer - 0.4;
-    const y = POND.y;
-    const wall = mesh(new THREE.BoxGeometry(0.5, 0.9, span + 0.4), stoneMat, x, y - 0.1, GHAT.inner + span / 2 + 0.1);
+    const y = t0 - 0.12;
+    // the side wall runs down the flight, from the top step to the water
+    const wh = t0 - low + 0.9;
+    const wall = mesh(new THREE.BoxGeometry(0.5, wh, span + 0.4), stoneMat, x, t0 + 0.35 - wh / 2, GHAT.inner + span / 2 + 0.1);
     ghat.add(wall);
     ghat.add(mesh(new THREE.BoxGeometry(0.5, 1.1, 0.5), stoneMat, x, y + 0.55, z));
     ghat.add(mesh(new THREE.BoxGeometry(0.62, 0.08, 0.62), edgeMat, x, y + 1.14, z));

@@ -9,7 +9,7 @@ import { makeSignPair } from './jaipur.js';
 const SPOKE_HALF = 2.3;
 const LANE_HALF = 1.35;
 
-export function placeSignPairs(parent, { departments, deptEntrance, groundAt = () => 0, lamps = [], colliders = [] }) {
+export function placeSignPairs(parent, { departments, deptEntrance, groundAt = () => 0, lamps = [], colliders = [], roadDist = null }) {
   const entries = [];
   for (const h of departments) {
     const en = deptEntrance(h);
@@ -28,22 +28,36 @@ export function placeSignPairs(parent, { departments, deptEntrance, groundAt = (
     entries.push({ place: CENTER, e: u.clone().multiplyScalar(15.5), u, half: SPOKE_HALF });
   }
   const placed = [];
-  // the Night Lab has no gate: its two signs stand on the grass at the edge of the ring stage,
-  // either side of the way in from the tree, boards following the ring and facing you as you come
+  // the Night Lab has no gate: its two signs stand on the grass just beyond the paving round the
+  // ring stage, one each side of it, clear of the paving and of every road into it, boards following
+  // the ring and facing out to people walking up
   if (BELIEFS[LAB.id]) {
     const r = Math.atan2(-LAB.x, -LAB.z) + Math.PI; // the stage's frame: +z towards the pond
     const local = (x, z) => new THREE.Vector3(LAB.x + x * Math.cos(r) + z * Math.sin(r), 0, LAB.z - x * Math.sin(r) + z * Math.cos(r));
+    const RING = 12.2; // the stage's paving ends at about 10.6 m
+    const spot = (deg) => {
+      const a = THREE.MathUtils.degToRad(deg);
+      const c = local(Math.sin(a) * RING, 0.6 + Math.cos(a) * RING);
+      const t = local(Math.cos(a), 0.6 - Math.sin(a)).sub(local(0, 0.6)); // along the ring
+      return { c, t, ends: [[c.x + t.x * 1.71, c.z + t.z * 1.71], [c.x - t.x * 1.71, c.z - t.z * 1.71]] };
+    };
+    const clear = (sp) => !roadDist || [[sp.c.x, sp.c.z], ...sp.ends].every(([x, z]) => roadDist(x, z) > 3.6);
     const pair = makeSignPair(LAB, BELIEFS[LAB.id]);
     [[pair.belief, -1], [pair.name, 1]].forEach(([sign, side]) => {
-      const a = THREE.MathUtils.degToRad(side * 146);
-      const c = local(Math.sin(a) * 9.3, 0.6 + Math.cos(a) * 9.3);
-      const t = local(Math.cos(a), 0.6 - Math.sin(a)).sub(local(0, 0.6)); // along the ring
-      const p1 = [c.x + t.x * 1.71, c.z + t.z * 1.71];
-      const p2 = [c.x - t.x * 1.71, c.z - t.z * 1.71];
-      sign.position.set(c.x, Math.min(groundAt(...p1), groundAt(...p2), groundAt(c.x, c.z)) - 0.05, c.z);
+      // from the tree side round towards the flanks, the first spot that's off every road
+      let sp = spot(side * 150);
+      for (let deg = 150; deg >= 70; deg -= 5) {
+        const cand = spot(side * deg);
+        if (clear(cand)) {
+          sp = cand;
+          break;
+        }
+      }
+      const { c, t, ends } = sp;
+      sign.position.set(c.x, Math.min(groundAt(...ends[0]), groundAt(...ends[1]), groundAt(c.x, c.z)) - 0.05, c.z);
       sign.rotation.y = Math.atan2(-t.z, t.x);
       parent.add(sign);
-      for (const [cx, cz] of [p1, p2, [c.x, c.z]]) colliders.push({ x: cx, z: cz, r: 0.4 });
+      for (const [cx, cz] of [...ends, [c.x, c.z]]) colliders.push({ x: cx, z: cz, r: 0.4 });
       placed.push(sign);
     });
   }

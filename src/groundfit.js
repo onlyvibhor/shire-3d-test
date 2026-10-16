@@ -110,7 +110,8 @@ export function groundFit(root, snap, groundAt) {
             }
           }
         } else if (h < 0.18 && ext > 0.3) {
-          // anchor it where it sits closest to the ground (its centre, or wherever it touches)
+          // anchor it where it sits closest to the ground (its centre, or wherever it touches), and
+          // keep it at its height there: the rest follows the ground's rise and fall from that point
           let gc = groundAt(cx, cz);
           let best = Math.abs(minY - gc);
           for (let i = start; i < end; i += Math.max(1, Math.floor((end - start) / 200))) {
@@ -118,7 +119,7 @@ export function groundFit(root, snap, groundAt) {
             const d = Math.abs(wy[i] - g);
             if (d < best) {
               best = d;
-              gc = g + (minY - wy[i]);
+              gc = g;
             }
           }
           if (best < 0.3) {
