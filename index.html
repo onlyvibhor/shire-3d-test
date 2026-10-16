@@ -35,6 +35,8 @@
       .ld__fail code { display: block; margin: 8px 0 12px; font: 11px/1.4 'DM Mono', ui-monospace, monospace; color: rgba(226,234,255,.5); word-break: break-word; }
       .ld__fail button { min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: #3dd36d; color: #0b2a15; font: 600 14px Inter, system-ui, sans-serif; }
       body.load-failed .ld__fail { display: block; }
+      .ld__fail .ld__light { display: none; margin-left: 6px; background: transparent; color: #f4f7ff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.35); }
+      body.can-go-light .ld__fail .ld__light { display: inline-block; }
       body.load-failed .ld__bar { display: none; }
     </style>
   </head>
@@ -45,7 +47,7 @@
         <p class="ld__sub">A portfolio you can walk through</p>
         <div class="ld__bar"><i id="ld-fill"></i></div>
         <p class="ld__meta"><span id="ld-step">Loading</span><span id="ld-pct"></span></p>
-        <div class="ld__fail" id="ld-fail"><span id="ld-why">The island couldn’t start on this device.</span><code id="ld-err"></code><button type="button" onclick="location.reload()">Try again</button></div>
+        <div class="ld__fail" id="ld-fail"><span id="ld-why">The island couldn’t start on this device.</span><code id="ld-err"></code><button type="button" onclick="location.reload()">Try again</button> <button type="button" class="ld__light" onclick="location.search='?mini'">Open the light island</button></div>
       </div>
     </div>
     <script>
