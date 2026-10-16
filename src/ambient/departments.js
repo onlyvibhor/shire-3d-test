@@ -169,26 +169,27 @@ export function buildSocialStudio(g, { color, collider, r, playerPos, updaters }
   const styHome = [-3.2, -5.25];
   bake(S);
   const scene = createScene({
+    color,
     anchor: S,
     cycle: 30,
     playerPos,
     actors: [
-      { p: lead, at: L, face: toCam, steps: [
+      { p: lead, who: 'Creator', say: "We're shooting a reel: on the beat, eight counts, one take.", at: L, face: toCam, steps: [
         { t: 0, do: 'idle' }, { t: 3.2, do: 'relax' }, { t: 4.0, do: 'dance' }, { t: 16.0, do: 'relax' }, { t: 21.0, do: 'idle', face: toCam + 0.6 }, { t: 25.0, do: 'idle', face: toCam },
       ] },
-      { p: second, at: R, face: toCam, steps: [
+      { p: second, who: 'Creator', say: "I hit my mark and keep the energy up for the take.", at: R, face: toCam, steps: [
         { t: 0, do: 'relax' }, { t: 4.0, do: 'dance2' }, { t: 16.3, do: 'relax' }, { t: 18.0, do: 'discuss', face: face(R[0], R[1], dirSpot[0], dirSpot[1]) }, { t: 23.0, do: 'idle', face: toCam },
       ] },
-      { p: op, at: [0.1, -0.85], face: Math.PI, steps: [
+      { p: op, who: 'Camera operator', say: "I'm framing the reel on the phone rig and keeping it in focus.", at: [0.1, -0.85], face: Math.PI, steps: [
         { t: 0, do: 'monitor' }, { t: 1.2, do: 'adjust' }, { t: 3.0, do: 'monitor' }, { t: 16.2, do: 'phoneup' }, { t: 19.0, do: 'monitor' }, { t: 27.0, do: 'adjust' }, { t: 28.6, do: 'monitor' },
       ] },
-      { p: director, at: dirSpot, face: face(dirSpot[0], dirSpot[1], 0.1, markZ), steps: [
+      { p: director, who: 'Director', say: "I'm calling the takes and watching playback on the monitor.", at: dirSpot, face: face(dirSpot[0], dirSpot[1], 0.1, markZ), steps: [
         { t: 0, do: 'direct' }, { t: 2.6, do: 'listen' }, { t: 16.0, do: 'applaud' }, { t: 17.6, do: 'direct' }, { t: 20.0, do: 'monitor', to: [3.55, -0.45], face: face(3.55, -0.45, 3.3, -1.35) }, { t: 25.0, do: 'listen', to: dirSpot, face: face(dirSpot[0], dirSpot[1], 0.1, markZ) },
       ] },
-      { p: stylist, at: styHome, face: face(styHome[0], styHome[1], -3.75, -4.7), steps: [
+      { p: stylist, who: 'Stylist', say: "I'm checking outfits and props before the next take.", at: styHome, face: face(styHome[0], styHome[1], -3.75, -4.7), steps: [
         { t: 0, do: 'inspect' }, { t: 7.0, do: 'listen', face: face(styHome[0], styHome[1], 0, markZ) }, { t: 15.0, do: 'inspect', face: face(styHome[0], styHome[1], -3.75, -4.7) }, { t: 19.2, do: 'inspect', to: [-1.3, markZ + 0.15], face: face(-1.3, markZ + 0.15, L[0], L[1]) }, { t: 24.2, do: 'idle', to: styHome, face: face(styHome[0], styHome[1], -3.75, -4.7) },
       ] },
-      { p: socialLead, at: [4.15, -0.65], face: face(4.15, -0.65, 3.3, -1.35), steps: [
+      { p: socialLead, who: 'Social lead', say: "I'm watching the cut on my phone and planning when it goes out.", at: [4.15, -0.65], face: face(4.15, -0.65, 3.3, -1.35), steps: [
         { t: 0, do: 'phone' }, { t: 8.0, do: 'listen', face: face(4.15, -0.65, 0.1, markZ) }, { t: 14.0, do: 'phone', face: face(4.15, -0.65, 3.3, -1.35) }, { t: 20.6, do: 'discuss' }, { t: 25.5, do: 'phone' },
       ] },
     ],
@@ -405,34 +406,35 @@ export function buildBrandShoot(g, { color, collider, r, playerPos, updaters }) 
   const gafferHome = [-1.5, -1.95];
   bake(S);
   const scene = createScene({
+    color,
     anchor: S,
     cycle: 36,
     offset: 7,
     playerPos,
     actors: [
-      { p: actor, at: actorSpot, face: Math.PI / 2, y: riserH + 0.02, steps: [
+      { p: actor, who: 'Actor', say: "I'm on set for the TV commercial, waiting for 'action'.", at: actorSpot, face: Math.PI / 2, y: riserH + 0.02, steps: [
         { t: 0, do: 'sitrest' }, { t: 7.6, do: 'actsit' }, { t: 21.6, do: 'sitrest' },
       ] },
-      { p: dop, at: opSpot, face: camRot, steps: [
+      { p: dop, who: 'Cinematographer', say: "I'm lighting and framing the living-room scene for the film.", at: opSpot, face: camRot, steps: [
         { t: 0, do: 'cinecam' }, { t: 23.0, do: 'monitor', to: [2.6, -3.35], face: face(2.6, -3.35, 2.35, -4.4) }, { t: 30.0, do: 'cinecam', to: opSpot, face: camRot },
       ] },
-      { p: puller, at: fpSpot, face: camRot - 0.9, steps: [
+      { p: puller, who: 'Focus puller', say: "I keep the actor sharp while the camera moves.", at: fpSpot, face: camRot - 0.9, steps: [
         { t: 0, do: 'focus' }, { t: 23.5, do: 'listen' }, { t: 31.0, do: 'focus' },
       ] },
-      { p: boomOp, at: boomSpot, face: face(boomSpot[0], boomSpot[1], actorSpot[0], actorSpot[1]), steps: [
+      { p: boomOp, who: 'Sound recordist', say: "Boom up, mic just out of frame: I'm recording the dialogue.", at: boomSpot, face: face(boomSpot[0], boomSpot[1], actorSpot[0], actorSpot[1]), steps: [
         { t: 0, do: 'listen' }, { t: 4.6, do: 'boom' }, { t: 22.6, do: 'listen' },
       ] },
-      { p: gaffer, at: gafferHome, face: face(gafferHome[0], gafferHome[1], -2.2, -2.2), steps: [
+      { p: gaffer, who: 'Gaffer', say: "I'm setting the lights so the set looks like an evening at home.", at: gafferHome, face: face(gafferHome[0], gafferHome[1], -2.2, -2.2), steps: [
         { t: 0, do: 'adjust' }, { t: 4.2, do: 'listen', face: face(gafferHome[0], gafferHome[1], actorSpot[0], actorSpot[1]) },
         { t: 24.5, do: 'adjust', to: [-1.9, -6.75], face: face(-1.9, -6.75, -2.3, -7.3) }, { t: 30.5, do: 'listen', to: gafferHome, face: face(gafferHome[0], gafferHome[1], actorSpot[0], actorSpot[1]) },
       ] },
-      { p: pa, at: paWait, face: face(paWait[0], paWait[1], camAt[0], camAt[1]), steps: [
+      { p: pa, who: 'Clapper loader', say: "I mark every take with the slate so the edit can find it.", at: paWait, face: face(paWait[0], paWait[1], camAt[0], camAt[1]), steps: [
         { t: 0, do: 'idle' }, { t: 4.4, do: 'idle', to: paIn, face: face(paIn[0], paIn[1], camAt[0], camAt[1]) }, { t: 6.3, do: 'slate' }, { t: 8.6, do: 'idle', to: paWait, face: face(paWait[0], paWait[1], camAt[0], camAt[1]) },
       ] },
-      { p: director, at: dirSeat, face: toDesk, y: 0.02, steps: [
+      { p: director, who: 'Director', say: "I'm watching the take on the monitors and giving notes.", at: dirSeat, face: toDesk, y: 0.02, steps: [
         { t: 0, do: 'monsit' }, { t: 2.5, do: 'direct' }, { t: 4.4, do: 'monsit' }, { t: 21.8, do: 'direct' }, { t: 24.0, do: 'discuss', face: face(dirSeat[0], dirSeat[1], 2.6, -3.35) }, { t: 30.2, do: 'monsit', face: toDesk },
       ] },
-      { p: producer, at: [3.45, -3.2], face: face(3.45, -3.2, 2.35, -4.4), steps: [
+      { p: producer, who: 'Producer', say: "I'm keeping the shoot on schedule and the shot list moving.", at: [3.45, -3.2], face: face(3.45, -3.2, 2.35, -4.4), steps: [
         { t: 0, do: 'listen' }, { t: 12.0, do: 'phone' }, { t: 20.0, do: 'listen' }, { t: 24.4, do: 'applaud' }, { t: 26.0, do: 'listen' },
       ] },
     ],
@@ -674,21 +676,22 @@ export function buildLaunchCentre(g, { color, collider, r, playerPos, updaters }
   const toStage = (x, z) => face(x, z, 0, -8.5);
   const deckSpot = [-0.6, -8.35];
   const actors = [
-    { p: presenter, at: deckSpot, face: 0, y: 0.3, steps: [{ t: 0, do: 'keynote' }, { t: 26, do: 'idle', face: -0.5 }, { t: 28.5, do: 'keynote', face: 0 }] },
-    ...aud.map((p, k) => ({ p, at: seats[[0, 2, 5][k]], face: toStage(...seats[[0, 2, 5][k]]), y: -0.02, steps: [{ t: 0, do: 'sit' }, { t: 25.6 + k * 0.3, do: 'sitrest' }, { t: 29 + k * 0.2, do: 'sit' }] })),
-    { p: standing, at: [2.9, -5.0], face: toStage(2.9, -5.0), steps: [{ t: 0, do: 'listen' }, { t: 25.8, do: 'applaud' }, { t: 28.0, do: 'listen' }] },
-    { p: pmm, at: [4.15, -2.55], face: face(4.15, -2.55, tAt[0], tAt[1]), steps: [{ t: 0, do: 'monitor' }, { t: 9, do: 'discuss', face: face(4.15, -2.55, 5.45, -2.5) }, { t: 17, do: 'monitor', face: face(4.15, -2.55, tAt[0], tAt[1]) }] },
-    { p: partner, at: [5.45, -2.5], face: face(5.45, -2.5, tAt[0], tAt[1]), steps: [{ t: 0, do: 'listen' }, { t: 9, do: 'listen', face: face(5.45, -2.5, 4.15, -2.55) }, { t: 17, do: 'monitor', face: face(5.45, -2.5, tAt[0], tAt[1]) }] },
-    { p: designer, at: [6.55, -4.05], face: face(6.55, -4.05, artAt[0], artAt[1]), steps: [{ t: 0, do: 'point' }, { t: 8, do: 'think' }, { t: 14, do: 'point' }, { t: 22, do: 'listen' }] },
-    { p: runner, at: [3.9, -3.75], face: face(3.9, -3.75, 3.0, -7.4), walkAs: 'carry', steps: [{ t: 0, do: 'idle' }, { t: 4, do: 'idle', to: [3.1, -6.95], face: toStage(3.1, -6.95) }, { t: 12, do: 'idle', to: [3.9, -3.75], face: face(3.9, -3.75, tAt[0], tAt[1]) }] },
-    { p: devP, at: [devAt[0] + 0.45 * Math.sin(face(devAt[0], devAt[1], wallAt[0], wallAt[1]) + Math.PI), devAt[1] + 0.45 * Math.cos(face(devAt[0], devAt[1], wallAt[0], wallAt[1]) + Math.PI)], face: face(devAt[0], devAt[1], wallAt[0], wallAt[1]), y: 0.02, steps: [{ t: 0, do: 'typesit' }] },
-    { p: user, at: [testAt[0] - 0.6, testAt[1] + 0.05], face: Math.PI / 2, y: 0.0, steps: [{ t: 0, do: 'sitphone' }] },
-    { p: researcher, at: [testAt[0] + 0.15, testAt[1] + 1.0], face: face(testAt[0] + 0.15, testAt[1] + 1.0, testAt[0] - 0.6, testAt[1]), steps: [{ t: 0, do: 'write' }, { t: 10, do: 'listen' }, { t: 16, do: 'write' }] },
-    { p: uxDesigner, at: [-5.05, -2.25], face: face(-5.05, -2.25, wallAt[0], wallAt[1]), steps: [{ t: 0, do: 'point' }, { t: 7, do: 'discuss', face: face(-5.05, -2.25, -3.9, -2.1) }, { t: 15, do: 'point', face: face(-5.05, -2.25, wallAt[0], wallAt[1]) }, { t: 23, do: 'think' }] },
-    { p: motionP, at: [-7.75, -1.75], face: face(-7.75, -1.75, motAt[0], motAt[1]), steps: [{ t: 0, do: 'monitor' }, { t: 12, do: 'think' }, { t: 18, do: 'monitor' }] },
+    { p: presenter, who: 'Presenter', say: "I'm walking the room through the launch on the big screen.", at: deckSpot, face: 0, y: 0.3, steps: [{ t: 0, do: 'keynote' }, { t: 26, do: 'idle', face: -0.5 }, { t: 28.5, do: 'keynote', face: 0 }] },
+    ...aud.map((p, k) => ({ p, who: 'In the audience', say: "Watching the launch keynote.", at: seats[[0, 2, 5][k]], face: toStage(...seats[[0, 2, 5][k]]), y: -0.02, steps: [{ t: 0, do: 'sit' }, { t: 25.6 + k * 0.3, do: 'sitrest' }, { t: 29 + k * 0.2, do: 'sit' }] })),
+    { p: standing, who: 'Product manager', say: "I'm watching how the room reacts to the launch.", at: [2.9, -5.0], face: toStage(2.9, -5.0), steps: [{ t: 0, do: 'listen' }, { t: 25.8, do: 'applaud' }, { t: 28.0, do: 'listen' }] },
+    { p: pmm, who: 'Product marketer', say: "We're going through the launch plan, channel by channel.", at: [4.15, -2.55], face: face(4.15, -2.55, tAt[0], tAt[1]), steps: [{ t: 0, do: 'monitor' }, { t: 9, do: 'discuss', face: face(4.15, -2.55, 5.45, -2.5) }, { t: 17, do: 'monitor', face: face(4.15, -2.55, tAt[0], tAt[1]) }] },
+    { p: partner, who: 'Launch partner', say: "I'm here for the go-to-market review.", at: [5.45, -2.5], face: face(5.45, -2.5, tAt[0], tAt[1]), steps: [{ t: 0, do: 'listen' }, { t: 9, do: 'listen', face: face(5.45, -2.5, 4.15, -2.55) }, { t: 17, do: 'monitor', face: face(5.45, -2.5, tAt[0], tAt[1]) }] },
+    { p: designer, who: 'Designer', say: "I'm reviewing the launch visuals on the screen.", at: [6.55, -4.05], face: face(6.55, -4.05, artAt[0], artAt[1]), steps: [{ t: 0, do: 'point' }, { t: 8, do: 'think' }, { t: 14, do: 'point' }, { t: 22, do: 'listen' }] },
+    { p: runner, who: 'Runner', say: "Bringing fresh prints over to the stage.", at: [3.9, -3.75], face: face(3.9, -3.75, 3.0, -7.4), walkAs: 'carry', steps: [{ t: 0, do: 'idle' }, { t: 4, do: 'idle', to: [3.1, -6.95], face: toStage(3.1, -6.95) }, { t: 12, do: 'idle', to: [3.9, -3.75], face: face(3.9, -3.75, tAt[0], tAt[1]) }] },
+    { p: devP, who: 'Front-end developer', say: "I'm building the checkout pages you see on the wall.", at: [devAt[0] + 0.45 * Math.sin(face(devAt[0], devAt[1], wallAt[0], wallAt[1]) + Math.PI), devAt[1] + 0.45 * Math.cos(face(devAt[0], devAt[1], wallAt[0], wallAt[1]) + Math.PI)], face: face(devAt[0], devAt[1], wallAt[0], wallAt[1]), y: 0.02, steps: [{ t: 0, do: 'typesit' }] },
+    { p: user, who: 'Test user', say: "I'm trying the checkout on my phone while they watch.", at: [testAt[0] - 0.6, testAt[1] + 0.05], face: Math.PI / 2, y: 0.0, steps: [{ t: 0, do: 'sitphone' }] },
+    { p: researcher, who: 'UX researcher', say: "I'm noting where the test user hesitates.", at: [testAt[0] + 0.15, testAt[1] + 1.0], face: face(testAt[0] + 0.15, testAt[1] + 1.0, testAt[0] - 0.6, testAt[1]), steps: [{ t: 0, do: 'write' }, { t: 10, do: 'listen' }, { t: 16, do: 'write' }] },
+    { p: uxDesigner, who: 'UX designer', say: "I'm walking the team through the checkout flow, step by step.", at: [-5.05, -2.25], face: face(-5.05, -2.25, wallAt[0], wallAt[1]), steps: [{ t: 0, do: 'point' }, { t: 7, do: 'discuss', face: face(-5.05, -2.25, -3.9, -2.1) }, { t: 15, do: 'point', face: face(-5.05, -2.25, wallAt[0], wallAt[1]) }, { t: 23, do: 'think' }] },
+    { p: motionP, who: 'Motion designer', say: "I'm animating the product clips for the launch.", at: [-7.75, -1.75], face: face(-7.75, -1.75, motAt[0], motAt[1]), steps: [{ t: 0, do: 'monitor' }, { t: 12, do: 'think' }, { t: 18, do: 'monitor' }] },
   ];
   bake(S);
   const scene = createScene({
+    color,
     anchor: S,
     cycle: 30,
     offset: 13,
@@ -923,18 +926,19 @@ export function buildMentorStudio(g, { color, collider, r, playerPos, updaters }
   const wallFace = (x, z) => face(x, z, wAt[0], wAt[1]);
   const wtSeat = [wtAt[0] + 0.55 * Math.sin(face(wtAt[0], wtAt[1], wAt[0], wAt[1]) + Math.PI), wtAt[1] + 0.55 * Math.cos(face(wtAt[0], wtAt[1], wAt[0], wAt[1]) + Math.PI)];
   const actors = [
-    { p: leadP, at: [-2.05, -1.55], face: boardFace(-2.05, -1.55), steps: [{ t: 0, do: 'present' }, { t: 7, do: 'discuss', face: face(-2.05, -1.55, tAt[0], tAt[1]) }, { t: 14, do: 'point', face: boardFace(-2.05, -1.55) }, { t: 19, do: 'present' }] },
-    { p: designerP, at: [-2.75, -1.0], face: boardFace(-2.75, -1.0), steps: [{ t: 0, do: 'listen' }, { t: 9, do: 'point' }, { t: 13, do: 'discuss', face: face(-2.75, -1.0, -2.05, -1.55) }, { t: 20, do: 'listen', face: boardFace(-2.75, -1.0) }] },
-    { p: junior, at: [0.75, -0.55], face: face(0.75, -0.55, tAt[0], tAt[1] - 1), steps: [{ t: 0, do: 'write' }, { t: 6, do: 'listen', face: face(0.75, -0.55, -2.05, -1.55) }, { t: 12, do: 'write', face: face(0.75, -0.55, tAt[0], tAt[1] - 1) }] },
-    { p: mentee, at: [1.85, -1.6], face: face(1.85, -1.6, tAt[0], tAt[1]), steps: [{ t: 0, do: 'listen' }, { t: 10, do: 'inspect' }, { t: 16, do: 'discuss', face: face(1.85, -1.6, -2.05, -1.55) }, { t: 22, do: 'listen', face: face(1.85, -1.6, tAt[0], tAt[1]) }] },
-    { p: coord, at: [-0.9, -0.5], face: face(-0.9, -0.5, tAt[0], tAt[1]), steps: [{ t: 0, do: 'monitor' }, { t: 5, do: 'idle', to: [5.3, 1.05], face: wallFace(5.3, 1.05) }, { t: 10.5, do: 'listen' }, { t: 15, do: 'idle', to: [-0.9, -0.5], face: face(-0.9, -0.5, tAt[0], tAt[1]) }, { t: 20.5, do: 'monitor' }] },
-    { p: writer, at: [6.3, 0.95], face: wallFace(6.3, 0.95), steps: [{ t: 0, do: 'writeboard' }, { t: 9, do: 'think' }, { t: 13, do: 'writeboard' }] },
-    { p: partner, at: [5.9, 2.75], face: wallFace(5.9, 2.75), steps: [{ t: 0, do: 'listen' }, { t: 6, do: 'discuss' }, { t: 14, do: 'point' }, { t: 18, do: 'listen' }] },
-    { p: scribe, at: wtSeat, face: face(wtAt[0], wtAt[1], wAt[0], wAt[1]) + Math.PI + Math.PI, y: 0.02, steps: [{ t: 0, do: 'typesit' }, { t: 11, do: 'sitrest' }, { t: 14, do: 'typesit' }] },
+    { p: leadP, who: 'Creative lead', say: "I'm presenting the work on the pin-up board for the review.", at: [-2.05, -1.55], face: boardFace(-2.05, -1.55), steps: [{ t: 0, do: 'present' }, { t: 7, do: 'discuss', face: face(-2.05, -1.55, tAt[0], tAt[1]) }, { t: 14, do: 'point', face: boardFace(-2.05, -1.55) }, { t: 19, do: 'present' }] },
+    { p: designerP, who: 'Designer', say: "My work is up on the board. I'm taking the feedback.", at: [-2.75, -1.0], face: boardFace(-2.75, -1.0), steps: [{ t: 0, do: 'listen' }, { t: 9, do: 'point' }, { t: 13, do: 'discuss', face: face(-2.75, -1.0, -2.05, -1.55) }, { t: 20, do: 'listen', face: boardFace(-2.75, -1.0) }] },
+    { p: junior, who: 'Junior designer', say: "I'm writing down every note from the crit.", at: [0.75, -0.55], face: face(0.75, -0.55, tAt[0], tAt[1] - 1), steps: [{ t: 0, do: 'write' }, { t: 6, do: 'listen', face: face(0.75, -0.55, -2.05, -1.55) }, { t: 12, do: 'write', face: face(0.75, -0.55, tAt[0], tAt[1] - 1) }] },
+    { p: mentee, who: 'Mentee', say: "I'm studying the prints on the table up close.", at: [1.85, -1.6], face: face(1.85, -1.6, tAt[0], tAt[1]), steps: [{ t: 0, do: 'listen' }, { t: 10, do: 'inspect' }, { t: 16, do: 'discuss', face: face(1.85, -1.6, -2.05, -1.55) }, { t: 22, do: 'listen', face: face(1.85, -1.6, tAt[0], tAt[1]) }] },
+    { p: coord, who: 'Studio coordinator', say: "I'm keeping track of the review and who's up next.", at: [-0.9, -0.5], face: face(-0.9, -0.5, tAt[0], tAt[1]), steps: [{ t: 0, do: 'monitor' }, { t: 5, do: 'idle', to: [5.3, 1.05], face: wallFace(5.3, 1.05) }, { t: 10.5, do: 'listen' }, { t: 15, do: 'idle', to: [-0.9, -0.5], face: face(-0.9, -0.5, tAt[0], tAt[1]) }, { t: 20.5, do: 'monitor' }] },
+    { p: writer, who: 'Copywriter', say: "I'm writing the campaign up on the wall: brief, problem, idea, craft.", at: [6.3, 0.95], face: wallFace(6.3, 0.95), steps: [{ t: 0, do: 'writeboard' }, { t: 9, do: 'think' }, { t: 13, do: 'writeboard' }] },
+    { p: partner, who: 'Strategist', say: "I'm talking the idea through with the writer.", at: [5.9, 2.75], face: wallFace(5.9, 2.75), steps: [{ t: 0, do: 'listen' }, { t: 6, do: 'discuss' }, { t: 14, do: 'point' }, { t: 18, do: 'listen' }] },
+    { p: scribe, who: 'Writer', say: "I'm typing up the campaign story.", at: wtSeat, face: face(wtAt[0], wtAt[1], wAt[0], wAt[1]) + Math.PI + Math.PI, y: 0.02, steps: [{ t: 0, do: 'typesit' }, { t: 11, do: 'sitrest' }, { t: 14, do: 'typesit' }] },
   ];
   let shownKey = '';
   bake(S);
   const scene = createScene({
+    color,
     anchor: S,
     cycle: 24,
     offset: 3,

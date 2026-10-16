@@ -12,6 +12,9 @@ import { animateBlend } from '../characters.js';
 const BLEND = 0.6; // seconds to ease from one job into the next
 const TURN = 0.6; // seconds to turn to face the work after walking somewhere
 
+// every working actor that can tell you what they're doing, for the game to find the nearest
+export const AMBIENT_TALKERS = new Set();
+
 const angleLerp = (a, b, f) => a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * f;
 const clamp01 = (x) => Math.min(1, Math.max(0, x));
 
@@ -59,10 +62,12 @@ function stateAt(actor, c) {
  * cycle: seconds in one loop of the scene; offset shifts the loop so neighbours don't sync
  * actors: [{ p, at, face, steps }] · tick(c, t, lod): animates the equipment · screens: [{ update(t, on) }]
  */
-export function createScene({ anchor, cycle, offset = 0, actors = [], tick = null, screens = [], playerPos }) {
+export function createScene({ color, anchor, cycle, offset = 0, actors = [], tick = null, screens = [], playerPos }) {
   for (const a of actors) {
     a.cycle = cycle;
-    a.p.root.userData.ambient = true; // scenery, never one of the people you can talk to
+    a.p.root.userData.ambient = true; // scenery: not a villager, but it can say what it's doing
+    a.color = color;
+    if (a.say) AMBIENT_TALKERS.add(a);
     prepare(a);
     anchor.add(a.p.root);
     const s0 = stateAt(a, 0);

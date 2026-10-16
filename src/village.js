@@ -16,6 +16,7 @@ import { WHITE_METAL, BRUSHED, CHROME, GLASS, GOLD, WOOD, DARK, MOUND, WINDOW_GL
 export const playerPos = new THREE.Vector3(1e6, 0, 1e6);
 const spV = new THREE.Vector3();
 const _wp = new THREE.Vector3();
+const _lp = new THREE.Vector3();
 
 const loader = new THREE.TextureLoader();
 const texCache = {};
@@ -196,12 +197,12 @@ export class Walker {
     const dx = tx - root.position.x;
     const dz = tz - root.position.z;
     const d = Math.hypot(dx, dz);
-    // wait politely if the player is standing right in the way
+    // wait politely only if the player is right on top of them; otherwise step round
     root.getWorldPosition(_wp);
     const px = playerPos.x - _wp.x;
     const pz = playerPos.z - _wp.z;
     const pd = Math.hypot(px, pz);
-    if (pd < 1.3 && Math.abs(playerPos.y - _wp.y) < 1.5 && Math.sin(root.rotation.y + root.parent.rotation.y) * px + Math.cos(root.rotation.y + root.parent.rotation.y) * pz > 0.2) {
+    if (pd < 0.8 && Math.abs(playerPos.y - _wp.y) < 1.5 && Math.sin(root.rotation.y + root.parent.rotation.y) * px + Math.cos(root.rotation.y + root.parent.rotation.y) * pz > 0.2) {
       animate(this.p, this.action === 'walk' || this.action === 'carry' ? 'idle' : this.action, t, 0);
       return;
     }
@@ -216,15 +217,63 @@ export class Walker {
         this.idx += this.dir;
       }
     } else {
-      root.position.x += (dx / d) * step;
-      root.position.z += (dz / d) * step;
-      let diff = Math.atan2(dx, dz) - root.rotation.y;
+      let mx = dx / d;
+      let mz = dz / d;
+      // someone in the way (you, or another walker): veer to the side and pass them
+      const steer = this.avoid(root, mx, mz, d);
+      if (steer) {
+        mx = steer[0];
+        mz = steer[1];
+      }
+      root.position.x += mx * step;
+      root.position.z += mz * step;
+      let diff = Math.atan2(mx, mz) - root.rotation.y;
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       root.rotation.y += diff * Math.min(1, dt * 8);
     }
     this.keepOut(root);
     if (this.heightFn) root.position.y = this.heightFn(root.position.x, root.position.z);
     animate(this.p, this.action, t, this.speed);
+  }
+  // a gentle sidestep round whatever is ahead: the player and the other walkers sharing this
+  // walker's frame. Returns a new heading, or null when the way is clear.
+  avoid(root, mx, mz, toGoal) {
+    const parent = root.parent;
+    const x = root.position.x;
+    const z = root.position.z;
+    let sx = 0;
+    let sz = 0;
+    let any = false;
+    const push = (ox, oz, r) => {
+      const rx = ox - x;
+      const rz = oz - z;
+      const ahead = rx * mx + rz * mz;
+      if (ahead <= 0 || ahead > 2.4 || ahead > toGoal + 0.5) return;
+      const side = rx * mz - rz * mx; // which side of our line it's on
+      const clear = r + 0.5;
+      if (Math.abs(side) > clear) return;
+      const k = (1 - ahead / 2.4) * (1 - Math.abs(side) / clear) + 0.15;
+      // steer away from its side (to our right if it's dead ahead)
+      const dir = side > 0.05 ? -1 : 1;
+      sx += mz * dir * k * 1.6;
+      sz += -mx * dir * k * 1.6;
+      any = true;
+    };
+    _lp.copy(playerPos);
+    parent.worldToLocal(_lp);
+    push(_lp.x, _lp.z, 0.45);
+    for (const w of Walker.all) {
+      if (w === this) continue;
+      const o = w.p.root;
+      if (o.parent !== parent || !o.visible) continue;
+      if (Math.abs(o.position.x - x) > 3 || Math.abs(o.position.z - z) > 3) continue;
+      push(o.position.x, o.position.z, 0.45);
+    }
+    if (!any) return null;
+    const nx = mx + sx;
+    const nz = mz + sz;
+    const l = Math.hypot(nx, nz) || 1;
+    return [nx / l, nz / l];
   }
   // the route in world space, repaired round solids, back into the walker's own frame
   reroute() {
@@ -507,12 +556,9 @@ function buildHamlet(scene, h, i, ctx) {
   // turned towards people walking up the spoke
   {
     const [x, z] = at(C.belief);
-    const belief = makeBeliefSign(h, BELIEFS[h.id]);
+    const belief = null;
     const bRot = faceTo(x, z, x * 0.3, 40);
-    belief.position.set(x, 0, z);
-    belief.rotation.y = bRot;
-    g.add(belief);
-    for (const d of [-1.71, 1.71]) collider(g, 0.35, x + Math.cos(bRot) * d, z - Math.sin(bRot) * d);
+    void belief; // the place's signs now stand in a pair beside the road outside the gate (main.js)
   }
 
   // Exhibits: the featured project in a carved frame where the entry sightline lands, the rest
@@ -1043,12 +1089,9 @@ function buildLab(scene, ctx) {
   ctx.updaters.push({ update: (t) => animate(artist, 'think', t) });
   ctx.npcs.push({ p: artist, dept: 'lab', lines: LAB.quotes, name: 'The artist' });
   // the lab's sign stands by the path in, clear of the works
-  const labSign = makeBeliefSign(LAB, BELIEFS.lab);
+  const labSign = null;
   const lRot = -2.3;
-  labSign.position.set(-6.4, 0, -4.6);
-  labSign.rotation.y = lRot;
-  g.add(labSign);
-  for (const d of [-1.71, 1.71]) collider(g, 0.35, -6.4 + Math.cos(lRot) * d, -4.6 - Math.sin(lRot) * d);
+  void labSign; // now a pair beside the lane (main.js)
   // the films play only while you're here
   const here = new THREE.Vector3();
   ctx.updaters.push({
@@ -1276,12 +1319,9 @@ function buildCentre(scene, ctx) {
     const a = THREE.MathUtils.degToRad(102.4);
     const x = Math.cos(a) * 21;
     const z = Math.sin(a) * 21;
-    const hqSign = makeBeliefSign(CENTER, BELIEFS.hq);
+    const hqSign = null;
     const rot = Math.atan2(0 - x, 30 - z);
-    hqSign.position.set(x, groundAt(x, z) - y0, z);
-    hqSign.rotation.y = rot;
-    g.add(hqSign);
-    for (const d of [-1.71, 1.71]) collider(g, 0.35, x + Math.cos(rot) * d, z - Math.sin(rot) * d);
+    void hqSign; // now a pair beside a spoke (main.js)
   }
   deepMerge(g);
   ctx.updaters.push({
@@ -1609,12 +1649,8 @@ function buildHome(scene, ctx) {
 
   deepMerge(g);
   // what I believe, on a Jaipur signboard in the front yard
-  const homeSign = makeBeliefSign(H, BELIEFS.home);
-  homeSign.position.set(-5.2, 0, 4.2);
-  homeSign.rotation.y = 0.4;
-  g.add(homeSign);
-  collider(g, 0.35, -6.8, 3.6);
-  collider(g, 0.35, -3.6, 4.8);
+  const homeSign = null;
+  void homeSign; // now a pair beside the lane (main.js)
 }
 
 // ---------- The Playhouse: films, stop motion, found objects, arcade ----------
@@ -1740,11 +1776,8 @@ function buildZoneDome(scene, ctx, place, { radius = 10, glass = false, extras }
     const lux = ux * Math.cos(th) - uz * Math.sin(th);
     const luz = ux * Math.sin(th) + uz * Math.cos(th);
     const rot = Math.atan2(lux, luz);
-    const sign = makeBeliefSign(place, BELIEFS[place.id]);
-    sign.position.set(sx, 0, sz);
-    sign.rotation.y = rot;
-    g.add(sign);
-    for (const d of [-1.71, 1.71]) collider(g, 0.35, sx + Math.cos(rot) * d, sz - Math.sin(rot) * d);
+    const sign = null;
+    void sign; // now a pair beside the lane (main.js)
   }
   extras?.(g, doorZ, r);
   deepMerge(g);
@@ -2066,6 +2099,8 @@ function buildHillDomes(scene) {
     dome.rotation.y = Math.atan2(-x, -z);
     scene.add(dome);
     deepMerge(dome);
+    // solid: you walk round a dome, not through it
+    collider(scene, rad * 1.08 + 0.1, x, z);
   });
 }
 

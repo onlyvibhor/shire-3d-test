@@ -9,6 +9,7 @@
 import * as THREE from 'three';
 import { makePerson, animate } from '../characters.js';
 import { buildSocialStudio, buildBrandShoot, buildLaunchCentre, buildMentorStudio } from '../ambient/departments.js';
+import { AMBIENT_TALKERS } from '../ambient/scene.js';
 
 const rng = (seed) => () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
 
@@ -207,6 +208,7 @@ export function buildExtras(scene, { PATHS, PLACES, POND, coastR, lite = false }
     streamPos.set(1e6, 0, 1e6);
     for (const u of s.updaters) u.update?.(t);
     streamPos.copy(far);
+    for (const u of s.updaters) u.actors?.forEach((a) => AMBIENT_TALKERS.delete(a));
     scene.remove(s.g);
     s.g.traverse((o) => {
       if (o.isMesh || o.isSkinnedMesh) {

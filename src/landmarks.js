@@ -299,7 +299,7 @@ export function buildStreetLamps(world, colliders) {
     const nx = -(bz - az) / len;
     const nz = (bx - ax) / len;
     // lamps alternate sides on the spokes and ring; lanes get them on one side, further apart
-    const step = kind === 'lane' ? 18 : 15;
+    const step = kind === 'lane' ? 12 : 10; // close enough that the roads read as lit streets at night
     for (let d = 16, k = 0; d < len - 12; d += step, k++) {
       const t = d / len;
       const side = kind === 'lane' ? 1 : k % 2 ? 1 : -1;

@@ -286,9 +286,14 @@ function paintedPanel(w, h, draw) {
 }
 // A Jaipur signboard: pink sandstone posts with chhatri finials, a cusped crest and painted
 // panels front and back. `front` and `back` draw on canvases (c, w, h) with the cream ground ready.
-export function makeSignboard({ name = 'signboard', color = '#d9a441', W = 3.3, H = 2.05, y0 = 1.0, res = 1500, front, back }) {
+export function makeSignboard({ name = 'signboard', color = '#d9a441', W = 3.3, H = 2.05, y0 = 1.0, res = 1500, front, back, _painters }) {
   const g = new THREE.Group();
   g.name = name;
+  // asked only for the painters (makeSignPair): hand them back without building anything
+  if (_painters) {
+    g.userData.painters = _painters;
+    return g;
+  }
   const stone = solid(PINK, { roughness: 0.85, emissive: PINK, emissiveIntensity: 0.12 });
   const lime = solid(LIME, { roughness: 0.8 });
   // posts with caps and chhatri finials
@@ -327,8 +332,10 @@ export function makeSignboard({ name = 'signboard', color = '#d9a441', W = 3.3, 
   const PW = W - 0.26;
   const PH = H - 0.26;
   const frontTex = paintedPanel(res, Math.round((res * PH) / PW), front);
-  const backTex = paintedPanel(res, Math.round((res * PH) / PW), back);
-  for (const [tex, z, ry] of [[frontTex, 0.076, 0], [backTex, -0.076, Math.PI]]) {
+  // a back panel only when there's something to say on it; otherwise the stone shows
+  const faces = [[frontTex, 0.076, 0]];
+  if (back) faces.push([paintedPanel(res, Math.round((res * PH) / PW), back), -0.076, Math.PI]);
+  for (const [tex, z, ry] of faces) {
     // a touch of self-light keeps the painted panel cream, not grey, when it's in shade
     const m = new THREE.Mesh(new THREE.PlaneGeometry(PW, PH), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85, emissive: '#ffffff', emissiveMap: tex, emissiveIntensity: 0.32 }));
     m.userData.back = z < 0; // the back only carries the place's name
@@ -387,7 +394,18 @@ export function makeBeliefSign(place, belief) {
     fit(c, place.place, { weight: 600, size: 46, min: 24, family: FONT.sans, maxW: w - 260 });
     c.fillText(place.place, w / 2, h * 0.64);
   };
-  return makeSignboard({ name: `belief-${place.id}`, color: place.color, front, back });
+  return makeSignboard({ name: `belief-${place.id}`, color: place.color, front, back: null, _painters: { front, back } });
+}
+
+// The place's two signs, which stand one each side of the road outside its gate: one carries the
+// belief, the other the place's name. Each shows the same copy on both faces, so it reads from
+// the road whichever way you're walking.
+export function makeSignPair(place, belief) {
+  const { front, back } = makeBeliefSign(place, belief).userData.painters;
+  return {
+    belief: makeSignboard({ name: `belief-${place.id}`, color: place.color, front, back: front }),
+    name: makeSignboard({ name: `name-${place.id}`, color: place.color, front: back, back }),
+  };
 }
 
 // ---------- Jantar Mantar ----------

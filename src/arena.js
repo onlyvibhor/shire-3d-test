@@ -111,7 +111,11 @@ export function makeGateway({ name, sub = '', color = '#2f6bff', variant = 'bast
     }
   }
   // plinth, cornice and merlons
-  g.add(mesh(new THREE.BoxGeometry(w + 0.4, 0.5, depth + 0.4), trim, 0, 0.25, 0));
+  // a plinth under each pier only: the opening between them stays flush with the path, with a
+  // thin threshold stone you walk over rather than a step
+  const pw = w / 2 + 0.2 - (a + 0.05);
+  for (const sx of [-1, 1]) g.add(mesh(new THREE.BoxGeometry(pw, 0.5, depth + 0.4), trim, sx * (a + 0.05 + pw / 2), 0.25, 0));
+  g.add(mesh(new THREE.BoxGeometry(2 * a + 0.1, 0.03, depth + 0.4), trim, 0, 0.015, 0));
   g.add(mesh(new THREE.BoxGeometry(w + 0.6, 0.32, depth + 0.6), trim, 0, h + 0.16, 0));
   for (let x = -w / 2 + 0.35; x <= w / 2 - 0.3; x += 0.78) {
     g.add(mesh(new THREE.BoxGeometry(0.42, 0.42, depth + 0.1), wall, x, h + 0.53, 0));
@@ -419,7 +423,7 @@ export function makeFingerpost(entries) {
 // gate: gateway parameters · hero / boards: [deg, r, scale?] exhibits · wall: overflow poster wall
 // landmark: [x, z, rotY] anchor for the department's activity scene (its sculpture and its people)
 // dome, work (monitor wall + desk), homes: [deg, r] · lead: the department lead's spot
-// walk: a stroller's loop round the plaza edge · belief: the belief sign outside the gate
+// walk: a stroller's loop round the plaza edge · belief: the belief sign out on the spoke, beside the road
 // beds: [deg, r, w, d, palette, tree?] · lamps, benches: [deg, r] · walls: [deg, r, len]
 // pavilion: [deg, r] · ringGate: lanterns marking where the ring road enters
 export const ARENAS = {
@@ -433,7 +437,7 @@ export const ARENAS = {
     homes: [[222, 20], [160, 20.5]],
     lead: [-3, 6.8],
     walk: [[-6.5, 5.5], [-9, 0], [-6.8, -6]],
-    belief: [30, 18.5],
+    belief: [11, 27.5],
     beds: [[196, 13.1, 6.6, 1.1, 'warm'], [40, 12.6, 3.2, 1.4, 'warm', true], [320, 12.6, 3.2, 1.4, 'cool'], [248, 12.2, 2.6, 1.2, 'green', true]],
     lamps: [[36, 10.3], [324, 10.3], [150, 10.4], [210, 10.4]],
     benches: [[238, 8.6], [128, 8.6]],
@@ -449,7 +453,7 @@ export const ARENAS = {
     homes: [[180, 21], [126, 20]],
     lead: [3, 6.8],
     walk: [[6.5, 5.5], [9, 0], [6.8, -6]],
-    belief: [330, 18.5],
+    belief: [349, 27.5],
     // the launch stage and its audience take the back of the plaza: no bed or benches there
     beds: [[150, 12.7, 6.4, 1.1, 'cool'], [36, 12.4, 3, 1.3, 'white', true], [324, 12.4, 3, 1.3, 'cool']],
     lamps: [[36, 10.2], [324, 10.2], [124, 10.4], [236, 10.4]],
@@ -466,7 +470,7 @@ export const ARENAS = {
     homes: [[166, 20.5], [228, 21]],
     lead: [3.2, 7],
     walk: [[-6.5, 5.5], [-8.8, -1], [-5, -7]],
-    belief: [30, 18.5],
+    belief: [11, 27.5],
     beds: [[206, 13.3, 6.6, 1.1, 'cool'], [40, 12.5, 3, 1.3, 'pink', true], [320, 12.5, 3, 1.3, 'white'], [150, 11.6, 2.4, 1.1, 'green', true]],
     lamps: [[36, 10.3], [324, 10.3], [140, 10.4], [228, 10.4]],
     benches: [[240, 8.8]],
@@ -484,7 +488,7 @@ export const ARENAS = {
     homes: [[182, 21.5], [130, 21]],
     lead: [-3.2, 6.8],
     walk: [[6.5, 5.5], [8.5, 0.5], [6.5, -6]],
-    belief: [330, 18.5],
+    belief: [349, 27.5],
     beds: [[150, 12.9, 6.4, 1.1, 'pink'], [40, 12.5, 3, 1.3, 'pink', true], [320, 12.5, 3, 1.3, 'white'], [196, 10.2, 2.4, 1, 'pink']],
     lamps: [[36, 10.2], [324, 10.2], [128, 10.3], [232, 10.3]],
     benches: [[160, 8.6]],
@@ -500,7 +504,7 @@ export const ARENAS = {
     homes: [[142, 21], [218, 21]],
     lead: [3, 6.8],
     walk: [[-6.5, 5.5], [-9, 0.5], [-7, -5.5]],
-    belief: [30, 18.5],
+    belief: [11, 27.5],
     beds: [[122, 11.8, 5.4, 1.1, 'warm'], [238, 11.8, 4, 1.1, 'warm'], [40, 12.5, 3, 1.3, 'warm', true], [320, 12.5, 3, 1.3, 'white', true]],
     lamps: [[36, 10.3], [324, 10.3], [160, 10.5], [200, 10.5]],
     benches: [[214, 8.8]],
@@ -517,7 +521,7 @@ export const ARENAS = {
     homes: [[142, 21], [218, 21]],
     lead: [3, 6.8],
     walk: [[-6.5, 5.5], [-9, 0.5], [-7, -5.5]],
-    belief: [30, 18.5],
+    belief: [11, 27.5],
     beds: [[122, 11.8, 5.4, 1.1, 'warm'], [238, 11.8, 4, 1.1, 'warm'], [40, 12.5, 3, 1.3, 'warm', true], [320, 12.5, 3, 1.3, 'white', true]],
     lamps: [[36, 10.3], [324, 10.3], [160, 10.5], [200, 10.5]],
     benches: [[214, 8.8]],
@@ -534,7 +538,7 @@ export const ARENAS = {
     homes: [[166, 20.5], [232, 21]],
     lead: [-3, 6.8],
     walk: [[6.5, 5.5], [9, 0], [6.5, -6]],
-    belief: [330, 18.5],
+    belief: [349, 27.5],
     beds: [[206, 13.3, 6.6, 1.1, 'warm'], [40, 12.5, 3, 1.3, 'warm', true], [320, 12.5, 3, 1.3, 'cool'], [150, 11.4, 2.4, 1.1, 'green', true]],
     lamps: [[36, 10.3], [324, 10.3], [148, 10.4], [232, 10.4]],
     benches: [[160, 8.8]],
