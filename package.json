@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/onlyvibhor/shire-3d-test#readme",
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "three": "^0.186.1"
   },
   "devDependencies": {

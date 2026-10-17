@@ -5,6 +5,11 @@
 //   - a device where the full island already failed to load (the page was killed or reloaded
 //     before it was ready) - the next visit opens the light island instead of failing again.
 // ?full or ?mini in the address overrides all of this.
+import { inject } from '@vercel/analytics';
+
+// page views for Vercel Web Analytics (sent only on the deployed site; in development it logs instead)
+inject();
+
 const q = new URLSearchParams(location.search);
 const KEY = 'shire-boot';
 const store = {
