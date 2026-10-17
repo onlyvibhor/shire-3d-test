@@ -694,6 +694,15 @@ body.quest-on #toast { top: 132px; }
 .about .gallery figcaption { position: absolute; left: 8px; bottom: 8px; margin: 0; padding: 4px 10px; border-radius: 999px; background: rgba(30, 34, 38, 0.82); color: #fff; font: 600 11px var(--sans); }
 .about__links { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 0; }
 .about__links .btn { padding: 9px 14px; font-size: 13px; }
+/* profile links as round icons, their names in the tooltip and for screen readers */
+.social-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.social { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; color: var(--text, #fff); background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.14); transition: background 0.15s, color 0.15s, transform 0.15s; }
+.social svg { width: 18px; height: 18px; fill: currentColor; }
+.social:hover, .social:focus-visible { background: var(--accent, #2f6bff); color: var(--accent-ink, #fff); border-color: transparent; transform: translateY(-1px); }
+.social:focus-visible { outline: 2px solid var(--accent, #2f6bff); outline-offset: 2px; }
+/* the hidden field only bots fill in */
+.cf-trap { position: absolute !important; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.contact-form button:disabled { opacity: 0.6; cursor: progress; }
 .about .contact-form { margin-top: 18px; }
 
 /* ==========================================================================

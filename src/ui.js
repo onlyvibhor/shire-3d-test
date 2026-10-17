@@ -1,3 +1,4 @@
+import { socialRow } from './icons.js';
 import { createCaseStudy } from './casestudy.js';
 import { sfx, audioSettings, setLevel, toggleMute, onAudioChange, startAudio } from './audio.js';
 import { LEADER, LENSES, PLAYS, METHOD, CAREERS, PROJECTS as ALL_PROJECTS } from './data.js';
@@ -804,7 +805,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
       <section id="ab-contact" class="about__contact">
         <h3 class="about__h">Work with me</h3>
         <ul class="ticks">${hireList.map((h) => `<li>${esc(h)}</li>`).join('')}</ul>
-        <div class="about__links"><a class="btn" href="mailto:${esc(owner.email)}">${esc(owner.email)}</a>${owner.links.map((l) => `<a class="btn btn--ghost" href="${esc(l.href)}" target="_blank" rel="noopener">${esc(l.label)}</a>`).join('')}</div>
+        <div class="about__links">${socialRow(owner.links, owner.email)}</div>
         <form id="contact-form" class="contact-form">
           <div class="cf-row">
             <label>Your name<input id="cf-name" name="name" required autocomplete="name" autocapitalize="words" enterkeyhint="next" /></label>
@@ -812,6 +813,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
           </div>
           <label>I’d like to talk about<select id="cf-intent" name="intent">${contact.intents.map((i) => `<option>${esc(i)}</option>`).join('')}</select></label>
           <label>Message<textarea name="message" rows="3" required enterkeyhint="send" placeholder="Tell me what you’re building…"></textarea></label>
+          <label class="cf-trap" aria-hidden="true">Leave this empty<input name="website" tabindex="-1" autocomplete="off" /></label>
           <div class="cf-foot"><button class="btn" type="submit">Send message</button><span id="cf-status"></span></div>
         </form>
       </section>
@@ -1018,7 +1020,7 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
     }
   });
 
-  // Contact form: posts to a form endpoint if configured, otherwise composes an email.
+  // Contact form: each message becomes a row in the responses Google Sheet (see CONTACT in data.js).
   const cform = $('#contact-form');
   // phones: keep the field you're typing in above the keyboard
   cform.addEventListener('focusin', (e) => {
@@ -1039,26 +1041,37 @@ export function createUI({ owner, pillars, places, projects, awards, contact, fa
   cform.addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = e.target;
-    $('#cf-status').dataset.state = 'ok';
-    const data = { name: f.name.value.trim(), email: f.email.value.trim(), intent: f.intent.value, message: f.message.value.trim() };
     const status = $('#cf-status');
-    if (contact.endpoint) {
-      status.textContent = 'Sending…';
-      try {
-        const res = await fetch(contact.endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(data) });
-        if (!res.ok) throw new Error(res.status);
-        status.textContent = 'Sent! Vibhor will get back to you soon.';
-        f.reset();
-        toast('<b>✉️ Message sent.</b> Thanks for writing!', 4000, { priority: 2, kind: 'success' });
-        return;
-      } catch {
-        status.textContent = 'Could not send from here, opening your email app instead.';
-      }
+    const button = f.querySelector('button[type="submit"]');
+    status.dataset.state = 'ok';
+    if (!contact.endpoint) {
+      status.textContent = `The form isn’t connected yet. Write to ${owner.email} in the meantime.`;
+      status.dataset.state = 'error';
+      return;
     }
-    const subject = `${data.intent} · from ${data.name || 'the village'}`;
-    const body = `${data.message}\n\n${data.name}${data.email ? ` (${data.email})` : ''}`;
-    location.href = `mailto:${owner.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    status.textContent = 'Your email app should open with the message ready to send.';
+    // the Google Apps Script web app takes a plain form post (no CORS preflight); its reply can't be
+    // read from here, so a post that reaches it counts as sent
+    const data = new URLSearchParams({
+      name: f.name.value.trim(),
+      email: f.email.value.trim(),
+      intent: f.intent.value,
+      message: f.message.value.trim(),
+      website: f.website.value,
+      page: location.href,
+    });
+    status.textContent = 'Sending…';
+    button.disabled = true;
+    try {
+      await fetch(contact.endpoint, { method: 'POST', mode: 'no-cors', body: data });
+      status.textContent = 'Sent! Vibhor will get back to you soon.';
+      f.reset();
+      toast('<b>✉️ Message sent.</b> Thanks for writing!', 4000, { priority: 2, kind: 'success' });
+    } catch {
+      status.textContent = 'Couldn’t send just now. Check your connection and try again.';
+      status.dataset.state = 'error';
+    } finally {
+      button.disabled = false;
+    }
   });
   // ----- Web popup: games, films and pages inside the island instead of a new tab -----
   const webpop = $('#webpop');

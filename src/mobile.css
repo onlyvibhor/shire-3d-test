@@ -542,3 +542,7 @@ body.is-mini .title__m .only-mini { display: block; }
 /* the keyboard hint card: sized to its two lines (an older rule also pinned it to the bottom
    of the screen, which stretched it to full height) */
 #keys { bottom: auto !important; height: auto; max-height: none; width: auto; max-width: 440px; }
+
+/* browse mode: the profile icons under "Work with me" */
+.bw-contact .social-row { margin-top: 14px; }
+.bw-contact .social { width: 44px; height: 44px; }

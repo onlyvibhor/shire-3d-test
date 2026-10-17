@@ -8,6 +8,7 @@
 //
 // Plus the portrait welcome, "Browse my work" (the same content as a mobile publication, no 3D),
 // and the invitation to turn the phone, which only appears once you choose to explore.
+import { socialRow } from './icons.js';
 import { isTouch } from './touch.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -346,8 +347,8 @@ export function createBrowse({ owner, places, projects, careers, onProject, onAb
         <p>${esc(owner.hireFor)}</p>
         <div class="bw-actions">
           <button class="mcta mcta--primary" data-contact>Write to Vibhor <span aria-hidden="true">→</span></button>
-          <a class="mcta" href="mailto:${esc(owner.email)}">${esc(owner.email)}</a>
         </div>
+        ${socialRow(owner.links, owner.email)}
       </section>
       <button class="bw-explore" data-explore>
         <span class="bw-explore__art">${islandSVG(places)}</span>

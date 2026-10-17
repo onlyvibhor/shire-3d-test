@@ -12,12 +12,12 @@ export const OWNER = {
   email: 'onlyvibhor@gmail.com',
   portrait: img('profile'),
   links: [
-    { label: 'Behance', href: 'https://www.behance.net/onlyvibhor' },
-    { label: 'LinkedIn', href: 'https://www.linkedin.com/in/onlyvibhor/' },
-    { label: 'Instagram', href: 'https://www.instagram.com/onlyvibhor/' },
-    { label: 'ADPList', href: 'https://adplist.org/mentors/vibhor-mathur' },
-    { label: 'YouTube', href: 'https://www.youtube.com/channel/UCYz6bkPGCR3gapGpoDKuSDg' },
-    { label: 'Profile (PDF)', href: 'assets/docs/vibhor-mathur-profile.pdf' },
+    { label: 'Behance', icon: 'behance', href: 'https://www.behance.net/onlyvibhor' },
+    { label: 'LinkedIn', icon: 'linkedin', href: 'https://www.linkedin.com/in/onlyvibhor/' },
+    { label: 'Instagram', icon: 'instagram', href: 'https://www.instagram.com/onlyvibhor/' },
+    { label: 'ADPList', icon: 'adplist', href: 'https://adplist.org/mentors/vibhor-mathur' },
+    { label: 'YouTube', icon: 'youtube', href: 'https://www.youtube.com/channel/UCYz6bkPGCR3gapGpoDKuSDg' },
+    { label: 'Profile (PDF)', icon: 'pdf', href: 'assets/docs/vibhor-mathur-profile.pdf' },
   ],
   hireFor:
     'Creative and art direction for brand films, launch videos and campaigns; AI-native film and campaign production; interactive landing pages and games; building and leading in-house design teams and visual systems; custom AI design tools for studios; and design mentoring or workshops on AI in design.',
@@ -809,9 +809,11 @@ export const FAVOURITES = {
   shows: [],
 };
 
-// Contact form. Set `endpoint` to a form service URL (e.g. Formspree) to send in-page; otherwise it opens email.
+// Contact form. Messages go to the responses Google Sheet through a small Apps Script web app
+// (scripts/contact-sheet.gs has the script and the two-minute setup); put its …/exec URL here, or
+// set VITE_CONTACT_ENDPOINT when building.
 export const CONTACT = {
-  endpoint: '',
+  endpoint: import.meta.env?.VITE_CONTACT_ENDPOINT || '',
   intents: ['A full-time role', 'A project or collaboration', 'Mentoring', 'A talk or workshop', 'Just saying hi'],
 };
 
