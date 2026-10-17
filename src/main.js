@@ -1,4 +1,5 @@
 import { capRenderer } from './compat.js'; // first: Safari fixes and the phone texture limit
+import { repairAllNormals } from './normals.js';
 import * as THREE from 'three';
 import { step, finishLoading, hideLoader } from './loading.js';
 import { loadFonts } from './type.js';
@@ -44,8 +45,10 @@ import { isTouch, stick, stickKeys, initTouch, goLandscape, resetStick } from '.
 const canvas = document.getElementById('scene');
 // Lighter settings for phones and weak GPUs (or force with ?lite).
 const LITE = new URLSearchParams(location.search).has('lite') || matchMedia('(hover: none)').matches;
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, LITE ? 1.25 : 1.75));
+// every frame goes through the post-processing chain, so the canvas's own antialiasing buffer would
+// only cost graphics memory; the smoothing happens on the composer's render target instead
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, LITE ? 1.25 : 1.5));
 capRenderer(renderer);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
@@ -99,7 +102,13 @@ function setShadowRange(r) {
 }
 setShadowRange(50);
 
-const composer = new EffectComposer(renderer);
+// multisampled (WebGL2): 4 samples on a standard screen, 2 on a high-density one where the pixels
+// are already small
+const PR = renderer.getPixelRatio();
+const composer = new EffectComposer(
+  renderer,
+  new THREE.WebGLRenderTarget(Math.round(window.innerWidth * PR), Math.round(window.innerHeight * PR), { type: THREE.HalfFloatType, samples: PR > 1.2 ? 2 : 4 }),
+);
 composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.2, 0.5, 0.95);
 if (!LITE) composer.addPass(bloom);
@@ -1621,6 +1630,7 @@ let fitResult = 0;
 let fitDone;
 const fitted = new Promise((r) => (fitDone = r));
 requestAnimationFrame(frame);
+repairAllNormals(scene); // no zero-length normals: they turn into NaN pixels and black flashes
 await finishLoading({ renderer, scene, camera, render: () => composer.render() });
 await fitted;
 hideLoader();

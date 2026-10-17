@@ -7,6 +7,7 @@
 // with a few hundred simple shapes: a plaza and a gate for each team, its work on billboards, the
 // jamun tree at the centre, a guide at each department and you, walking between them.
 import { capRenderer } from '../compat.js';
+import { repairAllNormals } from '../normals.js';
 import * as THREE from 'three';
 import { step, finishLoading, hideLoader } from '../loading.js';
 import { loadFonts } from '../type.js';
@@ -851,6 +852,7 @@ addEventListener('resize', resize);
 addEventListener('orientationchange', () => setTimeout(resize, 350));
 
 await step('Painting the billboards', 0.9);
+repairAllNormals(scene); // no zero-length normals: they turn into NaN pixels and black flashes
 await finishLoading({ renderer, scene, camera, render: () => renderer.render(scene, camera) });
 renderer.setAnimationLoop(frame);
 hideLoader();

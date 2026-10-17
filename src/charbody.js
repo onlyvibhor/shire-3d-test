@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { repairNormals } from './normals.js';
 
 // People, ~1.8 units tall. Every body part and garment is a "loft": a stack of elliptical rings
 // joined into one smooth surface, so torsos, limbs, collars, lapels, skirts and shoes have real
@@ -190,6 +191,7 @@ class Rig {
     });
     const geo = mergeGeometries(all);
     all.forEach((g) => g.dispose());
+    repairNormals(geo);
     const mesh = new THREE.SkinnedMesh(geo, PERSON_MAT);
     mesh.castShadow = true;
     mesh.name = 'person';

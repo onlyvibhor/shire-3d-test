@@ -24,8 +24,9 @@ if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D
 
 const touch = typeof matchMedia !== 'undefined' && (matchMedia('(hover: none)').matches || matchMedia('(pointer: coarse)').matches);
 const shortSide = typeof screen !== 'undefined' ? Math.min(screen.width, screen.height) : 1000;
-// phones get 768 px textures, tablets 1024, desktops whatever the GPU allows
-export const TEXTURE_CAP = new URLSearchParams(location.search).has('fulltex') ? Infinity : touch ? (shortSide < 600 ? 768 : 1024) : Infinity;
+// phones get 768 px textures, tablets 1024, desktops 1280 (enough for a billboard filling the view;
+// ?fulltex lifts it)
+export const TEXTURE_CAP = new URLSearchParams(location.search).has('fulltex') ? Infinity : touch ? (shortSide < 600 ? 768 : 1024) : 1280;
 
 function shrink(texture) {
   const im = texture.image;

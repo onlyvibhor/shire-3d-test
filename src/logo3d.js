@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { SVGLoader } from 'three/addons/loaders/SVGLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { repairNormals } from './normals.js';
 import razorpaySvg from './logos/razorpay.svg?raw';
 import grofersSvg from './logos/grofers.svg?raw';
 
@@ -45,6 +46,7 @@ function extrude(svg, width, depthFor) {
     const geo = mergeGeometries(list);
     list.forEach((g) => g.dispose());
     geo.computeVertexNormals();
+    repairNormals(geo);
     out.push({ color, geo });
   }
   return { parts: out, w: width, h: size.y * s };

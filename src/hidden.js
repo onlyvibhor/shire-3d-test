@@ -257,7 +257,7 @@ function buildRazorpay(clickables) {
   const blue = solid('#2f6bff', { roughness: 0.4, metalness: 0.2, emissive: '#2f6bff', emissiveIntensity: 0.15 });
   const g = pavilion({ career: C, columnMat: WHITE_METAL, ringMat: blue, plinthMat: solid('#eef2f7', { roughness: 0.6 }), accent: C.color, clickables });
   // a shallow glass roof under the logo
-  g.add(mesh(new THREE.CylinderGeometry(5.9, 6.3, 0.3, 48), new THREE.MeshPhysicalMaterial({ color: '#cfe6ff', roughness: 0.1, transmission: 0.4, transparent: true, opacity: 0.7 }), 0, 5.65, 0, false));
+  g.add(mesh(new THREE.CylinderGeometry(5.9, 6.3, 0.3, 48), new THREE.MeshStandardMaterial({ color: '#cfe6ff', roughness: 0.1, metalness: 0.1, transparent: true, opacity: 0.6, depthWrite: false }), 0, 5.65, 0, false));
   // the Razorpay logo, from the brand artwork, turning slowly above the roof
   const coin = razorpayLogo(9);
   coin.userData.baseY = 9.2;
