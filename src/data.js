@@ -813,7 +813,7 @@ export const FAVOURITES = {
 // (scripts/contact-sheet.gs has the script and the two-minute setup); put its …/exec URL here, or
 // set VITE_CONTACT_ENDPOINT when building.
 export const CONTACT = {
-  endpoint: import.meta.env?.VITE_CONTACT_ENDPOINT || '',
+  endpoint: import.meta.env?.VITE_CONTACT_ENDPOINT || 'https://script.google.com/macros/s/AKfycby_D3jSGFsjvupIZk7udN8iepZ6oqDHEwd8pJrPdvuvHLBv370QBr5dt1oxU72Ep0mJNQ/exec',
   intents: ['A full-time role', 'A project or collaboration', 'Mentoring', 'A talk or workshop', 'Just saying hi'],
 };
 
