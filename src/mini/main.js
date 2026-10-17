@@ -6,9 +6,13 @@
 // the Journal, campaigns, trophies, the hidden places, the tour and the map) and draws the world
 // with a few hundred simple shapes: a plaza and a gate for each team, its work on billboards, the
 // jamun tree at the centre, a guide at each department and you, walking between them.
+import { inject } from '@vercel/analytics';
 import { capRenderer } from '../compat.js';
 import { repairAllNormals } from '../normals.js';
 import * as THREE from 'three';
+
+// Initialize Vercel Analytics
+inject();
 import { step, finishLoading, hideLoader } from '../loading.js';
 import { loadFonts } from '../type.js';
 import { startAudio, sfx, updateAudio } from '../audio.js';

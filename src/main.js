@@ -1,6 +1,10 @@
+import { inject } from '@vercel/analytics';
 import { capRenderer } from './compat.js'; // first: Safari fixes and the phone texture limit
 import { repairAllNormals } from './normals.js';
 import * as THREE from 'three';
+
+// Initialize Vercel Analytics
+inject();
 import { step, finishLoading, hideLoader } from './loading.js';
 import { loadFonts } from './type.js';
 import { startAudio, sfx, updateAudio, addFilm, audioDebug } from './audio.js';
